@@ -36,7 +36,7 @@
     <h1>Mine the proof.<br>Claim the block.</h1>
     <p>Mine ZEC BLOCKS directly in your browser with ZB-1 application-level SHA-256 proof-of-work. A valid 26-bit proof can be submitted through Noir Wallet and anchored to Zcash Mainnet.</p>
     <div class="actions"><a href="#mining" class="btn gold">Start Mining</a><a href="https://www.zecblocks.xyz" class="btn">Open Marketplace ↗</a><a href="https://docs.zecblocks.xyz" class="btn" target="_blank" rel="noreferrer">Read Protocol</a></div>
-    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Claims Seen</small><b id="claimCount">0</b><span id="claimSyncAge" class="tiny muted" style="display:block;margin-top:3px">server syncing…</span><span id="claimIndexProgress" class="tiny muted" style="display:block;margin-top:2px">availability index: waiting</span></div></div>
+    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Known Claims</small><b id="claimCount">0</b><span id="claimSyncAge" class="tiny muted" style="display:block;margin-top:3px">syncing…</span><span id="claimIndexProgress" class="tiny muted" style="display:block;margin-top:2px">historical index: waiting</span></div></div>
   </div>
   <aside class="card heroSide">
     <div class="heroSideTop"><h2>Next ZEC BLOCK</h2><span class="badge live">LIVE</span></div>
@@ -45,7 +45,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Token availability is checked against the persistent production index plus an exact multi-relay server check before mining.</p></div><span class="badge live">26-BIT LIVE</span></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Known Claims uses live discovery plus a full 5,000-token historical index sweep.</p></div><span class="badge live">26-BIT LIVE</span></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -66,13 +66,13 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay / Use Credit & Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V13 production availability + bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V12.1 bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V12.1 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
     <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
     <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
-    <div class="mini"><div class="kicker">Availability</div><h3><span id="knownClaimed">0</span> global claims seen</h3><p><b id="knownAvailable">Indexing…</b> · <span id="availabilityIndexState">persistent availability index syncing</span>. <b>Find Unclaimed</b> performs an exact server check before it selects a Token ID.</p></div>
+    <div class="mini"><div class="kicker">Availability</div><h3><span id="knownAvailable">5,000</span> known unclaimed</h3><p><span id="knownClaimed">0</span> confirmed/published claim events are currently known by the discovery client. Select any Token ID or use <b>Find Unclaimed</b>.</p></div>
     <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
     <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses redundant public relay events plus connected-wallet recovery for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
   </div>
@@ -114,11 +114,9 @@ const CFG={
   supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,paidClaimFeeZec:'0.0013',paidClaimsActive:true,marketFeeBps:300,
   explorer:'/api/zcash',
   relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band','wss://relay.snort.social','wss://nostr.mom'],
-  nostrKind:30078,relayTag:'zb1-mainnet-v1',
-  supabaseUrl:'https://tvwvenyomlwvjtwxasca.supabase.co',
-  supabaseAnon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY'
+  nostrKind:30078,relayTag:'zb1-mainnet-v1'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,serverSyncBusy:false,serverTimer:null,tokenCheckTimer:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -357,54 +355,6 @@ function updateKnownTokenIndex(events){
   if(set.size!==before)saveKnownTokenIndex(set);
   return set
 }
-
-async function supabaseRpc(name,body={}){
-  const r=await fetch(CFG.supabaseUrl+'/rest/v1/rpc/'+encodeURIComponent(name),{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon,'authorization':'Bearer '+CFG.supabaseAnon},body:JSON.stringify(body||{})
-  });
-  if(!r.ok){let j=null;try{j=await r.json()}catch{};throw new Error(j?.message||j?.error||('Production index HTTP '+r.status))}
-  return r.json()
-}
-function applyServerMiningSnapshot(d){
-  if(!d||typeof d!=='object')return;
-  S.serverClaimTotal=Math.max(Number(S.serverClaimTotal||0),Number(d.claims_seen||0));
-  S.serverCandidateIds=new Set((Array.isArray(d.candidate_ids)?d.candidate_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
-  S.serverVerifiedIds=new Set((Array.isArray(d.verified_ids)?d.verified_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
-  S.serverScanCursor=Math.max(1,Number(d.scan_cursor||1));
-  S.serverScanComplete=!!d.scan_complete;
-  S.serverScanCompletedAt=d.scan_completed_at||null;
-  S.lastServerSnapshot=Date.now();
-  const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
-  updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
-}
-async function loadServerMiningSnapshot({force=false}={}){
-  if(S.serverSyncBusy)return null;
-  if(!force&&S.lastServerSnapshot&&Date.now()-S.lastServerSnapshot<12000)return null;
-  S.serverSyncBusy=true;
-  try{const d=await supabaseRpc('zecblocks_mining_snapshot',{});applyServerMiningSnapshot(d);return d}
-  catch(e){console.warn('production mining snapshot',e);return null}
-  finally{S.serverSyncBusy=false}
-}
-async function serverCheckClaims(tokenIds,{deep=false}={}){
-  const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
-  if(!ids.length)throw new Error('No valid Token IDs to check.');
-  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-check-claims',{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({tokenIds:ids,deep:!!deep})
-  });
-  const j=await r.json().catch(()=>null);
-  if(!r.ok||!j?.ok)throw new Error(j?.error||('Availability server HTTP '+r.status));
-  for(const id of (j.claimed_ids||[]))S.serverCandidateIds.add(Number(id));
-  if(Array.isArray(j.events)&&j.events.length){
-    const evs=j.events.map(x=>normalizeEvent(x));
-    mergeDiscoveryEvents(evs)
-  }else updateAvailabilityCounts();
-  S.lastServerSnapshot=Date.now();
-  updateIndexProgress();updateClaimSyncAge();
-  return j
-}
-async function kickServerClaimIndex(){
-  try{await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-claim-shard-scan',{method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:'{}'})}catch(e){console.warn('server claim shard trigger',e)}
-}
 function relayRetryQueue(){
   try{
     const a=JSON.parse(localStorage.getItem('zb1_relay_retry_v1')||'[]');
@@ -433,10 +383,9 @@ function saveDiscoveryCache(events){
 }
 function updateClaimSyncAge(){
   const el=$('claimSyncAge');if(!el)return;
-  const t=S.lastServerSnapshot||S.lastRelayFetch;
-  if(!t){el.textContent='server syncing…';return}
-  const sec=Math.max(0,Math.floor((Date.now()-t)/1000));
-  el.textContent=sec<4?'server live':`server ${sec}s ago`
+  if(!S.lastRelayFetch){el.textContent='syncing…';return}
+  const sec=Math.max(0,Math.floor((Date.now()-S.lastRelayFetch)/1000));
+  el.textContent=sec<3?'live':`${sec}s ago`
 }
 function saveLocalEvent(e){const a=localEvents();if(!a.some(x=>x.eventId===e.eventId||x.txid&&x.txid===e.txid)){a.push(e);localStorage.setItem('zb1_events_v1',JSON.stringify(a.slice(-10000)))}}
 function nostrSecretHex(){let h=localStorage.getItem('zb1_nostr_sk');return h||null}
@@ -601,18 +550,9 @@ function setClaimStatus(text,kind=''){
   el.style.color=kind==='good'?'#78d594':kind==='bad'?'#ff8989':kind==='warn'?'#f1cc76':'#d8d8d8';
 }
 function updateAvailabilityCounts(){
-  const localUnique=Math.max(S.claims.size,knownTokenIndex().size,S.serverCandidateIds?.size||0);
-  const total=Math.max(Number(S.serverClaimTotal||0),localUnique);
-  $('claimCount').textContent=total.toLocaleString();
-  $('knownClaimed').textContent=total.toLocaleString();
-  if(S.serverScanComplete){
-    $('knownAvailable').textContent=Math.max(0,CFG.supply-(S.serverCandidateIds?.size||0)).toLocaleString()+' indexed clear';
-    $('availabilityIndexState').textContent=`full server sweep complete · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique claimed IDs indexed`;
-  }else{
-    const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
-    $('knownAvailable').textContent='Exact check active';
-    $('availabilityIndexState').textContent=`server history ${pct}% indexed · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique claimed IDs cached`;
-  }
+  const n=Math.max(S.claims.size,knownTokenIndex().size);
+  $('knownClaimed').textContent=n.toLocaleString();
+  $('knownAvailable').textContent=Math.max(0,CFG.supply-n).toLocaleString();
 }
 async function verifyProofFields(ev,target){
   try{
@@ -688,22 +628,17 @@ async function reconcileFeeCredit(){
   finally{S.feeReconcileBusy=false}
 }
 
-async function deepRefreshToken(token,{deep=true}={}){
-  // Production source of truth for availability: persistent DB + exact multi-relay server query.
-  let server=null;
-  try{server=await serverCheckClaims([Number(token)],{deep})}catch(e){console.warn('server exact availability',e)}
-  // Browser relay remains a compatibility/fallback path only; it cannot mark a server-clear token claimed by itself.
-  try{await fetchRelay(Number(token),false)}catch(e){console.warn('browser exact relay fallback',e)}
+async function deepRefreshToken(token){
+  // Exact-token scan for new V7 events, plus a general tag scan for older V4-V6 claims.
+  await fetchRelay(Number(token),true);
   return {
     claim:knownClaimForToken(token),
     intent:activeIntentForToken(token),
-    relayOk:S.relayReadOk,
-    server
+    relayOk:S.relayReadOk
   };
 }
-async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
-  const fresh=refresh?await deepRefreshToken(target.token,{deep}):null;
-  const server=fresh?.server||null;
+async function checkTargetAvailability(target,{refresh=true}={}){
+  if(refresh)await deepRefreshToken(target.token);
 
   const events=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===Number(target.token));
   const checked=[];
@@ -723,15 +658,6 @@ async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
     return {available:false,confirmed:false,event:pending.ev,verify:pending.v};
   }
 
-  if(server&&Array.isArray(server.claimed_ids)&&server.claimed_ids.includes(Number(target.token))){
-    setClaimStatus('CLAIM RECORD FOUND · server index blocks duplicate mining','bad');
-    return {available:false,confirmed:false,event:null,serverCandidate:true};
-  }
-  if(refresh&&(!server||!server.complete)){
-    setClaimStatus('AVAILABILITY SERVER INCOMPLETE · do not mine yet','warn');
-    return {available:false,confirmed:false,event:null,discoveryDown:true};
-  }
-
   const intent=activeIntentForToken(target.token);
   if(intent){
     const pv=await verifyProofFields(intent,target);
@@ -743,12 +669,12 @@ async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
     if(pv.proof&&mine)setClaimStatus('YOUR CLAIM INTENT ACTIVE · final check clear','good');
   }
 
-  if(server?.complete){
-    setClaimStatus('SERVER VERIFIED CLEAR · no claim found','good');
-    return {available:true,confirmed:false,event:null,serverClear:true}
+  if(S.relayReadOk>0)setClaimStatus('NO CLAIM SEEN · discovery scan clear','good');
+  else{
+    setClaimStatus('DISCOVERY UNAVAILABLE · do not mine yet','warn');
+    return {available:false,confirmed:false,event:null,discoveryDown:true}
   }
-  setClaimStatus('AVAILABILITY UNAVAILABLE · do not mine yet','warn');
-  return {available:false,confirmed:false,event:null,discoveryDown:true}
+  return {available:true,confirmed:false,event:null}
 }
 async function loadTarget(){
   try{
@@ -783,57 +709,35 @@ $('findUnclaimedBtn').onclick=async()=>{
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     $('findUnclaimedBtn').disabled=true;
-    setClaimStatus('Checking production availability index…','warn');
-    await loadServerMiningSnapshot({force:true});
+    setClaimStatus('Scanning relays for claimed IDs…','warn');
+    await fetchRelay(null,true);
+    if(S.relayReadOk===0)throw new Error('Claim discovery is unavailable. Try again before mining.');
 
-    const start=Number($('tokenInput').value)||1;
-    let found=null,checked=0;
-    for(let offset=1;offset<=CFG.supply&&!found;){
-      const ids=[];
-      while(ids.length<40&&offset<=CFG.supply){
-        const id=((start-1+offset)%CFG.supply)+1;offset++;
-        if(S.serverCandidateIds.has(id)||knownTokenIndex().has(id)||activeIntentForToken(id))continue;
-        ids.push(id)
-      }
-      if(!ids.length)continue;
-      const quick=await serverCheckClaims(ids,{deep:false});
-      if(!quick.complete)throw new Error('Production availability service could not reach enough relays. Retry shortly.');
-      checked+=ids.length;
-      const candidates=ids.filter(id=>(quick.clear_ids||[]).includes(id));
-      for(const id of candidates.slice(0,8)){
-        // Final exact server recheck before suggesting an ID to a miner.
-        const exact=await serverCheckClaims([id],{deep:true});
-        if(!exact.complete)throw new Error('Deep availability check is temporarily incomplete. Retry shortly.');
-        if((exact.clear_ids||[]).includes(id)){found=id;break}
-      }
+    let start=Number($('tokenInput').value)||1,found=null;
+    for(let step=1;step<=CFG.supply;step++){
+      const id=((start-1+step)%CFG.supply)+1;
+      if(S.claims.has(id)||activeIntentForToken(id))continue;
+
+      // Exact-token query catches V7 events even when a relay truncates its general history.
+      await fetchRelay(id,false);
+      if(!S.claims.has(id)&&!activeIntentForToken(id)){found=id;break}
     }
-    if(!found)throw new Error('No server-verified clear Token ID remains.');
+    if(!found)throw new Error('No discovery-clear Token ID remains.');
     $('tokenInput').value=String(found);S.target=null;S.proof=null;
-    setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');
+    setClaimStatus('DISCOVERY CLEAR · click Load Target','good');
     $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';
     $('submitClaimBtn').disabled=true;$('startMineBtn').disabled=false;
-    toast(`Selected ZEC BLOCK #${found} after production server checks. Click LOAD TARGET for the final source-block check.`);
-  }catch(e){setClaimStatus('Availability check failed','warn');toast(e.message||String(e),8000)}
+    toast('Selected ZEC BLOCK #'+found+'. Click LOAD TARGET for the final deep check before mining.');
+  }catch(e){setClaimStatus('Discovery check failed','warn');toast(e.message||String(e),7000)}
   finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
 };
 $('tokenInput').addEventListener('input',()=>{
-  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
-  const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token),serverKnown=S.serverCandidateIds.has(token);
+  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;
+  const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token);
   if(Number.isInteger(token)&&token>=1&&token<=CFG.supply){
-    if(known||serverKnown){setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');return}
-    if(intent){setClaimStatus('CLAIM INTENT SEEN · click Load Target','warn');return}
-    setClaimStatus('CHECKING SERVER INDEX…','warn');
-    clearTimeout(S.tokenCheckTimer);
-    S.tokenCheckTimer=setTimeout(async()=>{
-      if(Number($('tokenInput').value)!==token)return;
-      try{
-        const r=await serverCheckClaims([token],{deep:false});
-        if(Number($('tokenInput').value)!==token)return;
-        if((r.claimed_ids||[]).includes(token))setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');
-        else if(r.complete)setClaimStatus('NO CLAIM IN SERVER INDEX · Load Target for final deep check','good');
-        else setClaimStatus('SERVER CHECK INCOMPLETE · retry','warn');
-      }catch(e){setClaimStatus('SERVER CHECK UNAVAILABLE · do not mine yet','warn')}
-    },450)
+    if(known){setClaimStatus('KNOWN CLAIM · click Load Target to verify','warn');$('startMineBtn').disabled=true}
+    else if(intent){setClaimStatus('CLAIM INTENT SEEN · click Load Target','warn');$('startMineBtn').disabled=true}
+    else{setClaimStatus('NOT CHECKED · click Load Target','');$('startMineBtn').disabled=true}
   }else setClaimStatus('Select Token ID 1–5000');
 });
 function workerSource(){return `
@@ -1058,7 +962,7 @@ function startClaimWatch(){
   S.claimWatchTimer=setInterval(async()=>{
     if(!S.mining||!S.target)return;
     try{
-      const gate=await checkTargetAvailability(S.target,{refresh:true,deep:false});
+      const gate=await checkTargetAvailability(S.target,{refresh:true});
       if(!gate.available){
         const token=S.target.token;
         stopMining(false);
@@ -1172,12 +1076,14 @@ function startLiveDiscovery(){
 }
 function updateIndexProgress(){
   const el=$('claimIndexProgress');if(!el)return;
-  if(S.serverScanComplete){
-    el.textContent=`availability index: complete · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`;
-    return
+  if(S.indexSweepBusy){
+    const pct=Math.min(100,Math.floor((S.indexSweepCursor/CFG.supply)*100));
+    el.textContent=`historical index: ${pct}% · ${knownTokenIndex().size.toLocaleString()} IDs`
+  }else if(S.indexSweepCursor>=CFG.supply){
+    el.textContent=`historical index: complete · ${knownTokenIndex().size.toLocaleString()} IDs`
+  }else{
+    el.textContent=`historical index: ${Math.floor((S.indexSweepCursor/CFG.supply)*100)}% · ${knownTokenIndex().size.toLocaleString()} IDs`
   }
-  const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
-  el.textContent=`availability index: ${pct}% server-persistent · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`
 }
 async function queryClaimShard(startToken,batchSize=50){
   if(!S.relay||!S.nostr)return [];
@@ -1387,9 +1293,9 @@ function rebuildState(){
   }
   S.listings=listings;S.offers=offers;
   const durableKnown=updateKnownTokenIndex(claims.values());
-  const knownCount=Math.max(claims.size,durableKnown.size,S.serverCandidateIds?.size||0);
-  $('claimCount').textContent=Math.max(Number(S.serverClaimTotal||0),knownCount).toLocaleString();
-  if(CFG.paidClaimsActive&&Math.max(Number(S.serverClaimTotal||0),claims.size)>=CFG.freeClaims)localStorage.setItem('zb1_paid_phase_seen','1');
+  const knownCount=Math.max(claims.size,durableKnown.size);
+  $('claimCount').textContent=knownCount.toLocaleString();
+  if(CFG.paidClaimsActive&&claims.size>=CFG.freeClaims)localStorage.setItem('zb1_paid_phase_seen','1');
   updateAvailabilityCounts();renderMarket();renderPortfolio();updateWalletUI();
 }
 function currentOwner(id){const c=S.claims.get(Number(id));if(!c)return null;let owner=c.ownerCommitment||null;for(const t of S.transfers.filter(x=>Number(x.tokenId)===Number(id)).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))){if(t.fromCommitment&&owner&&t.fromCommitment!==owner)continue;owner=t.toCommitment||owner}return owner}
@@ -1416,7 +1322,7 @@ function renderPortfolio(){
 }
 $('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalance');const r=await loadWalletHistory();await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();updateWalletUI();toast(`Portfolio synced · ${r?.claims||0} wallet claims repaired into discovery.`)}catch(e){toast(e.message||String(e),7000)}};
 $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');if(currentOwner(tokenId)!==S.ownerCommitment)throw new Error('This wallet is not the current owner in the discovery state.');const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;const sig=await signDerived(msg);const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});await publishRelay(e);modal('transferModal',false);$('recipientCommit').value='';toast('Transfer broadcast: '+txid,8000);await fetchRelay()}catch(e){toast(e.message||String(e),8000)}};
-async function refreshAll(){await Promise.allSettled([loadServerMiningSnapshot({force:true}),fetchRelay(null,true)]);await reconcileFeeCredit();updateFeeCreditUI();renderMarket();renderPortfolio()}
+async function refreshAll(){await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
 $('engineSelect').value=localStorage.getItem('zb1_engine_pref')||'auto';
 S.enginePreference=$('engineSelect').value;
@@ -1434,8 +1340,6 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
   await initNostr();
   startLiveDiscovery();
-  await loadServerMiningSnapshot({force:true});
-  kickServerClaimIndex().catch(()=>{});
   try{await resolveGenesis()}catch(e){console.warn(e)}
   try{await connectWallet(true)}catch{}
   await fetchRelay(null,true);
@@ -1444,7 +1348,7 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   updateWalletUI();
   updateIndexProgress();
 
-  // Historical availability indexing is server-side and persistent; browser refreshes never restart it.
+  runClaimIndexSweep().catch(e=>console.warn('historical claim index sweep',e));
 
   // Live subscription handles normal updates immediately.
   // 10-second incremental backfill catches relay messages missed by WebSocket.
@@ -1455,14 +1359,15 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   processRelayRepairQueue().catch(()=>{});
   if(!S.relayRetryTimer)S.relayRetryTimer=setInterval(()=>processRelayRepairQueue().catch(()=>{}),30000);
 
-  if(!S.serverTimer)S.serverTimer=setInterval(async()=>{
-    try{await loadServerMiningSnapshot({force:true})}catch{}
-  },15000);
+  if(!S.indexSweepTimer)S.indexSweepTimer=setInterval(()=>{
+    localStorage.setItem('zb1_claim_index_cursor_v1','1');
+    runClaimIndexSweep({restart:true}).catch(()=>{})
+  },6*60*60*1000);
 
   setInterval(updateClaimSyncAge,1000);
 
   if(!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000)
 })();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadServerMiningSnapshot({force:true}).catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))});
 </script>
 </body></html>

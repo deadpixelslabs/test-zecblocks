@@ -1,17 +1,14 @@
-
 'use strict';
 const CFG={
   genesisTxid:'ecf6fc3a79885f573d79de70a2de85c34667fc1a4fefe034d3a4015269379f0f',
   mailbox:'u1qqjyaypzmvgfnc9uatk5t0f6hmge6htpfck3d366nhx94450crtznujwn8kql9u39uzdqcdg8flzk3tmf32j2p4u0xvx370xwcjjsrmd',
   treasury:'t1b9PCdoCncgoc13CWwWz8tzZZLDYfMaTyz',
-  supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,paidClaimFeeZec:'0.0013',paidClaimsActive:true,marketFeeBps:300,
+  supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,marketFeeBps:300,
   explorer:'/api/zcash',
-  relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band','wss://relay.snort.social','wss://nostr.mom'],
-  nostrKind:30078,relayTag:'zb1-mainnet-v1',
-  supabaseUrl:'https://tvwvenyomlwvjtwxasca.supabase.co',
-  supabaseAnon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY'
+  relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band'],
+  nostrKind:30078,relayTag:'zb1-mainnet-v1'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,serverSyncBusy:false,serverTimer:null,tokenCheckTimer:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map()};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -26,311 +23,7 @@ function concat(...arr){const n=arr.reduce((s,a)=>s+a.length,0),o=new Uint8Array
 function leadingZeroBits(bytes){let n=0;for(const b of bytes){if(b===0){n+=8;continue}for(let m=0x80;(b&m)===0;m>>=1)n++;break}return n}
 function formatRate(hps){if(hps>=1e6)return (hps/1e6).toFixed(2)+' MH/s';if(hps>=1e3)return (hps/1e3).toFixed(1)+' kH/s';return Math.round(hps)+' H/s'}
 function decimalValid(v){return /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/.test(String(v))&&Number(v)>0}
-function zecToZat(v){
-  const s=String(v??'').trim();if(!/^\d+(?:\.\d{1,8})?$/.test(s))return null;
-  const [w,f='']=s.split('.');return BigInt(w)*100000000n+BigInt((f+'00000000').slice(0,8))
-}
-function feeVoucherKey(){return 'zb1_paid_fee_credit_v3_'+String(S.ownerCommitment||'anon')}
-function loadFeeVoucher(){
-  if(!S.ownerCommitment)return null;
-  try{
-    const v=JSON.parse(localStorage.getItem(feeVoucherKey())||'null');
-    if(!v||!/^[0-9a-f]{64}$/i.test(String(v.txid||'')))return null;
-    return v
-  }catch{return null}
-}
-function saveFeeVoucher(v){
-  if(!S.ownerCommitment)return;
-  localStorage.setItem(feeVoucherKey(),JSON.stringify(v));
-  updateFeeCreditUI()
-}
-function clearFeeVoucher(){if(S.ownerCommitment)localStorage.removeItem(feeVoucherKey());updateFeeCreditUI()}
-function updateFeeCreditUI(){
-  const el=$('feeCreditStatus');if(!el)return;
-  const v=loadFeeVoucher();
-  if(!v){el.textContent='None';el.style.color='#d8d8d8';return}
-  if(v.status==='pending'){
-    el.textContent=`PENDING · #${v.attempt?.tokenId||'?'} · ${short(v.txid,7)}`;
-    el.style.color='#f1cc76';return
-  }
-  if(v.status==='consumed'){
-    el.textContent=`CONSUMED · #${v.consumedBy?.tokenId||'?'}`;
-    el.style.color='#777';return
-  }
-  el.textContent=`1 BOUND CLAIM CREDIT · ${short(v.txid,7)}`;
-  el.style.color='#78d594'
-}
-
-function feeTxidOf(e){return String(e?.feeTxid||e?.F||'').toLowerCase()}
-function txOutputAddress(o){return String(o?.address||o?.addr||o?.scriptPubKey?.addresses?.[0]||o?.scriptPubKey?.address||'')}
-
-const B58_ALPH='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-function bytesToBigIntBE(b){let x=0n;for(const v of b)x=(x<<8n)|BigInt(v);return x}
-const SECP_P=0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
-const SECP_N=0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
-const SECP_G={x:0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n,y:0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n};
-function smod(a,m){const r=a%m;return r<0n?r+m:r}
-function spow(a,e,m){let r=1n;a=smod(a,m);while(e>0n){if(e&1n)r=r*a%m;a=a*a%m;e>>=1n}return r}
-function sinv(a,m){if(smod(a,m)===0n)throw new Error('EC inverse of zero');return spow(a,m-2n,m)}
-function pneg(P){return P?{x:P.x,y:smod(-P.y,SECP_P)}:null}
-function padd(P,Q){
-  if(!P)return Q;if(!Q)return P;
-  if(P.x===Q.x&&smod(P.y+Q.y,SECP_P)===0n)return null;
-  let m;
-  if(P.x===Q.x&&P.y===Q.y){
-    if(P.y===0n)return null;
-    m=smod(3n*P.x*P.x*sinv(2n*P.y,SECP_P),SECP_P)
-  }else m=smod((Q.y-P.y)*sinv(Q.x-P.x,SECP_P),SECP_P);
-  const x=smod(m*m-P.x-Q.x,SECP_P),y=smod(m*(P.x-x)-P.y,SECP_P);
-  return {x,y}
-}
-function pmul(k,P){if(!P||k===0n)return null;if(k<0n)return pmul(-k,pneg(P));let R=null,Q=P;while(k>0n){if(k&1n)R=padd(R,Q);Q=padd(Q,Q);k>>=1n}return R}
-function pointFromX(x,odd){
-  if(x<0n||x>=SECP_P)return null;
-  const y2=smod(x*x*x+7n,SECP_P),y0=spow(y2,(SECP_P+1n)/4n,SECP_P);
-  if(smod(y0*y0-y2,SECP_P)!==0n)return null;
-  const y=Boolean(y0&1n)===Boolean(odd)?y0:SECP_P-y0;return {x,y}
-}
-function pointFromPubkey(hex){
-  let b;try{b=hexToBytes(String(hex||'').replace(/^0x/,''))}catch{return null}
-  if(b.length===33&&(b[0]===2||b[0]===3))return pointFromX(bytesToBigIntBE(b.slice(1)),b[0]===3);
-  if(b.length===65&&b[0]===4){
-    const P={x:bytesToBigIntBE(b.slice(1,33)),y:bytesToBigIntBE(b.slice(33,65))};
-    return smod(P.y*P.y-(P.x*P.x*P.x+7n),SECP_P)===0n?P:null
-  }
-  return null
-}
-function compactSize(n){
-  if(n<=0xfc)return new Uint8Array([n]);
-  if(n<=0xffff)return new Uint8Array([0xfd,n&255,(n>>8)&255]);
-  const b=new Uint8Array(5);b[0]=0xfe;new DataView(b.buffer).setUint32(1,n,true);return b
-}
-async function doubleSha256(b){return sha256Bytes(await sha256Bytes(b))}
-async function verifyZcashCompactSignature(message,signature,pubkey){
-  try{
-    const clean=String(signature||'').replace(/^0x/,'').toLowerCase();
-    if(!/^[0-9a-f]{130}$/.test(clean))return false;
-    const sb=hexToBytes(clean),header=sb[0];
-    if(header<27||header>34)return false;
-    const compressed=header>=31,rec=compressed?header-31:header-27;
-    const r=bytesToBigIntBE(sb.slice(1,33)),s=bytesToBigIntBE(sb.slice(33,65));
-    if(r<=0n||r>=SECP_N||s<=0n||s>=SECP_N)return false;
-    const x=r+BigInt(rec>>1)*SECP_N;if(x>=SECP_P)return false;
-    const R=pointFromX(x,(rec&1)===1);if(!R||pmul(SECP_N,R)!==null)return false;
-    const prefix='Zcash Signed Message:\n',pb=enc.encode(prefix),mb=enc.encode(message);
-    const payload=concat(compactSize(prefix.length),pb,compactSize(message.length),mb);
-    const e=bytesToBigIntBE(await doubleSha256(payload))%SECP_N;
-    const Q=pmul(sinv(r,SECP_N),padd(pmul(s,R),pneg(pmul(e,SECP_G)))),E=pointFromPubkey(pubkey);
-    return !!Q&&!!E&&Q.x===E.x&&Q.y===E.y
-  }catch{return false}
-}
-async function txIndexFor(txid,bh){
-  try{
-    const b=await explorerFetch('block',bh);
-    const a=deepFind(b,['transactions','tx']);
-    if(Array.isArray(a)){
-      const i=a.findIndex(x=>String(typeof x==='string'?x:(x?.txid||x?.hash||'')).toLowerCase()===String(txid).toLowerCase());
-      if(i>=0)return i
-    }
-  }catch{}
-  return 0
-}
-async function targetForToken(token){
-  const gh=await resolveGenesis(),sh=gh-Number(token);
-  const b=await explorerFetch('block',sh);
-  const h=String(deepFind(b,['hash','block_hash','blockHash'])||'').toLowerCase();
-  if(!/^[0-9a-f]{64}$/.test(h))throw new Error('Could not resolve source block.');
-  return {token:Number(token),sourceHeight:sh,sourceHash:h}
-}
-
-
-function rol32(x,n){return ((x<<n)|(x>>>(32-n)))>>>0}
-function ripemd160(bytes){
-  const r1=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13];
-  const r2=[5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11];
-  const s1=[11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6];
-  const s2=[8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11];
-  const f=(j,x,y,z)=>j<16?(x^y^z):j<32?((x&y)|(~x&z)):j<48?((x|~y)^z):j<64?((x&z)|(y&~z)):(x^(y|~z));
-  const K1=j=>j<16?0x00000000:j<32?0x5a827999:j<48?0x6ed9eba1:j<64?0x8f1bbcdc:0xa953fd4e;
-  const K2=j=>j<16?0x50a28be6:j<32?0x5c4dd124:j<48?0x6d703ef3:j<64?0x7a6d76e9:0x00000000;
-  const n=bytes.length,bitLen=BigInt(n)*8n,padLen=((56-(n+1)%64)+64)%64;
-  const m=new Uint8Array(n+1+padLen+8);m.set(bytes);m[n]=0x80;for(let i=0;i<8;i++)m[m.length-8+i]=Number((bitLen>>BigInt(8*i))&255n);
-  let h0=0x67452301,h1=0xefcdab89,h2=0x98badcfe,h3=0x10325476,h4=0xc3d2e1f0;const dv=new DataView(m.buffer);
-  for(let off=0;off<m.length;off+=64){
-    const X=new Uint32Array(16);for(let i=0;i<16;i++)X[i]=dv.getUint32(off+i*4,true);
-    let al=h0,bl=h1,cl=h2,dl=h3,el=h4,ar=h0,br=h1,cr=h2,dr=h3,er=h4;
-    for(let j=0;j<80;j++){
-      let t=(rol32((al+f(j,bl,cl,dl)+X[r1[j]]+K1(j))>>>0,s1[j])+el)>>>0;al=el;el=dl;dl=rol32(cl,10);cl=bl;bl=t;
-      t=(rol32((ar+f(79-j,br,cr,dr)+X[r2[j]]+K2(j))>>>0,s2[j])+er)>>>0;ar=er;er=dr;dr=rol32(cr,10);cr=br;br=t
-    }
-    const t=(h1+cl+dr)>>>0;h1=(h2+dl+er)>>>0;h2=(h3+el+ar)>>>0;h3=(h4+al+br)>>>0;h4=(h0+bl+cr)>>>0;h0=t
-  }
-  const out=new Uint8Array(20),odv=new DataView(out.buffer);[h0,h1,h2,h3,h4].forEach((x,i)=>odv.setUint32(i*4,x,true));return out
-}
-function compressPubkeyBytes(b){if(b.length===33&&(b[0]===2||b[0]===3))return b;if(b.length!==65||b[0]!==4)throw new Error('Invalid secp256k1 public key.');const out=new Uint8Array(33);out[0]=(b[64]&1)?3:2;out.set(b.slice(1,33),1);return out}
-function b58encode(bytes){const A='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';let x=bytesToBigIntBE(bytes),s='';while(x>0n){const r=Number(x%58n);s=A[r]+s;x/=58n}for(let i=0;i<bytes.length&&bytes[i]===0;i++)s='1'+s;return s||'1'}
-async function pubkeyToMainnetTAddress(pubkeyHex){const b=compressPubkeyBytes(hexToBytes(String(pubkeyHex||'').replace(/^0x/,'')));const h160=ripemd160(await sha256Bytes(b));const payload=concat(new Uint8Array([0x1c,0xb8]),h160);const chk=(await doubleSha256(payload)).slice(0,4);return b58encode(concat(payload,chk))}
-function pointToUncompressedHex(P){if(!P)throw new Error('Missing public key point.');const xb=new Uint8Array(32),yb=new Uint8Array(32);let x=P.x,y=P.y;for(let i=31;i>=0;i--){xb[i]=Number(x&255n);x>>=8n;yb[i]=Number(y&255n);y>>=8n}return '04'+bytesToHex(xb)+bytesToHex(yb)}
-async function recoverZcashMessagePubkey(message,signature){const clean=String(signature||'').replace(/^0x/,'').toLowerCase();if(!/^[0-9a-f]{130}$/.test(clean))throw new Error('Expected 65-byte compact signature.');const sb=hexToBytes(clean),header=sb[0];if(header<27||header>34)throw new Error('Invalid compact signature header.');const compressed=header>=31,rec=compressed?header-31:header-27;const r=bytesToBigIntBE(sb.slice(1,33)),s=bytesToBigIntBE(sb.slice(33,65));if(r<=0n||r>=SECP_N||s<=0n||s>=SECP_N)throw new Error('Invalid signature scalar.');const x=r+BigInt(rec>>1)*SECP_N;if(x>=SECP_P)throw new Error('Invalid recovery x.');const R=pointFromX(x,(rec&1)===1);if(!R||pmul(SECP_N,R)!==null)throw new Error('Invalid recovery point.');const prefix='Zcash Signed Message:\n',pb=enc.encode(prefix),mb=enc.encode(message);const payload=concat(compactSize(prefix.length),pb,compactSize(message.length),mb);const e=bytesToBigIntBE(await doubleSha256(payload))%SECP_N;const Q=pmul(sinv(r,SECP_N),padd(pmul(s,R),pneg(pmul(e,SECP_G))));return pointToUncompressedHex(Q)}
-function claimFeeReceiptMessage(owner,feeTxid){return `ZB1:FEE:v1|G=${CFG.genesisTxid}|O=${String(owner).toLowerCase()}|F=${String(feeTxid).toLowerCase()}|Z=${CFG.paidClaimFeeZat}`}
-function claimV3Message(x){return `ZB1:CLAIM:v3|G=${CFG.genesisTxid}|T=${Number(x.tokenId)}|N=${String(x.nonce)}|O=${String(x.ownerCommitment).toLowerCase()}|F=${String(x.feeTxid).toLowerCase()}|R=${String(x.feeSig)}|Z=${CFG.paidClaimFeeZat}`}
-
-function txOutputZat(o){
-  const v=o?.valueZat??o?.value_zat??o?.satoshis??o?.value??o?.amount;
-  if(v==null)return null;
-  if(typeof v==='string'&&/^\d+$/.test(v))return BigInt(v);
-  if(typeof v==='number'&&Number.isInteger(v))return BigInt(v);
-  if(typeof v==='number'&&Number.isFinite(v))return BigInt(Math.round(v*1e8));
-  if(typeof v==='string'&&/^\d+\.\d+$/.test(v))return zecToZat(v);
-  return null
-}
-async function verifyPaidClaimFee(txid,{requireConfirmed=true,ownerCommitment=null,feeSig=null}={}){
-  txid=String(txid||'').toLowerCase();if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Invalid protocol-fee TXID.');
-  const tx=await explorerFetch('tx',txid),outs=Array.isArray(tx?.outputs)?tx.outputs:(deepFind(tx,['outputs','vout'])||[]),ins=Array.isArray(tx?.inputs)?tx.inputs:(deepFind(tx,['inputs','vin'])||[]);
-  if(!Array.isArray(outs)||!Array.isArray(ins))throw new Error('Fee transaction transparent inputs/outputs are unavailable.');
-  let paid=0n;for(const o of outs){if(txOutputAddress(o)!==CFG.treasury)continue;const z=txOutputZat(o);if(z!=null)paid+=z}
-  if(paid!==BigInt(CFG.paidClaimFeeZat))throw new Error(`Protocol fee output must be exactly ${CFG.paidClaimFeeZec} ZEC to treasury.`);
-  const bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height']));if(requireConfirmed&&(!Number.isInteger(bh)||bh<=0))throw new Error('Protocol fee transaction is not confirmed yet.');
-  let payerAddress=null,payerPubkey=null;
-  if(ownerCommitment&&feeSig){const fm=claimFeeReceiptMessage(ownerCommitment,txid);payerPubkey=await recoverZcashMessagePubkey(fm,feeSig);payerAddress=await pubkeyToMainnetTAddress(payerPubkey);const inputAddresses=ins.map(txOutputAddress).filter(Boolean);if(!inputAddresses.includes(payerAddress))throw new Error('Fee credit is not bound to the Noir transparent key that signed the fee receipt.')}
-  return {ok:true,confirmed:Number.isInteger(bh)&&bh>0,blockHeight:bh||null,paidZat:paid.toString(),txid,payerAddress,payerPubkey}
-}
-async function waitBoundFeeConfirmation(voucher,timeoutMs=210000){const started=Date.now();while(Date.now()-started<timeoutMs){try{return await verifyPaidClaimFee(voucher.txid,{requireConfirmed:true,ownerCommitment:S.ownerCommitment,feeSig:voucher.feeSig})}catch(e){if(!/not confirmed/i.test(String(e.message||e)))throw e}$('mineStatus').textContent='Fee credit paid · waiting for Zcash confirmation…';await new Promise(r=>setTimeout(r,10000))}throw new Error('Fee transaction is still waiting for confirmation. Your paid claim credit is saved; try Submit Claim again after it confirms.')}
-function transparentBalanceZat(){const z=zecToZat(S.balance?.transparent??'0');return z==null?0n:z}
-async function refreshBalance(){try{S.balance=await rpc('zcash_getBalance');updateWalletUI();return S.balance}catch{return S.balance}}
-async function ensureTransparentFunding(){await refreshBalance();if(transparentBalanceZat()>=200000n)return true;const addr=String(S.connection?.transparent||'');if(!/^t[13][A-Za-z0-9]{20,}$/.test(addr))throw new Error('Noir Wallet did not expose a mainnet transparent address.');const ok=window.confirm('Your transparent balance is too low for the 0.0013 ZEC paid-claim fee. Move 0.002 ZEC from your shielded balance to your own transparent address now? This creates a public link between this top-up and your transparent address.');if(!ok)throw new Error('Transparent fee funding is required for V12.1 bound claim credits.');toast('Approve the 0.002 ZEC Shielded → Transparent self-transfer in Noir Wallet.',9000);const txid=String(await rpc('zcash_sendTransaction',[{to:addr,amount:'0.002',fundingSource:'shielded'}])).toLowerCase();throw new Error(`Transparent top-up broadcast (${short(txid,8)}). Wait for it to confirm, then click Submit Claim again. No protocol fee has been paid yet.`)}
-
-async function acquirePaidClaimFee(){
-  let existing=loadFeeVoucher();
-  if(existing?.status==='pending'){await reconcileFeeCredit();existing=loadFeeVoucher();if(existing?.status==='pending')throw new Error(`Your previous paid claim #${existing.attempt?.tokenId||'?'} is still unresolved. V12.1 will not charge another fee.`)}
-  if(existing&&existing.status!=='consumed'){if(!existing.feeSig)throw new Error('Old unbound fee voucher detected. Use Recover Fee Credit to bind it to this Noir wallet before reuse.');await verifyPaidClaimFee(existing.txid,{requireConfirmed:false,ownerCommitment:S.ownerCommitment,feeSig:existing.feeSig});existing.status='available';existing.attempt=null;saveFeeVoucher(existing);toast('Using your existing bound 0.0013 ZEC claim credit. No second protocol fee.',7000);return existing}
-  await ensureTransparentFunding();
-  const currentKey=await rpc('zcash_getPublicKey',[{signingMode:'current'}]),currentAddr=String(currentKey?.address||'');if(currentAddr!==String(S.connection?.transparent||''))throw new Error('Noir current signing key does not match the connected transparent address.');
-  $('mineStatus').textContent='Approve bound 0.0013 ZEC protocol fee…';toast(`Approve exactly ${CFG.paidClaimFeeZec} ZEC from TRANSPARENT funds to the ZEC BLOCKS treasury.`,10000);
-  const txid=String(await rpc('zcash_sendTransaction',[{to:CFG.treasury,amount:CFG.paidClaimFeeZec,fundingSource:'transparent'}])).toLowerCase();if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid fee TXID.');
-  const feeMsg=claimFeeReceiptMessage(S.ownerCommitment,txid),receipt=await rpc('zcash_signMessage',[feeMsg,{signingMode:'current'}]);if(String(receipt?.address||'')!==currentAddr)throw new Error('Noir fee-receipt signer changed unexpectedly.');const recovered=await recoverZcashMessagePubkey(feeMsg,receipt.signature),recoveredAddr=await pubkeyToMainnetTAddress(recovered);if(recoveredAddr!==currentAddr)throw new Error('Fee receipt signature does not recover to the transparent fee-payer address.');
-  const v={txid,status:'available',ownerCommitment:S.ownerCommitment,createdAt:Math.floor(Date.now()/1000),amountZat:CFG.paidClaimFeeZat,feeSig:receipt.signature,payerAddress:currentAddr,attempt:null};saveFeeVoucher(v);await waitBoundFeeConfirmation(v);return v
-}
-async function recoverFeeCredit(){try{if(!S.ownerCommitment||!S.connection)throw new Error('Connect the same Noir Wallet first.');const txid=String(window.prompt('Paste your 0.0013 ZEC protocol-fee TXID:')||'').trim().toLowerCase();if(!txid)return;if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Invalid 64-character TXID.');const currentKey=await rpc('zcash_getPublicKey',[{signingMode:'current'}]),currentAddr=String(currentKey?.address||'');if(currentAddr!==String(S.connection.transparent||''))throw new Error('Current Noir signing address mismatch.');const feeMsg=claimFeeReceiptMessage(S.ownerCommitment,txid),receipt=await rpc('zcash_signMessage',[feeMsg,{signingMode:'current'}]);const v={txid,status:'available',ownerCommitment:S.ownerCommitment,createdAt:Math.floor(Date.now()/1000),amountZat:CFG.paidClaimFeeZat,feeSig:receipt.signature,payerAddress:currentAddr,attempt:null,recovered:true};await verifyPaidClaimFee(txid,{requireConfirmed:true,ownerCommitment:S.ownerCommitment,feeSig:v.feeSig});saveFeeVoucher(v);toast('Fee credit recovered and cryptographically bound to this Noir wallet.',9000)}catch(e){toast(e.message||String(e),10000)}}
-$('recoverFeeBtn').onclick=recoverFeeCredit;
-
 function localEvents(){try{return JSON.parse(localStorage.getItem('zb1_events_v1')||'[]')}catch{return[]}}
-function discoveryCache(){
-  try{
-    const a=JSON.parse(sessionStorage.getItem('zb1_mining_discovery_v1')||'[]');
-    return Array.isArray(a)?a:[]
-  }catch{return[]}
-}
-function knownTokenIndex(){
-  try{
-    const a=JSON.parse(localStorage.getItem('zb1_known_claim_tokens_v1')||'[]');
-    return new Set((Array.isArray(a)?a:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))
-  }catch{return new Set()}
-}
-function saveKnownTokenIndex(set){
-  try{localStorage.setItem('zb1_known_claim_tokens_v1',JSON.stringify([...set].sort((a,b)=>a-b)))}catch(e){console.warn('known token index save',e)}
-}
-function structurallyValidClaim(e){
-  const id=Number(e?.tokenId);
-  if(e?.type!=='CLAIM'||!Number.isInteger(id)||id<1||id>CFG.supply)return false;
-  if(!/^[0-9a-f]{64}$/i.test(String(e.txid||'')))return false;
-  if(!/^\d+$/.test(String(e.nonce??'')))return false;
-  if(Number(e.v)>=3){
-    if(!/^[0-9a-f]{64}$/i.test(String(e.ownerCommitment||'')))return false;
-    if(!/^[0-9a-f]{64}$/i.test(String(e.feeTxid||'')))return false
-  }else{
-    const owner=String(e.ownerCommitment||''),pub=String(e.pubkey||'');
-    if(!/^[0-9a-f]{64}$/i.test(owner)&&(!/^[0-9a-f]+$/i.test(pub)||pub.length%2))return false
-  }
-  return true
-}
-function updateKnownTokenIndex(events){
-  const set=knownTokenIndex(),before=set.size;
-  for(const e of events||[])if(structurallyValidClaim(e))set.add(Number(e.tokenId));
-  if(set.size!==before)saveKnownTokenIndex(set);
-  return set
-}
-
-async function supabaseRpc(name,body={}){
-  const r=await fetch(CFG.supabaseUrl+'/rest/v1/rpc/'+encodeURIComponent(name),{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon,'authorization':'Bearer '+CFG.supabaseAnon},body:JSON.stringify(body||{})
-  });
-  if(!r.ok){let j=null;try{j=await r.json()}catch{};throw new Error(j?.message||j?.error||('Production index HTTP '+r.status))}
-  return r.json()
-}
-function applyServerMiningSnapshot(d){
-  if(!d||typeof d!=='object')return;
-  S.serverClaimTotal=Math.max(Number(S.serverClaimTotal||0),Number(d.claims_seen||0));
-  S.serverCandidateIds=new Set((Array.isArray(d.candidate_ids)?d.candidate_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
-  S.serverVerifiedIds=new Set((Array.isArray(d.verified_ids)?d.verified_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
-  S.serverScanCursor=Math.max(1,Number(d.scan_cursor||1));
-  S.serverScanComplete=!!d.scan_complete;
-  S.serverScanCompletedAt=d.scan_completed_at||null;
-  S.lastServerSnapshot=Date.now();
-  const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
-  updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
-}
-async function loadServerMiningSnapshot({force=false}={}){
-  if(S.serverSyncBusy)return null;
-  if(!force&&S.lastServerSnapshot&&Date.now()-S.lastServerSnapshot<12000)return null;
-  S.serverSyncBusy=true;
-  try{const d=await supabaseRpc('zecblocks_mining_snapshot',{});applyServerMiningSnapshot(d);return d}
-  catch(e){console.warn('production mining snapshot',e);return null}
-  finally{S.serverSyncBusy=false}
-}
-async function serverCheckClaims(tokenIds,{deep=false}={}){
-  const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
-  if(!ids.length)throw new Error('No valid Token IDs to check.');
-  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-check-claims',{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({tokenIds:ids,deep:!!deep})
-  });
-  const j=await r.json().catch(()=>null);
-  if(!r.ok||!j?.ok)throw new Error(j?.error||('Availability server HTTP '+r.status));
-  for(const id of (j.claimed_ids||[]))S.serverCandidateIds.add(Number(id));
-  if(Array.isArray(j.events)&&j.events.length){
-    const evs=j.events.map(x=>normalizeEvent(x));
-    mergeDiscoveryEvents(evs)
-  }else updateAvailabilityCounts();
-  S.lastServerSnapshot=Date.now();
-  updateIndexProgress();updateClaimSyncAge();
-  return j
-}
-async function kickServerClaimIndex(){
-  try{await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-claim-shard-scan',{method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:'{}'})}catch(e){console.warn('server claim shard trigger',e)}
-}
-function relayRetryQueue(){
-  try{
-    const a=JSON.parse(localStorage.getItem('zb1_relay_retry_v1')||'[]');
-    return Array.isArray(a)?a:[]
-  }catch{return[]}
-}
-function saveRelayRetryQueue(a){
-  try{localStorage.setItem('zb1_relay_retry_v1',JSON.stringify((a||[]).slice(-500)))}catch{}
-}
-function queueRelayRepair(e){
-  if(e?.type!=='CLAIM')return;
-  const a=relayRetryQueue(),k=String(e.txid||e.eventId||'');
-  if(!k)return;
-  const i=a.findIndex(x=>String(x.txid||x.eventId||'')===k);
-  const item={...e,_retryAt:Date.now(),_retryCount:Number(i>=0?a[i]._retryCount:0)};
-  if(i>=0)a[i]=item;else a.push(item);
-  saveRelayRetryQueue(a)
-}
-function saveDiscoveryCache(events){
-  try{
-    const a=[...events]
-      .sort((x,y)=>(Number(x.timestamp)||0)-(Number(y.timestamp)||0))
-      .slice(-10000);
-    sessionStorage.setItem('zb1_mining_discovery_v1',JSON.stringify(a))
-  }catch(e){console.warn('mining discovery cache',e)}
-}
-function updateClaimSyncAge(){
-  const el=$('claimSyncAge');if(!el)return;
-  const t=S.lastServerSnapshot||S.lastRelayFetch;
-  if(!t){el.textContent='server syncing…';return}
-  const sec=Math.max(0,Math.floor((Date.now()-t)/1000));
-  el.textContent=sec<4?'server live':`server ${sec}s ago`
-}
 function saveLocalEvent(e){const a=localEvents();if(!a.some(x=>x.eventId===e.eventId||x.txid&&x.txid===e.txid)){a.push(e);localStorage.setItem('zb1_events_v1',JSON.stringify(a.slice(-10000)))}}
 function nostrSecretHex(){let h=localStorage.getItem('zb1_nostr_sk');return h||null}
 function setNostrSecretHex(h){localStorage.setItem('zb1_nostr_sk',h)}
@@ -348,7 +41,7 @@ async function connectWallet(silent=false){
     p.on?.('accountsChanged',()=>connectWallet(true).catch(()=>{}));
   }catch(e){if(!silent)toast(e.message||String(e),7000)}
 }
-function updateWalletUI(){updateFeeCreditUI();
+function updateWalletUI(){
   const connected=!!S.connection;
   $('walletBtn').textContent=connected?short(S.ownerCommitment,6):'Connect Noir Wallet';
   $('ownerCommit').textContent=connected?short(S.ownerCommitment,12):'Connect wallet';
@@ -359,112 +52,19 @@ function updateWalletUI(){updateFeeCreditUI();
 }
 $('walletBtn').onclick=()=>connectWallet(false);
 async function loadWalletHistory(){
-  if(!S.connection)return {seen:0,claims:0};
-  let seen=0,claims=0;
-  try{
-    const hist=await rpc('zcash_getTransactionHistory');
-    for(const h of (hist||[])){
-      const memo=String(h.memo||'').trim();
-      if(!memo.startsWith('ZB1|'))continue;
-      const e=parseMemo(memo); if(!e)continue;
-      seen++;
-      e.txid=String(h.txid||'').toLowerCase();
-      e.status=h.status;
-      let ts=Number(h.timestamp)||Math.floor(Date.now()/1000);
-      if(ts>20_000_000_000)ts=Math.floor(ts/1000);
-      e.timestamp=ts;
-      e.source='wallet-history';
-
-      if(e.type==='CLAIM'){
-        const token=Number(e.tokenId);
-        if(!Number.isInteger(token)||token<1||token>CFG.supply)continue;
-        if(!/^\d+$/.test(String(e.nonce||'')))continue;
-        if(Number(e.v)>=3){
-          if(!/^[0-9a-f]{64}$/i.test(String(e.ownerCommitment||''))||!/^[0-9a-f]{130}$/i.test(String(e.signature||'').replace(/^0x/,'')))continue;
-          e.ownerCommitment=String(e.ownerCommitment).toLowerCase()
-        }else{
-          if(!/^[0-9a-fA-F]+$/.test(String(e.pubkey||''))||String(e.pubkey).length%2)continue;
-          e.ownerCommitment=await sha256HexBytes(hexToBytes(e.pubkey))
-        }
-
-        try{
-          const gh=await resolveGenesis();
-          e.sourceHeight=gh-token;
-          const b=await explorerFetch('block',e.sourceHeight);
-          e.sourceHash=String(deepFind(b,['hash','block_hash','blockHash'])||'').toLowerCase();
-          if(!/^[0-9a-f]{64}$/.test(e.sourceHash))continue;
-          const pre=concat(
-            enc.encode('ZB1:MINE:v1'),
-            hexToBytes(CFG.genesisTxid),
-            u32le(token),
-            hexToBytes(e.sourceHash),
-            hexToBytes(e.ownerCommitment),
-            u64le(BigInt(e.nonce))
-          );
-          const proof=await sha256Bytes(pre);
-          e.proofHash=bytesToHex(proof);
-          e.proofBits=leadingZeroBits(proof);
-          if(e.proofBits<CFG.powBits)continue;
-        }catch(err){
-          console.warn('wallet claim rebuild',err);
-          continue;
-        }
-
-        const ne=normalizeEvent(e);
-        saveLocalEvent(ne);
-        updateKnownTokenIndex([ne]);
-        claims++;
-
-        // Self-heal old claims that confirmed on Zcash but were missed by Nostr discovery.
-        const repairKey='zb1_claim_repair_'+(ne.txid||token);
-        const last=Number(localStorage.getItem(repairKey)||0);
-        if(S.nostr&&S.relay&&Date.now()-last>6*60*60*1000){
-          try{
-            await publishRelay(ne,{fallback:false,repair:true});
-            localStorage.setItem(repairKey,String(Date.now()));
-          }catch(err){console.warn('claim discovery repair',err)}
-        }
-      }else{
-        saveLocalEvent(normalizeEvent(e));
-      }
-    }
-  }catch(e){console.warn('history',e)}
-  return {seen,claims};
+  if(!S.connection)return;
+  try{const hist=await rpc('zcash_getTransactionHistory');for(const h of (hist||[])){const memo=h.memo||'';if(memo.startsWith('ZB1|')){const e=parseMemo(memo);if(e){e.txid=h.txid;e.status=h.status;e.timestamp=h.timestamp||Date.now()/1000;e.source='wallet';saveLocalEvent(normalizeEvent(e))}}}}catch(e){console.warn('history',e)}
 }
-function parseMemo(m){const p=m.split('|');if(p[0]!=='ZB1'||p.length<3)return null;const type={C:'CLAIM',T:'TRANSFER'}[p[1]]||p[1];const e={protocol:'ZB1',type,v:Number(p[2])||1,memo:m};for(const x of p.slice(3)){const i=x.indexOf('=');if(i>0)e[x.slice(0,i)]=x.slice(i+1)}if(type==='CLAIM'){e.tokenId=Number(e.T);e.nonce=e.N;e.pubkey=e.K;e.ownerCommitment=e.O||null;e.signature=e.S;e.feeTxid=String(e.F||'').toLowerCase();e.feeSig=e.R||null;e.feeZat=e.Z?Number(e.Z):null}else if(type==='TRANSFER'){e.tokenId=Number(e.I);e.toCommitment=e.O;e.pubkey=e.K;e.signature=e.S}return e}
+function parseMemo(m){const p=m.split('|');if(p[0]!=='ZB1'||p.length<3)return null;const type={C:'CLAIM',T:'TRANSFER'}[p[1]]||p[1];const e={protocol:'ZB1',type,v:Number(p[2])||1,memo:m};for(const x of p.slice(3)){const i=x.indexOf('=');if(i>0)e[x.slice(0,i)]=x.slice(i+1)}if(type==='CLAIM'){e.tokenId=Number(e.T);e.nonce=e.N;e.pubkey=e.K;e.signature=e.S}else if(type==='TRANSFER'){e.tokenId=Number(e.I);e.toCommitment=e.O;e.pubkey=e.K;e.signature=e.S}return e}
 function normalizeEvent(e){return {...e,eventId:e.eventId||e.txid||crypto.randomUUID(),timestamp:Number(e.timestamp)||Math.floor(Date.now()/1000)}}
-const CHAIN_REQ_CACHE=new Map(),CHAIN_REQ_INFLIGHT=new Map();
-function chainClientTtl(kind){
-  return kind==='block'?12000:kind==='tx'?5000:kind==='health'?8000:7000
-}
-async function chainProxyJson(url,key,kind){
-  const cached=CHAIN_REQ_CACHE.get(key),t=Date.now();
-  if(cached&&cached.until>t)return cached.data;
-  if(CHAIN_REQ_INFLIGHT.has(key))return CHAIN_REQ_INFLIGHT.get(key);
-  const job=(async()=>{
-    let r;
-    try{r=await fetch(url,{headers:{accept:'application/json'}})}
-    catch(e){throw new Error('Chain-data proxy unreachable. Upload the api/zcash.js file together with index.html.')}
-    let j=null;try{j=await r.json()}catch{}
-    if(!r.ok){
-      const retry=r.status===429?' Chain provider is rate-limited; retry shortly.':'';
-      throw new Error((j?.error||('Chain-data proxy error '+r.status))+retry)
-    }
-    const data=j?.data??j;
-    CHAIN_REQ_CACHE.set(key,{data,until:Date.now()+chainClientTtl(kind)});
-    if(CHAIN_REQ_CACHE.size>350){
-      const first=CHAIN_REQ_CACHE.keys().next().value;
-      CHAIN_REQ_CACHE.delete(first)
-    }
-    return data
-  })().finally(()=>CHAIN_REQ_INFLIGHT.delete(key));
-  CHAIN_REQ_INFLIGHT.set(key,job);
-  return job
-}
 async function explorerFetch(kind,id){
   const url=CFG.explorer+'?kind='+encodeURIComponent(kind)+(id!=null?'&id='+encodeURIComponent(String(id)):'');
-  const key=kind+'|'+String(id??'');
-  return chainProxyJson(url,key,kind)
+  let r;
+  try{r=await fetch(url,{headers:{accept:'application/json'},cache:'no-store'})}
+  catch(e){throw new Error('Chain-data proxy unreachable. Upload the api/zcash.js file together with index.html.')}
+  let j=null;try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(j?.error||('Chain-data proxy error '+r.status));
+  return j?.data??j;
 }
 function deepFind(obj,keys){if(!obj||typeof obj!=='object')return null;for(const k of keys)if(obj[k]!=null)return obj[k];for(const v of Object.values(obj)){if(v&&typeof v==='object'){const x=deepFind(v,keys);if(x!=null)return x}}return null}
 async function resolveGenesis(){
@@ -482,172 +82,57 @@ function updateGenesisUI(){if(!S.genesisHeight)return;$('gHeight').textContent=S
 function knownClaimForToken(token){
   return S.claims.get(Number(token))||null;
 }
-function activeIntentForToken(token){
-  const e=S.intents.get(Number(token))||null;
-  if(!e)return null;
-  if(Number(e.expires||0)<=Math.floor(Date.now()/1000))return null;
-  return e;
-}
 function setClaimStatus(text,kind=''){
   const el=$('claimStatus'); if(!el)return;
   el.textContent=text;
   el.style.color=kind==='good'?'#78d594':kind==='bad'?'#ff8989':kind==='warn'?'#f1cc76':'#d8d8d8';
 }
 function updateAvailabilityCounts(){
-  const localUnique=Math.max(S.claims.size,knownTokenIndex().size,S.serverCandidateIds?.size||0);
-  const total=Math.max(Number(S.serverClaimTotal||0),localUnique);
-  $('claimCount').textContent=total.toLocaleString();
-  $('knownClaimed').textContent=total.toLocaleString();
-  if(S.serverScanComplete){
-    $('knownAvailable').textContent=Math.max(0,CFG.supply-(S.serverCandidateIds?.size||0)).toLocaleString()+' indexed clear';
-    $('availabilityIndexState').textContent=`full server sweep complete · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique claimed IDs indexed`;
-  }else{
-    const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
-    $('knownAvailable').textContent='Exact check active';
-    $('availabilityIndexState').textContent=`server history ${pct}% indexed · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique claimed IDs cached`;
-  }
-}
-async function verifyProofFields(ev,target){
-  try{
-    if(!ev||!target)return {proof:false};
-    const owner=String(ev.ownerCommitment||'').toLowerCase(),nonce=String(ev.nonce??'');
-    if(!/^[0-9a-f]{64}$/.test(owner)||!/^\d+$/.test(nonce))return {proof:false};
-    if(ev.sourceHash&&String(ev.sourceHash).toLowerCase()!==target.sourceHash)return {proof:false};
-    if(ev.sourceHeight&&Number(ev.sourceHeight)!==target.sourceHeight)return {proof:false};
-    const pre=concat(
-      enc.encode('ZB1:MINE:v1'),
-      hexToBytes(CFG.genesisTxid),
-      u32le(target.token),
-      hexToBytes(target.sourceHash),
-      hexToBytes(owner),
-      u64le(BigInt(nonce))
-    );
-    const h=await sha256Bytes(pre);
-    return {proof:leadingZeroBits(h)>=CFG.powBits,hash:bytesToHex(h),bits:leadingZeroBits(h)};
-  }catch{return {proof:false}}
+  const n=S.claims.size;
+  $('knownClaimed').textContent=n.toLocaleString();
+  $('knownAvailable').textContent=Math.max(0,CFG.supply-n).toLocaleString();
 }
 async function verifyClaimCandidate(ev,target){
   try{
-    if(!ev||!target)return {confirmed:false,proof:false};if(ev.memo){const pm=parseMemo(String(ev.memo));if(pm)ev={...pm,...ev,signature:ev.signature||pm.signature,feeSig:ev.feeSig||pm.feeSig,feeTxid:ev.feeTxid||pm.feeTxid,ownerCommitment:ev.ownerCommitment||pm.ownerCommitment}}
-    if(Number(ev.v)>=3){
-      const owner=String(ev.ownerCommitment||'').toLowerCase(),f=feeTxidOf(ev),R=String(ev.feeSig||'');if(!/^[0-9a-f]{64}$/.test(owner)||!/^[0-9a-f]{64}$/.test(f)||!/^[0-9a-f]{130}$/i.test(R.replace(/^0x/,'')))return {confirmed:false,proof:false,reason:'bad-v3-fields'};
-      const signed=claimV3Message({tokenId:ev.tokenId,nonce:ev.nonce,ownerCommitment:owner,feeTxid:f,feeSig:R}),ownerPub=await recoverZcashMessagePubkey(signed,ev.signature),derivedOwner=await sha256HexBytes(hexToBytes(ownerPub));if(derivedOwner.toLowerCase()!==owner)return {confirmed:false,proof:false,signature:false,reason:'owner-signature-mismatch'};ev.ownerCommitment=owner;
-      const pv=await verifyProofFields(ev,target);if(!pv.proof)return {confirmed:false,proof:false};let fee;try{fee=await verifyPaidClaimFee(f,{requireConfirmed:true,ownerCommitment:owner,feeSig:R})}catch(e){return {confirmed:false,proof:true,signature:true,fee:false,reason:e.message||String(e),feeTxid:f}}
-      if(!ev.txid||!/^[0-9a-f]{64}$/i.test(ev.txid))return {confirmed:false,proof:true,signature:true,fee:true};const tx=await explorerFetch('tx',ev.txid),bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height']));if(!Number.isInteger(bh)||bh<=0)return {confirmed:false,proof:true,signature:true,fee:true};const ti=await txIndexFor(ev.txid,bh);if(fee.blockHeight>bh)return {confirmed:false,proof:true,signature:true,fee:false,reason:'fee-after-claim'};if(fee.blockHeight===bh){const fi=await txIndexFor(f,bh);if(fi>=ti)return {confirmed:false,proof:true,signature:true,fee:false,reason:'fee-not-before-claim'}}return {confirmed:true,proof:true,signature:true,fee:true,blockHeight:bh,txIndex:ti,txid:String(ev.txid).toLowerCase(),feeTxid:f,payerAddress:fee.payerAddress}
-    }
-    const pv=await verifyProofFields(ev,target);if(!pv.proof)return {confirmed:false,proof:false};if(!ev.txid||!/^[0-9a-f]{64}$/i.test(ev.txid))return {confirmed:false,proof:true};if(Number(ev.v)>=2){const f=feeTxidOf(ev);if(!f)return {confirmed:false,proof:true,fee:false};try{await verifyPaidClaimFee(f,{requireConfirmed:true})}catch(e){return {confirmed:false,proof:true,fee:false,reason:e.message||String(e)}}}const tx=await explorerFetch('tx',ev.txid),bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height'])),confirmed=Number.isInteger(bh)&&bh>0,ti=confirmed?await txIndexFor(ev.txid,bh):null;return {confirmed,proof:true,signature:'legacy',fee:Number(ev.v)>=2?true:'legacy',blockHeight:bh||null,txIndex:ti,txid:String(ev.txid).toLowerCase(),feeTxid:feeTxidOf(ev)||null}
-  }catch(e){return {confirmed:false,proof:false,reason:e.message||String(e)}}
+    if(!ev||!target||!ev.txid||!/^[0-9a-f]{64}$/i.test(ev.txid))return {confirmed:false,proof:false};
+    const owner=String(ev.ownerCommitment||'').toLowerCase(),nonce=String(ev.nonce??'');
+    if(!/^[0-9a-f]{64}$/.test(owner)||!/^\d+$/.test(nonce))return {confirmed:false,proof:false};
+    if(ev.sourceHash&&String(ev.sourceHash).toLowerCase()!==target.sourceHash)return {confirmed:false,proof:false};
+    if(ev.sourceHeight&&Number(ev.sourceHeight)!==target.sourceHeight)return {confirmed:false,proof:false};
+    const pre=concat(enc.encode('ZB1:MINE:v1'),hexToBytes(CFG.genesisTxid),u32le(target.token),hexToBytes(target.sourceHash),hexToBytes(owner),u64le(BigInt(nonce)));
+    const h=await sha256Bytes(pre);
+    if(leadingZeroBits(h)<CFG.powBits)return {confirmed:false,proof:false};
+    let tx=null;
+    try{tx=await explorerFetch('tx',ev.txid)}catch{}
+    const bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height']));
+    return {confirmed:Number.isInteger(bh)&&bh>0,proof:true,blockHeight:bh||null,txid:ev.txid};
+  }catch{return {confirmed:false,proof:false}}
 }
-async function canonicalWinnerForToken(token){
-  token=Number(token);
-  await fetchRelay(token,true);
-  const target=await targetForToken(token);
-  const candidates=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===token);
-  const valid=[];
-  for(const e of candidates){
-    const v=await verifyClaimCandidate({...e},target);
-    if(v.confirmed&&v.proof)valid.push({event:e,verify:v})
+async function checkTargetAvailability(target,{refresh=true}={}){
+  if(refresh)await fetchRelay();
+  const ev=knownClaimForToken(target.token);
+  if(!ev){
+    setClaimStatus('AVAILABLE · no known claim','good');
+    return {available:true,confirmed:false,event:null};
   }
-  valid.sort((a,b)=>(a.verify.blockHeight-b.verify.blockHeight)||(a.verify.txIndex-b.verify.txIndex)||String(a.verify.txid).localeCompare(String(b.verify.txid)));
-  return {winner:valid[0]||null,candidates:valid,target}
-}
-
-async function reconcileFeeCredit(){
-  if(S.feeReconcileBusy||!S.ownerCommitment)return loadFeeVoucher();
-  let v=loadFeeVoucher();if(!v){updateFeeCreditUI();return null}
-  if(v.status!=='pending'){updateFeeCreditUI();return v}
-  const a=v.attempt;
-  if(!a?.tokenId||!/^[0-9a-f]{64}$/i.test(String(a.claimTxid||''))){v.status='available';v.attempt=null;saveFeeVoucher(v);return v}
-
-  S.feeReconcileBusy=true;
-  try{
-    const r=await canonicalWinnerForToken(a.tokenId);
-    if(!r.winner){updateFeeCreditUI();return v}
-
-    const winTx=String(r.winner.verify.txid||'').toLowerCase();
-    const myTx=String(a.claimTxid||'').toLowerCase();
-    if(winTx===myTx){
-      v.status='consumed';v.consumedAt=Math.floor(Date.now()/1000);
-      v.consumedBy={tokenId:Number(a.tokenId),claimTxid:myTx};
-      v.attempt=null;saveFeeVoucher(v);
-      toast(`Claim confirmed: ZEC BLOCK #${a.tokenId}. Your 0.0013 ZEC claim credit is now consumed.`,9000);
-    }else{
-      v.status='available';v.releasedAt=Math.floor(Date.now()/1000);
-      v.lastLostAttempt={...a,winnerTxid:winTx};v.attempt=null;saveFeeVoucher(v);
-      toast(`ZEC BLOCK #${a.tokenId} was won by an earlier confirmed claim. Your 0.0013 ZEC protocol fee remains as 1 reusable claim credit.`,11000);
-    }
-    return v
-  }catch(e){console.warn('fee credit reconcile',e);updateFeeCreditUI();return v}
-  finally{S.feeReconcileBusy=false}
-}
-
-async function deepRefreshToken(token,{deep=true}={}){
-  // Production source of truth for availability: persistent DB + exact multi-relay server query.
-  let server=null;
-  try{server=await serverCheckClaims([Number(token)],{deep})}catch(e){console.warn('server exact availability',e)}
-  // Browser relay remains a compatibility/fallback path only; it cannot mark a server-clear token claimed by itself.
-  try{await fetchRelay(Number(token),false)}catch(e){console.warn('browser exact relay fallback',e)}
-  return {
-    claim:knownClaimForToken(token),
-    intent:activeIntentForToken(token),
-    relayOk:S.relayReadOk,
-    server
-  };
-}
-async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
-  const fresh=refresh?await deepRefreshToken(target.token,{deep}):null;
-  const server=fresh?.server||null;
-
-  const events=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===Number(target.token));
-  const checked=[];
-  for(const ev of events){
-    const v=await verifyClaimCandidate({...ev},target);
-    checked.push({ev,v})
+  setClaimStatus('CLAIM DETECTED · verifying…','warn');
+  const v=await verifyClaimCandidate(ev,target);
+  if(v.proof&&v.confirmed){
+    setClaimStatus('CLAIMED · confirmed on Zcash','bad');
+    return {available:false,confirmed:true,event:ev,verify:v};
   }
-  const confirmed=checked.filter(x=>x.v.proof&&x.v.confirmed).sort((a,b)=>(a.v.blockHeight-b.v.blockHeight)||(a.v.txIndex-b.v.txIndex)||String(a.v.txid).localeCompare(String(b.v.txid)));
-  if(confirmed.length){
-    const x=confirmed[0];
-    setClaimStatus('CLAIMED · confirmed canonical candidate on Zcash','bad');
-    return {available:false,confirmed:true,event:x.ev,verify:x.v};
-  }
-  const pending=checked.find(x=>x.v.proof);
-  if(pending){
+  if(v.proof){
     setClaimStatus('CLAIM BROADCAST · confirmation pending','warn');
-    return {available:false,confirmed:false,event:pending.ev,verify:pending.v};
+    return {available:false,confirmed:false,event:ev,verify:v};
   }
-
-  if(server&&Array.isArray(server.claimed_ids)&&server.claimed_ids.includes(Number(target.token))){
-    setClaimStatus('CLAIM RECORD FOUND · server index blocks duplicate mining','bad');
-    return {available:false,confirmed:false,event:null,serverCandidate:true};
-  }
-  if(refresh&&(!server||!server.complete)){
-    setClaimStatus('AVAILABILITY SERVER INCOMPLETE · do not mine yet','warn');
-    return {available:false,confirmed:false,event:null,discoveryDown:true};
-  }
-
-  const intent=activeIntentForToken(target.token);
-  if(intent){
-    const pv=await verifyProofFields(intent,target);
-    const mine=String(intent.ownerCommitment||'').toLowerCase()===String(S.ownerCommitment||'').toLowerCase()&&String(intent.nonce||'')===String(S.proof?.nonce||'');
-    if(pv.proof&&!mine){
-      setClaimStatus('CLAIM INTENT SEEN · another miner is submitting','warn');
-      return {available:false,confirmed:false,event:intent,intent:true,verify:pv};
-    }
-    if(pv.proof&&mine)setClaimStatus('YOUR CLAIM INTENT ACTIVE · final check clear','good');
-  }
-
-  if(server?.complete){
-    setClaimStatus('SERVER VERIFIED CLEAR · no claim found','good');
-    return {available:true,confirmed:false,event:null,serverClear:true}
-  }
-  setClaimStatus('AVAILABILITY UNAVAILABLE · do not mine yet','warn');
-  return {available:false,confirmed:false,event:null,discoveryDown:true}
+  setClaimStatus('CLAIM EVENT SEEN · choose another ID','warn');
+  return {available:false,confirmed:false,event:ev,verify:v};
 }
 async function loadTarget(){
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     const token=Number($('tokenInput').value);if(!Number.isInteger(token)||token<1||token>CFG.supply)throw new Error('Token ID must be 1–5000.');
-    setClaimStatus('Deep-scanning claim discovery…','warn');
+    setClaimStatus('Checking discovery state…','warn');
     $('mineStatus').textContent='Loading source block…';$('hashLog').textContent='Resolving confirmed Genesis and source block from Zcash mainnet…';
     const gh=await resolveGenesis();const sh=gh-token;
     const j=await explorerFetch('block',sh);
@@ -676,57 +161,26 @@ $('findUnclaimedBtn').onclick=async()=>{
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     $('findUnclaimedBtn').disabled=true;
-    setClaimStatus('Checking production availability index…','warn');
-    await loadServerMiningSnapshot({force:true});
-
-    const start=Number($('tokenInput').value)||1;
-    let found=null,checked=0;
-    for(let offset=1;offset<=CFG.supply&&!found;){
-      const ids=[];
-      while(ids.length<40&&offset<=CFG.supply){
-        const id=((start-1+offset)%CFG.supply)+1;offset++;
-        if(S.serverCandidateIds.has(id)||knownTokenIndex().has(id)||activeIntentForToken(id))continue;
-        ids.push(id)
-      }
-      if(!ids.length)continue;
-      const quick=await serverCheckClaims(ids,{deep:false});
-      if(!quick.complete)throw new Error('Production availability service could not reach enough relays. Retry shortly.');
-      checked+=ids.length;
-      const candidates=ids.filter(id=>(quick.clear_ids||[]).includes(id));
-      for(const id of candidates.slice(0,8)){
-        // Final exact server recheck before suggesting an ID to a miner.
-        const exact=await serverCheckClaims([id],{deep:true});
-        if(!exact.complete)throw new Error('Deep availability check is temporarily incomplete. Retry shortly.');
-        if((exact.clear_ids||[]).includes(id)){found=id;break}
-      }
+    await fetchRelay();
+    let start=Number($('tokenInput').value)||1,found=null;
+    for(let step=1;step<=CFG.supply;step++){
+      const id=((start-1+step)%CFG.supply)+1;
+      if(!S.claims.has(id)){found=id;break}
     }
-    if(!found)throw new Error('No server-verified clear Token ID remains.');
+    if(!found)throw new Error('No known unclaimed Token ID remains.');
     $('tokenInput').value=String(found);S.target=null;S.proof=null;
-    setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');
-    $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';
-    $('submitClaimBtn').disabled=true;$('startMineBtn').disabled=false;
-    toast(`Selected ZEC BLOCK #${found} after production server checks. Click LOAD TARGET for the final source-block check.`);
-  }catch(e){setClaimStatus('Availability check failed','warn');toast(e.message||String(e),8000)}
+    setClaimStatus('Known unclaimed · load to verify','good');
+    $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=false;
+    toast('Selected known-unclaimed ZEC BLOCK #'+found+'. Click Start Mining to verify and mine.');
+  }catch(e){toast(e.message||String(e),7000)}
   finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
 };
 $('tokenInput').addEventListener('input',()=>{
-  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
-  const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token),serverKnown=S.serverCandidateIds.has(token);
+  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;
+  const token=Number($('tokenInput').value),known=knownClaimForToken(token);
   if(Number.isInteger(token)&&token>=1&&token<=CFG.supply){
-    if(known||serverKnown){setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');return}
-    if(intent){setClaimStatus('CLAIM INTENT SEEN · click Load Target','warn');return}
-    setClaimStatus('CHECKING SERVER INDEX…','warn');
-    clearTimeout(S.tokenCheckTimer);
-    S.tokenCheckTimer=setTimeout(async()=>{
-      if(Number($('tokenInput').value)!==token)return;
-      try{
-        const r=await serverCheckClaims([token],{deep:false});
-        if(Number($('tokenInput').value)!==token)return;
-        if((r.claimed_ids||[]).includes(token))setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');
-        else if(r.complete)setClaimStatus('NO CLAIM IN SERVER INDEX · Load Target for final deep check','good');
-        else setClaimStatus('SERVER CHECK INCOMPLETE · retry','warn');
-      }catch(e){setClaimStatus('SERVER CHECK UNAVAILABLE · do not mine yet','warn')}
-    },450)
+    if(known){setClaimStatus('KNOWN CLAIM · load to verify','warn');$('startMineBtn').disabled=true}
+    else{setClaimStatus('Known unclaimed · load to verify','good');if(S.ownerCommitment&&!S.mining)$('startMineBtn').disabled=false}
   }else setClaimStatus('Select Token ID 1–5000');
 });
 function workerSource(){return `
@@ -751,7 +205,7 @@ struct Result { flag:atomic<u32>, nonce:atomic<u32> };
 @group(0) @binding(0) var<storage, read> tmpl: array<u32>;
 @group(0) @binding(1) var<storage, read> params: Params;
 @group(0) @binding(2) var<storage, read_write> result: Result;
-fn rotr(x:u32,n:u32)->u32{return ((x >> n) | (x << (32u - n)));}
+fn rotr(x:u32,n:u32)->u32{return (x>>n)|(x<<(32u-n));}
 fn compress(inputState:array<u32,8>, block:array<u32,16>)->array<u32,8>{
   var w:array<u32,64>;
   for(var i:u32=0u;i<16u;i=i+1u){w[i]=block[i];}
@@ -780,7 +234,7 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>){
   state=compress(state,b0);
   var b1:array<u32,16>;for(var i:u32=0u;i<16u;i=i+1u){b1[i]=tmpl[16u+i];}
   b1[11u]=(b1[11u]&0xffffff00u)|(nonce&0xffu);
-  b1[12u]=(((nonce>>8u)&0xffu)<<24u) | (((nonce>>16u)&0xffu)<<16u) | (((nonce>>24u)&0xffu)<<8u);
+  b1[12u]=((nonce>>8u)&0xffu)<<24u|((nonce>>16u)&0xffu)<<16u|((nonce>>24u)&0xffu)<<8u;
   b1[13u]=0x00000080u;
   state=compress(state,b1);
   if(state[0]<params.targetTop){
@@ -795,86 +249,23 @@ function gpuTemplateWords(base){
   const bitLen=(base.length+8)*8;const dv=new DataView(msg.buffer);dv.setUint32(120,0,false);dv.setUint32(124,bitLen,false);
   const w=new Uint32Array(32);for(let i=0;i<32;i++)w[i]=dv.getUint32(i*4,false);return w
 }
-
-function setGpuStatus(text,kind=''){
-  const el=$('gpuStatus'); if(!el)return;
-  el.textContent=text;
-  el.classList.remove('gpuGood','gpuWarn','gpuBad');
-  if(kind==='good')el.classList.add('gpuGood');
-  if(kind==='warn')el.classList.add('gpuWarn');
-  if(kind==='bad')el.classList.add('gpuBad');
-}
-async function detectGpu({toastResult=false}={}){
-  try{
-    if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / a secure context.');
-    if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
-    setGpuStatus('Requesting high-performance adapter…','warn');
-    const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-    if(!adapter)throw new Error('Browser returned no WebGPU adapter.');
-    let name='WebGPU adapter';
-    try{
-      const info=adapter.info;
-      if(info){
-        const parts=[info.vendor,info.architecture,info.device,info.description].filter(Boolean);
-        if(parts.length)name=parts.join(' · ');
-      }
-    }catch{}
-    S.gpuAdapterName=name;
-    S.gpuDiagnostic='READY: '+name;
-    setGpuStatus('READY · '+name,'good');
-    if(toastResult)toast('WebGPU ready: '+name,6000);
-    return {ok:true,adapter,name};
-  }catch(e){
-    S.gpuAdapterName=null;
-    S.gpuDiagnostic='UNAVAILABLE: '+(e.message||String(e));
-    setGpuStatus(S.gpuDiagnostic,'bad');
-    if(toastResult)toast(S.gpuDiagnostic,8000);
-    return {ok:false,error:e};
-  }
-}
-
 async function initGpuMiner(){
   if(S.gpu?.device)return S.gpu;
-  if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / secure context.');
-  if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
-  setGpuStatus('Initializing WebGPU…','warn');
-  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-  if(!adapter)throw new Error('No WebGPU adapter found. Check browser GPU/WebGPU settings and graphics driver.');
-  let name='WebGPU adapter';
-  try{
-    const info=adapter.info;
-    if(info){
-      const parts=[info.vendor,info.architecture,info.device,info.description].filter(Boolean);
-      if(parts.length)name=parts.join(' · ');
-    }
-  }catch{}
-  S.gpuAdapterName=name;
+  if(!navigator.gpu)throw new Error('WebGPU is not available in this browser.');
+  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});if(!adapter)throw new Error('No WebGPU adapter found.');
   const device=await adapter.requestDevice();
   const module=device.createShaderModule({code:GPU_SHA256_WGSL});
-  const info=await module.getCompilationInfo();
-  const errs=info.messages.filter(x=>x.type==='error');
-  if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
-  let pipeline;
-  try{pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}})}
-  catch(e){throw new Error('WebGPU pipeline creation failed: '+(e.message||String(e)))}
+  const info=await module.getCompilationInfo();const errs=info.messages.filter(x=>x.type==='error');if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
+  const pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}});
   S.gpu={adapter,device,pipeline};
-  S.gpuDiagnostic='READY: '+name;
-  setGpuStatus('READY · '+name,'good');
-  device.lost.then(info=>{
-    S.gpu=null;
-    setGpuStatus('GPU DEVICE LOST · '+(info?.message||'unknown reason'),'bad');
-    if(S.mining&&S.miningEngine==='GPU'){
-      S.gpuStop=true;
-      toast('GPU device was lost. Stop and restart mining.',7000)
-    }
-  });
+  device.lost.then(()=>{S.gpu=null;if(S.mining&&S.miningEngine==='GPU'){S.gpuStop=true;toast('GPU device was lost. Restart mining to use CPU fallback.',7000)}});
   return S.gpu
 }
 async function verifyGpuCandidate(base,nonce){
   const pre=concat(base,u64le(BigInt(nonce)));const h=await sha256Bytes(pre);return leadingZeroBits(h)>=CFG.powBits?bytesToHex(h):null
 }
 async function startGpuMining(base){
-  const {device,pipeline}=await initGpuMiner();S.miningEngine='GPU';S.gpuStop=false;$('mineEngine').textContent='GPU · WebGPU · SHA-256';setGpuStatus('ACTIVE · '+(S.gpuAdapterName||'WebGPU adapter'),'good');$('hashLog').textContent='WebGPU active. Searching the locked ZB-1 26-bit proof…';
+  const {device,pipeline}=await initGpuMiner();S.miningEngine='GPU';S.gpuStop=false;$('mineEngine').textContent='WebGPU · SHA-256';$('hashLog').textContent='WebGPU active. Searching the locked ZB-1 26-bit proof…';
   const template=gpuTemplateWords(base),templateBuf=device.createBuffer({size:128,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});device.queue.writeBuffer(templateBuf,0,template);
   const paramsBuf=device.createBuffer({size:16,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
   const resultBuf=device.createBuffer({size:8,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC|GPUBufferUsage.COPY_DST});
@@ -895,12 +286,9 @@ async function startGpuMining(base){
   }finally{templateBuf.destroy();paramsBuf.destroy();resultBuf.destroy();readBuf.destroy()}
 }
 async function startCpuMining(base,reason=''){
-  S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';
-  if(reason)setGpuStatus(reason,'bad');
-  let lines=[],prefix=reason?reason+'\n':'';
-  $('hashLog').textContent=prefix+'Starting CPU workers…';
+  S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';let lines=[];$('hashLog').textContent=(reason?reason+'\n':'')+'Starting CPU workers…';
   const wc=Math.max(1,Math.min(8,navigator.hardwareConcurrency||4)),src=workerSource(),url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
-  for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=prefix+lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
+  for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
   URL.revokeObjectURL(url)
 }
 async function startMining(){
@@ -909,40 +297,8 @@ async function startMining(){
     const gate=await checkTargetAvailability(S.target,{refresh:true});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} already has a known claim. Choose another Token ID.`);
     S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;startClaimWatch();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
     const base=await mineBase();
-    const pref=$('engineSelect')?.value||S.enginePreference||'auto';
-    S.enginePreference=pref;
-    if(pref==='cpu'){
-      await startCpuMining(base,'CPU-only selected by user.');
-      return;
-    }
-    if(pref==='gpu'){
-      try{
-        await startGpuMining(base);
-        return;
-      }catch(e){
-        console.error('GPU-only mining failed',e);
-        stopMining(false);
-        $('mineStatus').textContent='GPU unavailable';
-        $('mineEngine').textContent='GPU requested · failed';
-        setGpuStatus('ERROR · '+(e.message||String(e)),'bad');
-        $('hashLog').textContent='GPU-ONLY MODE FAILED:\n'+(e.message||String(e))+'\n\nNo CPU fallback was started because GPU-only was selected.';
-        toast('GPU could not start. See GPU Status / log for the exact reason.',9000);
-        return;
-      }
-    }
-    // Auto mode: GPU first, CPU fallback.
-    if(navigator.gpu){
-      try{
-        await startGpuMining(base);
-        return;
-      }catch(e){
-        console.warn('WebGPU miner fallback',e);
-        if(!S.mining)return;
-        await startCpuMining(base,'AUTO GPU FAILED: '+(e.message||String(e))+'. CPU fallback active.');
-        return;
-      }
-    }
-    await startCpuMining(base,'AUTO: WebGPU API not available. CPU fallback active.');
+    if(navigator.gpu){try{await startGpuMining(base);return}catch(e){console.warn('WebGPU miner fallback',e);if(!S.mining)return;await startCpuMining(base,'WebGPU unavailable/failed: '+(e.message||String(e))+'. Falling back to CPU.');return}}
+    await startCpuMining(base,'WebGPU not supported in this browser. CPU fallback active.');
   }catch(e){S.mining=false;$('mineStatus').textContent='Mining error';toast(e.message||String(e),7000)}
 }
 
@@ -951,339 +307,73 @@ function startClaimWatch(){
   S.claimWatchTimer=setInterval(async()=>{
     if(!S.mining||!S.target)return;
     try{
-      const gate=await checkTargetAvailability(S.target,{refresh:true,deep:false});
-      if(!gate.available){
+      await fetchRelay();
+      const ev=knownClaimForToken(S.target.token);
+      if(ev){
         const token=S.target.token;
         stopMining(false);
-        setClaimStatus(gate.intent?'COMPETING CLAIM INTENT DETECTED':'COMPETING CLAIM DETECTED','bad');
+        setClaimStatus('COMPETING CLAIM DETECTED','bad');
         $('mineStatus').textContent='Target claimed / pending';
-        $('hashLog').textContent+=`\n\nSTOPPED: A claim/claim-intent for ZEC BLOCK #${token} appeared while you were mining.\nChoose another Token ID.`;
-        toast(`Mining stopped: claim activity detected for ZEC BLOCK #${token}.`,9000);
+        $('hashLog').textContent+=`\n\nSTOPPED: A claim for ZEC BLOCK #${token} appeared while you were mining.\nChoose another Token ID.`;
+        toast(`Mining stopped: claim detected for ZEC BLOCK #${token}.`,9000);
       }
     }catch(e){console.warn('claim watch',e)}
-  },8000);
+  },12000);
 }
 
 function stopMining(mark=true){S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 async function submitClaim(){
-  let voucher=null;try{
-    if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');await reconcileFeeCredit();const unresolved=loadFeeVoucher();if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. V12.1 will not charge another fee.`);
-    const preFeeCheck=await checkTargetAvailability(S.target,{refresh:true});if(!preFeeCheck.available)throw new Error(`ZEC BLOCK #${S.target.token} was claimed or is being submitted. No new protocol fee was sent.`);
-    const intentMsg=`ZB1:CLAIM_INTENT:v3|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}`,intentSig=await rpc('zcash_signMessage',[intentMsg,{signingMode:'derived'}]),intent=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM_INTENT',eventId:`intent:${S.ownerCommitment}:${S.target.token}:${S.proof.nonce}`,tokenId:S.target.token,nonce:S.proof.nonce,pubkey:intentSig.pubkey,signature:intentSig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,timestamp:Math.floor(Date.now()/1000),expires:Math.floor(Date.now()/1000)+600,status:'awaiting-fee'});await publishRelay(intent,{fallback:false});
-    $('submitClaimBtn').disabled=true;voucher=await acquirePaidClaimFee();await waitBoundFeeConfirmation(voucher);
-    const postFeeCheck=await checkTargetAvailability(S.target,{refresh:true});if(!postFeeCheck.available){voucher.status='available';voucher.attempt=null;saveFeeVoucher(voucher);$('mineStatus').textContent='Target taken · 1 bound fee credit available';throw new Error(`ZEC BLOCK #${S.target.token} became unavailable after the fee was paid. The 0.0013 ZEC is already in treasury, but your bound protocol claim credit remains AVAILABLE. Choose another Token ID; no second protocol fee is required.`)}
-    const feeTxid=String(voucher.txid).toLowerCase(),feeSig=String(voucher.feeSig||''),payload={tokenId:S.target.token,nonce:S.proof.nonce,ownerCommitment:S.ownerCommitment,feeTxid,feeSig},msg=claimV3Message(payload),sig=await rpc('zcash_signMessage',[msg,{signingMode:'derived'}]),memo=`ZB1|C|3|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}|S=${sig.signature}|F=${feeTxid}|R=${feeSig}|Z=${CFG.paidClaimFeeZat}`;if(enc.encode(memo).length>512)throw new Error(`V3 claim memo is ${enc.encode(memo).length} bytes; maximum is 512.`);
-    $('mineStatus').textContent='Bound fee confirmed · approve claim transaction…';const txid=String(await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}])).toLowerCase();if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid claim TXID.');const ev=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM',txid,memo,tokenId:S.target.token,nonce:S.proof.nonce,signature:sig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,feeTxid,feeSig,feeZat:CFG.paidClaimFeeZat,timestamp:Math.floor(Date.now()/1000),status:'pending'});
-    voucher.status='pending';voucher.attempt={tokenId:S.target.token,claimTxid:txid,nonce:String(S.proof.nonce),sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,startedAt:Math.floor(Date.now()/1000)};saveFeeVoucher(voucher);saveLocalEvent(ev);try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('claim relay publish',e)}S.proof=null;$('mineStatus').textContent='Claim broadcast · bound fee credit pending result';toast(`V3 claim broadcast. Bound fee credit remains PENDING until the canonical winner is confirmed. TX ${short(txid,8)}.`,10000);await refreshAll();await reconcileFeeCredit()
-  }catch(e){$('submitClaimBtn').disabled=false;const v=loadFeeVoucher();if(v?.status==='available')$('mineStatus').textContent='1 bound paid claim credit available';else if(v?.status==='pending')$('mineStatus').textContent='Paid claim pending canonical result';else $('mineStatus').textContent='Claim not submitted';toast(e.message||String(e),12000)}
+  try{
+    if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');
+    const finalCheck=await checkTargetAvailability(S.target,{refresh:true});if(!finalCheck.available)throw new Error(`ZEC BLOCK #${S.target.token} was claimed before submission. Choose another Token ID.`);
+    if(S.claims.size>=CFG.freeClaims)throw new Error('The free-claim window appears full in the discovery feed. Paid-claim flow is intentionally not enabled in this build until the two-transaction fee path is finalized.');
+    const msg=`ZB1:CLAIM:v1|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|K=${S.pubkey}`;
+    const sig=await rpc('zcash_signMessage',[msg,{signingMode:'derived'}]);
+    const memo=`ZB1|C|1|T=${S.target.token}|N=${S.proof.nonce}|K=${sig.pubkey}|S=${sig.signature}`;
+    if(enc.encode(memo).length>512)throw new Error('Claim memo exceeds 512 bytes.');
+    $('submitClaimBtn').disabled=true;$('mineStatus').textContent='Waiting for wallet approval…';
+    const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);
+    const ev=normalizeEvent({protocol:'ZB1',v:1,type:'CLAIM',txid,memo,tokenId:S.target.token,nonce:S.proof.nonce,pubkey:sig.pubkey,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,timestamp:Math.floor(Date.now()/1000),status:'pending'});
+    saveLocalEvent(ev);await publishRelay(ev);S.proof=null;$('mineStatus').textContent='Claim broadcast · '+short(txid,8);toast('Claim broadcast: '+txid,8000);await refreshAll();
+  }catch(e){$('submitClaimBtn').disabled=false;$('mineStatus').textContent='Claim not submitted';toast(e.message||String(e),8000)}
 }
 $('submitClaimBtn').onclick=submitClaim;
 async function initNostr(){
   try{S.nostr=await import('https://esm.sh/nostr-tools@2.17.0?bundle');S.relay=new S.nostr.SimplePool();let sk=nostrSecretHex();if(sk){S.nostrSk=hexToBytes(sk)}else{S.nostrSk=S.nostr.generateSecretKey();setNostrSecretHex(bytesToHex(S.nostrSk))}S.nostrPk=S.nostr.getPublicKey(S.nostrSk);$('relayStatus').textContent='Relay: ready'}catch(e){console.warn(e);$('relayStatus').textContent='Relay: local-only'}
 }
-async function publishRelay(obj,{fallback=false,repair=false}={}){
-  saveLocalEvent(obj);
-  if(!S.nostr||!S.relay||!S.nostrSk)return {accepted:0,total:0,localOnly:true};
-
-  const d=obj.txid||obj.eventId||crypto.randomUUID();
-  const token=Number(obj.tokenId)||0;
-  const tags=[
-    ['t',CFG.relayTag],
-    ['d',d],
-    ['i','zb1-token:'+token],
-    ['type',obj.type||'EVENT'],
-    ['token',String(token)]
-  ];
-  if(obj.feeTxid)tags.push(['fee',String(obj.feeTxid).toLowerCase()]);
-  const kinds=fallback&&obj.type==='CLAIM'?[CFG.nostrKind,1]:[CFG.nostrKind];
-  let accepted=0,total=0;
-
-  for(const kind of kinds){
-    const ne=S.nostr.finalizeEvent({
-      kind,created_at:Math.floor(Date.now()/1000),tags,
-      content:JSON.stringify(obj)
-    },S.nostrSk);
-    const promises=S.relay.publish(CFG.relays,ne);
-    total+=promises.length;
-    const rs=await Promise.allSettled(promises.map(p=>Promise.race([
-      p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('publish timeout')),5000))
-    ])));
-    accepted+=rs.filter(x=>x.status==='fulfilled').length;
-  }
-  if(obj.type==='CLAIM'){
-    updateKnownTokenIndex([obj]);
-    if(!repair&&accepted<3){
-      console.warn('Claim discovery quorum below target; queued for repair',accepted,obj.tokenId);
-      queueRelayRepair(obj)
-    }
-  }
-  if(!repair&&accepted===0)console.warn('No relay acknowledged discovery event',obj.type,obj.tokenId);
-  return {accepted,total};
+async function publishRelay(obj){
+  saveLocalEvent(obj);if(!S.nostr||!S.relay||!S.nostrSk)return;
+  try{const d=obj.txid||obj.eventId||crypto.randomUUID();const e=S.nostr.finalizeEvent({kind:CFG.nostrKind,created_at:Math.floor(Date.now()/1000),tags:[['t',CFG.relayTag],['d',d],['type',obj.type||'EVENT'],['token',String(obj.tokenId||0)]],content:JSON.stringify(obj)},S.nostrSk);await Promise.any(S.relay.publish(CFG.relays,e));}catch(e){console.warn('relay publish',e)}
 }
-function ingestLiveDiscoveryEvent(n){
-  try{
-    if(!n?.content)return;
-    if(S.nostr?.verifyEvent && !S.nostr.verifyEvent(n))return;
-    const parsed=normalizeEvent(JSON.parse(n.content));
-    const k=parsed.txid||parsed.eventId||n.id;
-    if(!k)return;
-
-    const old=S.liveDiscoveryEvents.get(k);
-    if(!old||(Number(parsed.timestamp)||0)>=(Number(old.timestamp)||0)){
-      S.liveDiscoveryEvents.set(k,parsed)
-    }
-
-    // Merge immediately into runtime state so Known Claims changes without reload.
-    if(structurallyValidClaim(parsed))updateKnownTokenIndex([parsed]);
-    const i=S.events.findIndex(x=>(x.txid||x.eventId)===k);
-    if(i>=0){
-      const cur=S.events[i];
-      if((Number(parsed.timestamp)||0)>=(Number(cur.timestamp)||0))S.events[i]=parsed
-    }else{
-      S.events.push(parsed)
-    }
-
-    clearTimeout(S.liveRenderTimer);
-    S.liveRenderTimer=setTimeout(()=>{
-      rebuildState();
-      saveDiscoveryCache(S.events);
-      S.lastRelayFetch=Date.now();
-      updateClaimSyncAge()
-    },150)
-  }catch(e){console.warn('live discovery event',e)}
-}
-function startLiveDiscovery(){
-  if(!S.relay||S.liveDiscoverySub)return;
-  try{
-    S.liveDiscoverySub=S.relay.subscribeMany(
-      CFG.relays,
-      {kinds:[CFG.nostrKind,1],'#t':[CFG.relayTag],since:Math.floor(Date.now()/1000)-180},
-      {onevent:ingestLiveDiscoveryEvent}
-    );
-  }catch(e){console.warn('live discovery subscription unavailable',e)}
-}
-function updateIndexProgress(){
-  const el=$('claimIndexProgress');if(!el)return;
-  if(S.serverScanComplete){
-    el.textContent=`availability index: complete · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`;
-    return
-  }
-  const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
-  el.textContent=`availability index: ${pct}% server-persistent · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`
-}
-async function queryClaimShard(startToken,batchSize=50){
-  if(!S.relay||!S.nostr)return [];
-  const end=Math.min(CFG.supply,startToken+batchSize-1);
-  const ids=[];for(let i=startToken;i<=end;i++)ids.push('zb1-token:'+i);
-  const filter={kinds:[CFG.nostrKind,1],'#i':ids,limit:Math.min(2000,batchSize*12)};
-  const evs=await Promise.race([
-    S.relay.querySync(CFG.relays,filter),
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error('claim shard timeout')),7000))
-  ]);
-  const out=[];
-  for(const n of evs||[]){
-    try{
-      if(S.nostr.verifyEvent&&!S.nostr.verifyEvent(n))continue;
-      const e=normalizeEvent(JSON.parse(n.content));
-      if(e.type!=='CLAIM')continue;
-      const id=Number(e.tokenId);
-      if(id<startToken||id>end)continue;
-      out.push(e)
-    }catch{}
-  }
-  return out
-}
-function mergeDiscoveryEvents(events){
-  if(!events?.length)return 0;
-  const by=new Map(S.events.map(e=>[e.txid||e.eventId||JSON.stringify(e),e]));
-  let added=0;
-  for(const e of events){
-    const k=e.txid||e.eventId||JSON.stringify(e),old=by.get(k);
-    if(!old||(Number(e.timestamp)||0)>=(Number(old.timestamp)||0)){
-      if(!old)added++;
-      by.set(k,e)
-    }
-  }
-  S.events=[...by.values()];
-  updateKnownTokenIndex(events);
-  saveDiscoveryCache(S.events);
-  rebuildState();
-  updateAvailabilityCounts();
-  return added
-}
-async function runClaimIndexSweep({restart=false}={}){
-  if(S.indexSweepBusy||!S.relay||!S.nostr)return;
-  S.indexSweepBusy=true;
-  try{
-    const batch=50;
-    let cursor=restart?1:Number(localStorage.getItem('zb1_claim_index_cursor_v1')||1);
-    if(!Number.isInteger(cursor)||cursor<1||cursor>CFG.supply)cursor=1;
-    S.indexSweepCursor=cursor-1;
-    updateIndexProgress();
-
-    let next=cursor;
-    async function worker(){
-      while(next<=CFG.supply){
-        const start=next;next+=batch;
-        let evs=[];
-        try{evs=await queryClaimShard(start,batch)}catch(e){console.warn('claim shard',start,e)}
-        const added=mergeDiscoveryEvents(evs);
-        S.indexSweepFound+=added;
-        S.indexSweepCursor=Math.max(S.indexSweepCursor,Math.min(CFG.supply,start+batch-1));
-        localStorage.setItem('zb1_claim_index_cursor_v1',String(Math.min(CFG.supply+1,S.indexSweepCursor+1)));
-        updateIndexProgress();
-        await new Promise(r=>setTimeout(r,250))
+async function fetchRelay(){
+  let arr=localEvents(),ok=0,totalRemote=0;
+  if(S.nostr&&S.relay){
+    const rs=await Promise.allSettled(CFG.relays.map(async url=>{
+      const evs=await Promise.race([
+        S.relay.querySync([url],{kinds:[CFG.nostrKind],'#t':[CFG.relayTag],limit:7000}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('relay timeout')),6500))
+      ]);
+      return evs||[];
+    }));
+    for(const r of rs){
+      if(r.status==='fulfilled'){
+        ok++; totalRemote+=r.value.length;
+        for(const n of r.value){try{arr.push(normalizeEvent(JSON.parse(n.content)))}catch{}}
       }
     }
-    await Promise.all([worker(),worker()]);
-    S.indexSweepCursor=CFG.supply;
-    localStorage.setItem('zb1_claim_index_cursor_v1',String(CFG.supply+1));
-    localStorage.setItem('zb1_claim_index_completed_at_v1',String(Date.now()));
-    updateIndexProgress()
-  }finally{
-    S.indexSweepBusy=false;
-    updateIndexProgress()
+    $('relayStatus').textContent=`Relays: ${ok}/${CFG.relays.length} · ${totalRemote} events`;
   }
-}
-async function processRelayRepairQueue(){
-  if(!S.relay||!S.nostr)return;
-  const q=relayRetryQueue();if(!q.length)return;
-  const keep=[];
-  for(const e of q.slice(0,12)){
-    try{
-      const r=await publishRelay(e,{fallback:true,repair:true});
-      if(r.accepted<3){
-        e._retryCount=Number(e._retryCount||0)+1;
-        e._retryAt=Date.now();keep.push(e)
-      }
-    }catch{
-      e._retryCount=Number(e._retryCount||0)+1;
-      e._retryAt=Date.now();keep.push(e)
-    }
-  }
-  keep.push(...q.slice(12));
-  saveRelayRetryQueue(keep)
-}
-async function fetchRelay(token=null,includeLegacy=true){
-  if(S.relayFetchBusy)return {ok:S.relayReadOk,totalRemote:0,busy:true};
-  S.relayFetchBusy=true;
-  try{
-    let arr=[...S.events,...discoveryCache(),...localEvents(),...S.liveDiscoveryEvents.values()],ok=0,totalRemote=0;
-    const tokenNum=token==null?null:Number(token);
-    const since=(tokenNum==null&&S.lastRelayFetch)?Math.max(0,Math.floor(S.lastRelayFetch/1000)-60):0;
-
-    if(S.nostr&&S.relay){
-      const rs=await Promise.allSettled(CFG.relays.map(async url=>{
-        const found=[];
-        const filters=[];
-
-        // Exact token checks remain deep and do not use incremental time bounds.
-        if(Number.isInteger(tokenNum)&&tokenNum>0){
-          filters.push({kinds:[CFG.nostrKind,1],'#i':['zb1-token:'+tokenNum],limit:300});
-        }
-
-        // Global discovery: full scan once, then incremental overlap.
-        if(includeLegacy||tokenNum==null){
-          const f={kinds:[CFG.nostrKind,1],'#t':[CFG.relayTag],limit:since?2500:8000};
-          if(since>0)f.since=since;
-          filters.push(f);
-        }
-
-        for(const filter of filters){
-          try{
-            const evs=await Promise.race([
-              S.relay.querySync([url],filter),
-              new Promise((_,rej)=>setTimeout(()=>rej(new Error('relay timeout')),6500))
-            ]);
-            for(const n of (evs||[])){
-              try{
-                if(S.nostr.verifyEvent && !S.nostr.verifyEvent(n))continue;
-                const parsed=normalizeEvent(JSON.parse(n.content));
-                if(tokenNum!=null && Number(parsed.tokenId)!==tokenNum && !includeLegacy)continue;
-                found.push(parsed);
-              }catch{}
-            }
-          }catch{}
-        }
-        return found;
-      }));
-
-      for(const r of rs){
-        if(r.status==='fulfilled'){
-          ok++; totalRemote+=r.value.length;arr.push(...r.value)
-        }
-      }
-      S.relayReadOk=ok;
-      S.lastDiscoveryScan=Date.now();
-      $('relayStatus').textContent=`Relays: ${ok}/${CFG.relays.length} · +${totalRemote} events`;
-    }else{
-      S.relayReadOk=0;
-    }
-
-    const ded=new Map();
-    for(const e of arr){
-      const k=e.txid||e.eventId||JSON.stringify(e);
-      const old=ded.get(k);
-      if(!old||(Number(e.timestamp)||0)>=(Number(old.timestamp)||0))ded.set(k,e)
-    }
-    S.events=[...ded.values()];
-    updateKnownTokenIndex(S.events);
-    saveDiscoveryCache(S.events);
-    S.lastRelayFetch=Date.now();
-    rebuildState();
-    updateAvailabilityCounts();
-    updateClaimSyncAge();
-    return {ok,totalRemote}
-  }finally{
-    S.relayFetchBusy=false
-  }
+  const ded=new Map();for(const e of arr){const k=e.txid||e.eventId||JSON.stringify(e);const old=ded.get(k);if(!old||(e.timestamp||0)>(old.timestamp||0))ded.set(k,e)}
+  S.events=[...ded.values()];rebuildState();updateAvailabilityCounts();
 }
 function rebuildState(){
-  const claims=new Map(),trans=[],intents=new Map(),usedFeeTxids=new Set();
-  const sorted=[...S.events].sort((a,b)=>(Number(a.timestamp)||0)-(Number(b.timestamp)||0));
-  const now=Math.floor(Date.now()/1000);
-
-  for(const e of sorted){
-    const id=Number(e.tokenId);
-    if(e.type==='CLAIM'&&Number.isInteger(id)&&id>=1&&id<=CFG.supply&&!claims.has(id)){
-      const f=feeTxidOf(e);
-      if(Number(e.v)>=2&&/^[0-9a-f]{64}$/.test(f))usedFeeTxids.add(f);
-      claims.set(id,e);
-    }else if(e.type==='CLAIM_INTENT'&&Number.isInteger(id)&&id>=1&&id<=CFG.supply&&Number(e.expires||0)>now){
-      const old=intents.get(id);
-      if(!old||(Number(e.timestamp)||0)>(Number(old.timestamp)||0))intents.set(id,e);
-    }else if(e.type==='TRANSFER'){
-      trans.push(e);
-    }
-  }
-
-  // A final claim supersedes any earlier short-lived intent for the same token.
-  for(const id of claims.keys())intents.delete(id);
-
-  for(const e of trans){
-    const id=Number(e.tokenId),c=claims.get(id);
-    if(c)e._applied=true
-  }
-
-  S.claims=claims;S.transfers=trans;S.intents=intents;S.usedFeeTxids=usedFeeTxids;
-
-  const listings=new Map(),offers=[];
-  for(const e of sorted){
-    if(e.type==='SALE'){
-      const k=e.listingId||e.eventId;listings.set(k,e)
-    }else if(e.type==='SALE_CANCEL'){
-      listings.delete(e.listingId)
-    }else if(e.type==='OFFER'){
-      offers.push(e)
-    }
-  }
-  S.listings=listings;S.offers=offers;
-  const durableKnown=updateKnownTokenIndex(claims.values());
-  const knownCount=Math.max(claims.size,durableKnown.size,S.serverCandidateIds?.size||0);
-  $('claimCount').textContent=Math.max(Number(S.serverClaimTotal||0),knownCount).toLocaleString();
-  if(CFG.paidClaimsActive&&Math.max(Number(S.serverClaimTotal||0),claims.size)>=CFG.freeClaims)localStorage.setItem('zb1_paid_phase_seen','1');
-  updateAvailabilityCounts();renderMarket();renderPortfolio();updateWalletUI();
+  const claims=new Map(),trans=[];const sorted=[...S.events].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+  for(const e of sorted){if(e.type==='CLAIM'&&Number.isInteger(Number(e.tokenId))&&!claims.has(Number(e.tokenId)))claims.set(Number(e.tokenId),e);else if(e.type==='TRANSFER')trans.push(e)}
+  for(const e of trans){const id=Number(e.tokenId),c=claims.get(id);if(c)e._applied=true}
+  S.claims=claims;S.transfers=trans;
+  const listings=new Map(),offers=[];for(const e of sorted){if(e.type==='SALE'){const k=e.listingId||e.eventId;listings.set(k,e)}else if(e.type==='SALE_CANCEL'){listings.delete(e.listingId)}else if(e.type==='OFFER')offers.push(e)}S.listings=listings;S.offers=offers;
+  $('claimCount').textContent=claims.size.toLocaleString();updateAvailabilityCounts();renderMarket();renderPortfolio();updateWalletUI();
 }
 function currentOwner(id){const c=S.claims.get(Number(id));if(!c)return null;let owner=c.ownerCommitment||null;for(const t of S.transfers.filter(x=>Number(x.tokenId)===Number(id)).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))){if(t.fromCommitment&&owner&&t.fromCommitment!==owner)continue;owner=t.toCommitment||owner}return owner}
 function ownedTokens(){if(!S.ownerCommitment)return[];return [...S.claims.values()].filter(c=>currentOwner(c.tokenId)===S.ownerCommitment).sort((a,b)=>a.tokenId-b.tokenId)}
@@ -1307,53 +397,9 @@ function renderPortfolio(){
   const g=$('portfolioGrid');g.innerHTML='';if(!S.ownerCommitment){g.innerHTML='<div class="empty" style="grid-column:1/-1">Connect Noir Wallet to calculate your ZB-1 owner commitment and load your portfolio.</div>';return}if(!own.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">No ZEC BLOCKS are currently mapped to this owner commitment in the discovery feed.</div>';return}
   for(const c of own){const card=document.createElement('article');card.className='nft';card.innerHTML=`<div class="nftart"><svg class="blockArt" viewBox="0 0 600 600"></svg></div><div class="nftinfo"><div class="nftline"><span class="nfttitle">ZEC BLOCK #${c.tokenId}</span><span class="badge live">OWNED</span></div><div class="meta"><span>Source ${esc(c.sourceHeight||'—')}</span><span>${esc(short(c.txid||'',6))}</span></div><div class="controls"><button class="btn listOne">List</button><button class="btn transferOne">Transfer</button></div></div>`;artSvg(card.querySelector('svg'),(c.sourceHash||CFG.genesisTxid)+':'+(c.sourceHeight||c.tokenId),'ZB #'+c.tokenId);card.querySelector('.listOne').onclick=()=>{openListing();$('listingToken').value=String(c.tokenId)};card.querySelector('.transferOne').onclick=()=>{S.transferToken=c.tokenId;$('transferToken').value='ZEC BLOCK #'+c.tokenId;modal('transferModal',true)};g.appendChild(card)}
 }
-$('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalance');const r=await loadWalletHistory();await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();updateWalletUI();toast(`Portfolio synced · ${r?.claims||0} wallet claims repaired into discovery.`)}catch(e){toast(e.message||String(e),7000)}};
+$('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalance');await loadWalletHistory();await fetchRelay();updateWalletUI();toast('Portfolio synced.')}catch(e){toast(e.message||String(e),7000)}};
 $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');if(currentOwner(tokenId)!==S.ownerCommitment)throw new Error('This wallet is not the current owner in the discovery state.');const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;const sig=await signDerived(msg);const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});await publishRelay(e);modal('transferModal',false);$('recipientCommit').value='';toast('Transfer broadcast: '+txid,8000);await fetchRelay()}catch(e){toast(e.message||String(e),8000)}};
-async function refreshAll(){await Promise.allSettled([loadServerMiningSnapshot({force:true}),fetchRelay(null,true)]);await reconcileFeeCredit();updateFeeCreditUI();renderMarket();renderPortfolio()}
+async function refreshAll(){await fetchRelay();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
-$('engineSelect').value=localStorage.getItem('zb1_engine_pref')||'auto';
-S.enginePreference=$('engineSelect').value;
-$('engineSelect').onchange=()=>{
-  S.enginePreference=$('engineSelect').value;
-  localStorage.setItem('zb1_engine_pref',S.enginePreference);
-  if(S.enginePreference==='cpu'){$('mineEngine').textContent='CPU selected';setGpuStatus('GPU bypassed by user','warn')}
-  else if(S.enginePreference==='gpu'){$('mineEngine').textContent='GPU selected';detectGpu()}
-  else{$('mineEngine').textContent='Auto · GPU preferred';detectGpu()}
-};
-$('testGpuBtn').onclick=()=>detectGpu({toastResult:true});
 artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
-(async()=>{
-  $('mineEngine').textContent=S.enginePreference==='cpu'?'CPU selected':S.enginePreference==='gpu'?'GPU selected':'Auto · GPU preferred';
-  if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
-  await initNostr();
-  startLiveDiscovery();
-  await loadServerMiningSnapshot({force:true});
-  kickServerClaimIndex().catch(()=>{});
-  try{await resolveGenesis()}catch(e){console.warn(e)}
-  try{await connectWallet(true)}catch{}
-  await fetchRelay(null,true);
-  await reconcileFeeCredit();
-  updateFeeCreditUI();
-  updateWalletUI();
-  updateIndexProgress();
-
-  // Historical availability indexing is server-side and persistent; browser refreshes never restart it.
-
-  // Live subscription handles normal updates immediately.
-  // 10-second incremental backfill catches relay messages missed by WebSocket.
-  if(!S.discoveryTimer)S.discoveryTimer=setInterval(async()=>{try{
-    await fetchRelay(null,true)
-  }catch(e){console.warn('claim discovery backfill',e)}},10000);
-
-  processRelayRepairQueue().catch(()=>{});
-  if(!S.relayRetryTimer)S.relayRetryTimer=setInterval(()=>processRelayRepairQueue().catch(()=>{}),30000);
-
-  if(!S.serverTimer)S.serverTimer=setInterval(async()=>{
-    try{await loadServerMiningSnapshot({force:true})}catch{}
-  },15000);
-
-  setInterval(updateClaimSyncAge,1000);
-
-  if(!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000)
-})();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadServerMiningSnapshot({force:true}).catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
+(async()=>{$('mineEngine').textContent=navigator.gpu?'WebGPU ready · GPU preferred':'CPU fallback';await initNostr();try{await resolveGenesis()}catch(e){console.warn(e)}try{await connectWallet(true)}catch{}await fetchRelay();updateWalletUI()})();
