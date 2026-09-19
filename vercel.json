@@ -1,0 +1,5 @@
+{
+  "functions": {
+    "api/zcash.js": { "maxDuration": 15 }
+  }
+}
