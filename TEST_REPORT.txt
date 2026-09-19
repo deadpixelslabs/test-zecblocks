@@ -1,0 +1,10 @@
+ZEC BLOCKS MINING V10 TEST REPORT
+
+PASS Browser JS node --check
+PASS Vercel API node --check
+PASS RIPEMD-160 vectors: empty / a / abc
+PASS V3 max-field sample memo: 446/512 bytes
+PASS transparent-funded fee binding present
+PASS current-key fee receipt verification present
+PASS losing-race claim-credit release present
+PASS fee-credit recovery flow present
