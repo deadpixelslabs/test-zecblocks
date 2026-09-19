@@ -65,7 +65,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">Choose Auto, GPU-only, or CPU-only. Auto prefers WebGPU and falls back to CPU if GPU initialization fails. The miner checks the public ZB-1 discovery feed before starting and watches the selected Token ID while mining. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
+      <div id="mineNotice" class="notice">V6 shader fix active. Choose Auto, GPU-only, or CPU-only. Auto prefers WebGPU and falls back to CPU if GPU initialization fails. The miner checks the public ZB-1 discovery feed before starting and watches the selected Token ID while mining. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -312,7 +312,7 @@ struct Result { flag:atomic<u32>, nonce:atomic<u32> };
 @group(0) @binding(0) var<storage, read> tmpl: array<u32>;
 @group(0) @binding(1) var<storage, read> params: Params;
 @group(0) @binding(2) var<storage, read_write> result: Result;
-fn rotr(x:u32,n:u32)->u32{return (x>>n)|(x<<(32u-n));}
+fn rotr(x:u32,n:u32)->u32{return ((x >> n) | (x << (32u - n)));}
 fn compress(inputState:array<u32,8>, block:array<u32,16>)->array<u32,8>{
   var w:array<u32,64>;
   for(var i:u32=0u;i<16u;i=i+1u){w[i]=block[i];}
@@ -341,7 +341,7 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>){
   state=compress(state,b0);
   var b1:array<u32,16>;for(var i:u32=0u;i<16u;i=i+1u){b1[i]=tmpl[16u+i];}
   b1[11u]=(b1[11u]&0xffffff00u)|(nonce&0xffu);
-  b1[12u]=((nonce>>8u)&0xffu)<<24u|((nonce>>16u)&0xffu)<<16u|((nonce>>24u)&0xffu)<<8u;
+  b1[12u]=(((nonce>>8u)&0xffu)<<24u) | (((nonce>>16u)&0xffu)<<16u) | (((nonce>>24u)&0xffu)<<8u);
   b1[13u]=0x00000080u;
   state=compress(state,b1);
   if(state[0]<params.targetTop){
@@ -456,7 +456,10 @@ async function startGpuMining(base){
   }finally{templateBuf.destroy();paramsBuf.destroy();resultBuf.destroy();readBuf.destroy()}
 }
 async function startCpuMining(base,reason=''){
-  S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';let lines=[];$('hashLog').textContent=(reason?reason+'\n':'')+'Starting CPU workers…';
+  S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';
+  if(reason)setGpuStatus(reason,'bad');
+  let lines=[],prefix=reason?reason+'\n':'';
+  $('hashLog').textContent=prefix+'Starting CPU workers…';
   const wc=Math.max(1,Math.min(8,navigator.hardwareConcurrency||4)),src=workerSource(),url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
   for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=prefix+lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
   URL.revokeObjectURL(url)

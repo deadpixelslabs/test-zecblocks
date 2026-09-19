@@ -41,3 +41,13 @@ The canonical ZB-1 result is still determined by valid confirmed Zcash protocol 
 - Attempts to show WebGPU adapter/vendor information when browser exposes it
 - Engine preference persists in localStorage
 - Genesis TXID, source rule, SHA-256 preimage, 26-bit difficulty and claim rules are unchanged.
+
+V6 GPU SHADER FIX
+- Fixes Chrome/Edge WebGPU WGSL compile error:
+  mixing `<<` and `|` requires parenthesis
+- Explicit parentheses added to nonce byte packing.
+- Rotate expression made explicit for strict WGSL parsing.
+- CPU fallback log-prefix bug fixed.
+- GPU-only mode still never silently falls back to CPU.
+- GPU-found nonce is still verified with browser SHA-256 before Submit Claim is enabled.
+- Genesis, 26-bit difficulty, source rule, availability guard, and claim format are unchanged.
