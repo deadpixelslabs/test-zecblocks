@@ -30,7 +30,7 @@
     <h1>Mine the proof.<br>Claim the block.</h1>
     <p>Mine ZEC BLOCKS directly in your browser with ZB-1 application-level SHA-256 proof-of-work. A valid 26-bit proof can be submitted through Noir Wallet and anchored to Zcash Mainnet.</p>
     <div class="actions"><a href="#mining" class="btn gold">Start Mining</a><a href="https://www.zecblocks.xyz" class="btn">Open Marketplace ↗</a><a href="https://docs.zecblocks.xyz" class="btn" target="_blank" rel="noreferrer">Read Protocol</a></div>
-    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Claims Seen</small><b id="claimCount">0</b></div></div>
+    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Known Claims</small><b id="claimCount">0</b></div></div>
   </div>
   <aside class="card heroSide">
     <div class="heroSideTop"><h2>Next ZEC BLOCK</h2><span class="badge live">LIVE</span></div>
@@ -49,19 +49,21 @@
       <div class="row"><span class="key">Genesis Height</span><span class="val" id="gHeight">Resolving from mainnet…</span></div>
       <div class="row"><span class="key">Owner Commitment</span><span class="val" id="ownerCommit">Connect wallet</span></div>
       <div class="row"><span class="key">Source Block</span><span class="val" id="sourceInfo">Select a token</span></div>
+      <div class="row"><span class="key">Claim Status</span><span class="val" id="claimStatus">Select a token</span></div>
       <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div>
       <div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div>
       <div class="row"><span class="key">Hashrate</span><span class="val" id="hashrate">0 H/s</span></div>
-      <div class="inputrow"><input id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="loadTargetBtn" class="btn">Load Target</button></div>
+      <div class="inputrow" style="grid-template-columns:1fr auto auto"><input id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="findUnclaimedBtn" class="btn">Find Unclaimed</button><button id="loadTargetBtn" class="btn">Load Target</button></div>
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">GPU mining is used automatically when WebGPU is available; CPU workers remain the fallback. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
+      <div id="mineNotice" class="notice">GPU mining is used automatically when WebGPU is available; CPU workers remain the fallback. The miner checks the public ZB-1 discovery feed before starting and watches the selected Token ID while mining. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
     </div>
   </div>
   <div class="sideStack">
     <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
     <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
+    <div class="mini"><div class="kicker">Availability</div><h3><span id="knownAvailable">5,000</span> known unclaimed</h3><p><span id="knownClaimed">0</span> claim events are currently known by the discovery client. Select any Token ID or use <b>Find Unclaimed</b>.</p></div>
     <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
     <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses public relay events only for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
   </div>
@@ -70,7 +72,7 @@
 
 <div class="sectionHead" id="market"><div><h2>Marketplace</h2><p>Signed P2P listings and offers. No custody.</p></div><div class="tabs"><button id="refreshMarketBtn" class="btn">Refresh</button><button id="createListingBtn" class="btn gold" disabled>List an NFT</button></div></div>
 <section class="card">
-  <div class="marketToolbar"><input id="marketSearch" class="input" placeholder="Search token ID or seller commitment"><select id="marketSort" class="select"><option value="new">Newest</option><option value="priceLow">Price: low to high</option><option value="priceHigh">Price: high to low</option></select><span class="pill" id="relayStatus">Relay: connecting…</span></div>
+  <div class="marketToolbar"><input id="marketSearch" class="input" placeholder="Search token ID or seller commitment"><select id="marketSort" class="select"><option value="new">Newest</option><option value="priceLow">Price: low to high</option><option value="priceHigh">Price: high to low</option></select><span class="pill" id="relayStatus">Relays: connecting…</span></div>
   <div class="marketBody"><div id="marketGrid" class="grid"></div></div>
 </section>
 
@@ -102,10 +104,10 @@ const CFG={
   treasury:'t1b9PCdoCncgoc13CWwWz8tzZZLDYfMaTyz',
   supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,marketFeeBps:300,
   explorer:'/api/zcash',
-  relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net'],
+  relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band'],
   nostrKind:30078,relayTag:'zb1-mainnet-v1'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map()};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -145,7 +147,7 @@ function updateWalletUI(){
   $('portfolioCommit').textContent=connected?S.ownerCommitment:'Connect wallet to reveal your commitment.';
   $('portfolioShielded').textContent=connected?(S.connection.shielded||'—'):'Private until you connect.';
   $('zecBalance').textContent=S.balance?.available!=null?String(S.balance.available)+' ZEC':'—';
-  $('loadTargetBtn').disabled=!connected;$('startMineBtn').disabled=!connected||S.mining;$('syncPortfolioBtn').disabled=!connected;$('createListingBtn').disabled=!connected||ownedTokens().length===0;
+  $('loadTargetBtn').disabled=!connected;$('findUnclaimedBtn').disabled=!connected;$('startMineBtn').disabled=!connected||S.mining;$('syncPortfolioBtn').disabled=!connected;$('createListingBtn').disabled=!connected||ownedTokens().length===0;
 }
 $('walletBtn').onclick=()=>connectWallet(false);
 async function loadWalletHistory(){
@@ -176,23 +178,110 @@ async function resolveGenesis(){
   }catch(e){$('gHeight').textContent='Chain data unavailable';$('heroHeight').textContent='Retry mining';throw e}
 }
 function updateGenesisUI(){if(!S.genesisHeight)return;$('gHeight').textContent=S.genesisHeight.toLocaleString();$('heroHeight').textContent=(S.genesisHeight-1).toLocaleString();}
+function knownClaimForToken(token){
+  return S.claims.get(Number(token))||null;
+}
+function setClaimStatus(text,kind=''){
+  const el=$('claimStatus'); if(!el)return;
+  el.textContent=text;
+  el.style.color=kind==='good'?'#78d594':kind==='bad'?'#ff8989':kind==='warn'?'#f1cc76':'#d8d8d8';
+}
+function updateAvailabilityCounts(){
+  const n=S.claims.size;
+  $('knownClaimed').textContent=n.toLocaleString();
+  $('knownAvailable').textContent=Math.max(0,CFG.supply-n).toLocaleString();
+}
+async function verifyClaimCandidate(ev,target){
+  try{
+    if(!ev||!target||!ev.txid||!/^[0-9a-f]{64}$/i.test(ev.txid))return {confirmed:false,proof:false};
+    const owner=String(ev.ownerCommitment||'').toLowerCase(),nonce=String(ev.nonce??'');
+    if(!/^[0-9a-f]{64}$/.test(owner)||!/^\d+$/.test(nonce))return {confirmed:false,proof:false};
+    if(ev.sourceHash&&String(ev.sourceHash).toLowerCase()!==target.sourceHash)return {confirmed:false,proof:false};
+    if(ev.sourceHeight&&Number(ev.sourceHeight)!==target.sourceHeight)return {confirmed:false,proof:false};
+    const pre=concat(enc.encode('ZB1:MINE:v1'),hexToBytes(CFG.genesisTxid),u32le(target.token),hexToBytes(target.sourceHash),hexToBytes(owner),u64le(BigInt(nonce)));
+    const h=await sha256Bytes(pre);
+    if(leadingZeroBits(h)<CFG.powBits)return {confirmed:false,proof:false};
+    let tx=null;
+    try{tx=await explorerFetch('tx',ev.txid)}catch{}
+    const bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height']));
+    return {confirmed:Number.isInteger(bh)&&bh>0,proof:true,blockHeight:bh||null,txid:ev.txid};
+  }catch{return {confirmed:false,proof:false}}
+}
+async function checkTargetAvailability(target,{refresh=true}={}){
+  if(refresh)await fetchRelay();
+  const ev=knownClaimForToken(target.token);
+  if(!ev){
+    setClaimStatus('AVAILABLE · no known claim','good');
+    return {available:true,confirmed:false,event:null};
+  }
+  setClaimStatus('CLAIM DETECTED · verifying…','warn');
+  const v=await verifyClaimCandidate(ev,target);
+  if(v.proof&&v.confirmed){
+    setClaimStatus('CLAIMED · confirmed on Zcash','bad');
+    return {available:false,confirmed:true,event:ev,verify:v};
+  }
+  if(v.proof){
+    setClaimStatus('CLAIM BROADCAST · confirmation pending','warn');
+    return {available:false,confirmed:false,event:ev,verify:v};
+  }
+  setClaimStatus('CLAIM EVENT SEEN · choose another ID','warn');
+  return {available:false,confirmed:false,event:ev,verify:v};
+}
 async function loadTarget(){
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     const token=Number($('tokenInput').value);if(!Number.isInteger(token)||token<1||token>CFG.supply)throw new Error('Token ID must be 1–5000.');
+    setClaimStatus('Checking discovery state…','warn');
     $('mineStatus').textContent='Loading source block…';$('hashLog').textContent='Resolving confirmed Genesis and source block from Zcash mainnet…';
     const gh=await resolveGenesis();const sh=gh-token;
     const j=await explorerFetch('block',sh);
     const hash=String(deepFind(j,['hash','block_hash','blockHash'])||'');
     if(!/^[0-9a-fA-F]{64}$/.test(hash))throw new Error('Could not resolve source block hash for height '+sh+'.');
     S.target={token,sourceHeight:sh,sourceHash:hash.toLowerCase()};S.proof=null;
-    $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);$('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('hashLog').textContent='Target loaded. Source hash: '+hash+'\nReady to search the same locked 26-bit SHA-256 proof with GPU/CPU.';
+    const availability=await checkTargetAvailability(S.target,{refresh:true});
+    $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);
     artSvg($('heroArt'),hash+':'+sh,'ZB #'+token);$('heroToken').textContent='#'+token;$('heroHeight').textContent=sh.toLocaleString();
+    if(!availability.available){
+      $('mineStatus').textContent=availability.confirmed?'Already claimed':'Claim already detected';
+      $('startMineBtn').disabled=true;$('submitClaimBtn').disabled=true;
+      $('hashLog').textContent=availability.confirmed
+        ?`ZEC BLOCK #${token} already has a confirmed claim.\nChoose another Token ID.`
+        :`A claim for ZEC BLOCK #${token} is already visible in the discovery feed.\nChoose another Token ID to avoid wasting hashes.`;
+      toast(`ZEC BLOCK #${token} is already claimed / being claimed. Choose another ID.`,8000);
+      return false;
+    }
+    $('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;
+    $('hashLog').textContent='Target loaded. Source hash: '+hash+'\nNo known claim found for this Token ID. Ready to search the locked 26-bit SHA-256 proof with GPU/CPU.';
     return true;
-  }catch(e){S.target=null;$('sourceInfo').textContent='Unavailable';$('mineStatus').textContent='Target load failed';$('hashLog').textContent='ERROR: '+(e.message||String(e));toast(e.message||String(e),8000);return false}
+  }catch(e){S.target=null;$('sourceInfo').textContent='Unavailable';setClaimStatus('Unavailable');$('mineStatus').textContent='Target load failed';$('hashLog').textContent='ERROR: '+(e.message||String(e));toast(e.message||String(e),8000);return false}
 }
 $('loadTargetBtn').onclick=loadTarget;
-$('tokenInput').addEventListener('input',()=>{S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;if(S.ownerCommitment&&!S.mining)$('startMineBtn').disabled=false;});
+$('findUnclaimedBtn').onclick=async()=>{
+  try{
+    if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
+    $('findUnclaimedBtn').disabled=true;
+    await fetchRelay();
+    let start=Number($('tokenInput').value)||1,found=null;
+    for(let step=1;step<=CFG.supply;step++){
+      const id=((start-1+step)%CFG.supply)+1;
+      if(!S.claims.has(id)){found=id;break}
+    }
+    if(!found)throw new Error('No known unclaimed Token ID remains.');
+    $('tokenInput').value=String(found);S.target=null;S.proof=null;
+    setClaimStatus('Known unclaimed · load to verify','good');
+    $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=false;
+    toast('Selected known-unclaimed ZEC BLOCK #'+found+'. Click Start Mining to verify and mine.');
+  }catch(e){toast(e.message||String(e),7000)}
+  finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
+};
+$('tokenInput').addEventListener('input',()=>{
+  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;
+  const token=Number($('tokenInput').value),known=knownClaimForToken(token);
+  if(Number.isInteger(token)&&token>=1&&token<=CFG.supply){
+    if(known){setClaimStatus('KNOWN CLAIM · load to verify','warn');$('startMineBtn').disabled=true}
+    else{setClaimStatus('Known unclaimed · load to verify','good');if(S.ownerCommitment&&!S.mining)$('startMineBtn').disabled=false}
+  }else setClaimStatus('Select Token ID 1–5000');
+});
 function workerSource(){return `
 const K=[1116352408,1899447441,-1245643825,-373957723,961987163,1508970993,-1841331548,-1424204075,-670586216,310598401,607225278,1426881987,1925078388,-2132889090,-1680079193,-1046744716,-459576895,-272742522,264347078,604807628,770255983,1249150122,1555081692,1996064986,-1740746414,-1473132947,-1341970488,-1084653625,-958395405,-710438585,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,-2117940946,-1838011259,-1564481375,-1474664885,-1035236496,-949202525,-778901479,-694614492,-200395387,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,-2067236844,-1933114872,-1866530822,-1538233109,-1090935817,-965641998];
 function rr(x,n){return(x>>>n)|(x<<(32-n))}function sha(m){const l=m.length,bit=l*8,n=((l+9+63)>>6)<<6,a=new Uint8Array(n);a.set(m);a[l]=128;const dv=new DataView(a.buffer);dv.setUint32(n-4,bit>>>0,false);dv.setUint32(n-8,Math.floor(bit/4294967296),false);let h0=1779033703,h1=-1150833019,h2=1013904242,h3=-1521486534,h4=1359893119,h5=-1694144372,h6=528734635,h7=1541459225,w=new Int32Array(64);for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getInt32(o+i*4,false);for(let i=16;i<64;i++){const x=w[i-15],y=w[i-2],s0=rr(x,7)^rr(x,18)^(x>>>3),s1=rr(y,17)^rr(y,19)^(y>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0}let a0=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;for(let i=0;i<64;i++){const S1=rr(e,6)^rr(e,11)^rr(e,25),ch=(e&f)^(~e&g),t1=(h+S1+ch+K[i]+w[i])|0,S0=rr(a0,2)^rr(a0,13)^rr(a0,22),maj=(a0&b)^(a0&c)^(b&c),t2=(S0+maj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a0;a0=(t1+t2)|0}h0=(h0+a0)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0}const out=new Uint8Array(32),od=new DataView(out.buffer);[h0,h1,h2,h3,h4,h5,h6,h7].forEach((x,i)=>od.setInt32(i*4,x,false));return out}
@@ -304,17 +393,39 @@ async function startCpuMining(base,reason=''){
 async function startMining(){
   try{
     if(S.mining)return;if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');const wanted=Number($('tokenInput').value);if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return}
-    S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
+    const gate=await checkTargetAvailability(S.target,{refresh:true});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} already has a known claim. Choose another Token ID.`);
+    S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;startClaimWatch();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
     const base=await mineBase();
     if(navigator.gpu){try{await startGpuMining(base);return}catch(e){console.warn('WebGPU miner fallback',e);if(!S.mining)return;await startCpuMining(base,'WebGPU unavailable/failed: '+(e.message||String(e))+'. Falling back to CPU.');return}}
     await startCpuMining(base,'WebGPU not supported in this browser. CPU fallback active.');
   }catch(e){S.mining=false;$('mineStatus').textContent='Mining error';toast(e.message||String(e),7000)}
 }
-function stopMining(mark=true){S.mining=false;S.gpuStop=true;for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
+
+function startClaimWatch(){
+  if(S.claimWatchTimer)clearInterval(S.claimWatchTimer);
+  S.claimWatchTimer=setInterval(async()=>{
+    if(!S.mining||!S.target)return;
+    try{
+      await fetchRelay();
+      const ev=knownClaimForToken(S.target.token);
+      if(ev){
+        const token=S.target.token;
+        stopMining(false);
+        setClaimStatus('COMPETING CLAIM DETECTED','bad');
+        $('mineStatus').textContent='Target claimed / pending';
+        $('hashLog').textContent+=`\n\nSTOPPED: A claim for ZEC BLOCK #${token} appeared while you were mining.\nChoose another Token ID.`;
+        toast(`Mining stopped: claim detected for ZEC BLOCK #${token}.`,9000);
+      }
+    }catch(e){console.warn('claim watch',e)}
+  },12000);
+}
+
+function stopMining(mark=true){S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 async function submitClaim(){
   try{
     if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');
+    const finalCheck=await checkTargetAvailability(S.target,{refresh:true});if(!finalCheck.available)throw new Error(`ZEC BLOCK #${S.target.token} was claimed before submission. Choose another Token ID.`);
     if(S.claims.size>=CFG.freeClaims)throw new Error('The free-claim window appears full in the discovery feed. Paid-claim flow is intentionally not enabled in this build until the two-transaction fee path is finalized.');
     const msg=`ZB1:CLAIM:v1|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|K=${S.pubkey}`;
     const sig=await rpc('zcash_signMessage',[msg,{signingMode:'derived'}]);
@@ -335,8 +446,25 @@ async function publishRelay(obj){
   try{const d=obj.txid||obj.eventId||crypto.randomUUID();const e=S.nostr.finalizeEvent({kind:CFG.nostrKind,created_at:Math.floor(Date.now()/1000),tags:[['t',CFG.relayTag],['d',d],['type',obj.type||'EVENT'],['token',String(obj.tokenId||0)]],content:JSON.stringify(obj)},S.nostrSk);await Promise.any(S.relay.publish(CFG.relays,e));}catch(e){console.warn('relay publish',e)}
 }
 async function fetchRelay(){
-  let arr=localEvents();if(S.nostr&&S.relay){try{const evs=await S.relay.querySync(CFG.relays,{kinds:[CFG.nostrKind],'#t':[CFG.relayTag],limit:6000});for(const n of evs){try{const o=JSON.parse(n.content);arr.push(normalizeEvent(o))}catch{}}$('relayStatus').textContent='Relay: '+evs.length+' events'}catch(e){$('relayStatus').textContent='Relay: local cache'}}
-  const ded=new Map();for(const e of arr){const k=e.txid||e.eventId||JSON.stringify(e);const old=ded.get(k);if(!old||(e.timestamp||0)>(old.timestamp||0))ded.set(k,e)}S.events=[...ded.values()];rebuildState();
+  let arr=localEvents(),ok=0,totalRemote=0;
+  if(S.nostr&&S.relay){
+    const rs=await Promise.allSettled(CFG.relays.map(async url=>{
+      const evs=await Promise.race([
+        S.relay.querySync([url],{kinds:[CFG.nostrKind],'#t':[CFG.relayTag],limit:7000}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('relay timeout')),6500))
+      ]);
+      return evs||[];
+    }));
+    for(const r of rs){
+      if(r.status==='fulfilled'){
+        ok++; totalRemote+=r.value.length;
+        for(const n of r.value){try{arr.push(normalizeEvent(JSON.parse(n.content)))}catch{}}
+      }
+    }
+    $('relayStatus').textContent=`Relays: ${ok}/${CFG.relays.length} · ${totalRemote} events`;
+  }
+  const ded=new Map();for(const e of arr){const k=e.txid||e.eventId||JSON.stringify(e);const old=ded.get(k);if(!old||(e.timestamp||0)>(old.timestamp||0))ded.set(k,e)}
+  S.events=[...ded.values()];rebuildState();updateAvailabilityCounts();
 }
 function rebuildState(){
   const claims=new Map(),trans=[];const sorted=[...S.events].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
@@ -344,7 +472,7 @@ function rebuildState(){
   for(const e of trans){const id=Number(e.tokenId),c=claims.get(id);if(c)e._applied=true}
   S.claims=claims;S.transfers=trans;
   const listings=new Map(),offers=[];for(const e of sorted){if(e.type==='SALE'){const k=e.listingId||e.eventId;listings.set(k,e)}else if(e.type==='SALE_CANCEL'){listings.delete(e.listingId)}else if(e.type==='OFFER')offers.push(e)}S.listings=listings;S.offers=offers;
-  $('claimCount').textContent=claims.size.toLocaleString();renderMarket();renderPortfolio();updateWalletUI();
+  $('claimCount').textContent=claims.size.toLocaleString();updateAvailabilityCounts();renderMarket();renderPortfolio();updateWalletUI();
 }
 function currentOwner(id){const c=S.claims.get(Number(id));if(!c)return null;let owner=c.ownerCommitment||null;for(const t of S.transfers.filter(x=>Number(x.tokenId)===Number(id)).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))){if(t.fromCommitment&&owner&&t.fromCommitment!==owner)continue;owner=t.toCommitment||owner}return owner}
 function ownedTokens(){if(!S.ownerCommitment)return[];return [...S.claims.values()].filter(c=>currentOwner(c.tokenId)===S.ownerCommitment).sort((a,b)=>a.tokenId-b.tokenId)}
