@@ -1,32 +1,35 @@
-ZEC BLOCKS MINING V7 — CLAIM DISCOVERY FIX
+ZEC BLOCKS MINING V9 — RESERVATION-FIRST PAID CLAIMS
 
-This build fixes the false-green availability problem where a ZEC BLOCK could
-already be claimed but Find Unclaimed / Load Target only saw an incomplete
-relay cache.
+IMPORTANT CORRECTION
+A confirmed 0.0013 ZEC protocol fee is NOT returned to the user's Noir wallet
+and is NOT wallet balance. It is already paid to the treasury.
 
-Changes:
-- Token input is no longer shown green before a real Load Target scan.
-- Load Target performs a deeper multi-relay scan.
-- Find Unclaimed refreshes discovery first and exact-checks the selected ID.
-- Reads both the existing ZB-1 parameterized events and a new fallback Nostr
-  kind for future claims.
-- New claims are published to ALL configured relays, not only the first relay
-  that acknowledges.
-- New claims also publish a fallback discovery event for better propagation.
-- A proof-bearing CLAIM_INTENT is published for 10 minutes before wallet
-  broadcast, reducing two-miners-on-one-token races.
-- Connected Noir Wallet history rebuilds valid old claims and periodically
-  repairs their public discovery event.
-- Mining watcher checks every ~8 seconds and stops when a claim or valid active
-  claim intent appears.
-- Includes api/zcash.js and vercel.json so the deployment package is complete.
-- Genesis TXID, supply, source-block rule, SHA-256 preimage and 26-bit
-  difficulty are unchanged.
+V9 prevents "pay first, then discover the NFT was taken".
 
-IMPORTANT:
-Public relay discovery is a cache/convenience layer, not Zcash consensus.
-A shielded Zcash memo cannot be globally read by an ordinary public explorer
-without a viewing-key scanner. V7 therefore removes misleading pre-check green
-states and makes the current relay discovery much more redundant/self-healing,
-but the canonical protocol result remains the first valid confirmed Zcash
-claim under ZB-1 rules.
+FLOW
+1. Find a valid 26-bit proof.
+2. Check the Token ID.
+3. Broadcast CLAIM_RESERVE v3 to the ZB-1 mailbox.
+4. Wait for the reservation to confirm on Zcash.
+5. Re-check for a pre-existing confirmed claim.
+6. ONLY THEN ask Noir Wallet to send 0.0013 ZEC.
+7. Fee goes from shielded funds to:
+   t1b9PCdoCncgoc13CWwWz8tzZZLDYfMaTyz
+8. Wait for the fee to confirm and verify exactly 130,000 zatoshi.
+9. Broadcast final CLAIM v3 referencing both reservation TXID and fee TXID.
+10. If finalization is interrupted, Resume Pending Claim uses the same
+    reservation and same fee TXID; it never asks for a second protocol fee.
+
+Reservation window: 6 hours.
+Reservation confirmation: 1.
+Fee confirmation: 1.
+
+Existing V1/V2 claims stay readable/grandfathered.
+All new paid claims produced by V9 use CLAIM_RESERVE v3 + CLAIM v3.
+
+ZB-1 remains application-layer consensus, not a smart contract.
+Other ZB-1 clients/indexers need to implement the same reservation rules.
+The official miner mirrors reservations as CLAIM_INTENT so older official
+miners stop competing while the reservation is active.
+
+Deploy ALL files in this ZIP to mine.zecblocks.xyz.
