@@ -1,47 +1,46 @@
-ZEC BLOCKS MINING V11 — LIVE CLAIM DISCOVERY
+ZEC BLOCKS MINING V12 — CLAIM INDEX SWEEP
 
-WHY V11
-Paid claim fee flow in V10 is retained unchanged.
+WHAT V12 FIXES
+V11 was fast for NEW claims, but historical Known Claims could remain far behind
+because broad relay queries can omit old records due to result caps, pagination,
+tag-index quirks, pruning, or temporary relay failures.
 
-The problem fixed here is the "KNOWN CLAIMS" counter and availability discovery
-falling far behind while mining activity continues.
+V12 adds an exact historical index across Token IDs 1..5000.
 
-ROOT CAUSE
-V10 did a global relay fetch on page load and manual actions, but it did not
-continuously refresh the global claim feed. The 8-second mining watcher checks
-the currently selected Token ID only. Therefore:
-- the selected target could still be protected reasonably well;
-- but the global Known Claims counter could stay stale for a long time;
-- newly claimed tokens were not reflected globally until reload/manual refresh.
+HOW IT WORKS
+Every ZB-1 discovery event is tagged:
+  i = zb1-token:<TOKEN_ID>
 
-V11 LIVE DISCOVERY
-1. Opens a live Nostr subscription to all 6 ZB-1 discovery relays.
-2. Reads both:
-   - kind 30078
-   - kind 1 fallback used by claim publishing
-3. Newly published claims are merged into runtime state immediately.
-4. Known Claims updates after a ~150ms debounce when relay messages arrive.
-5. A 10-second incremental backfill catches messages missed by WebSocket.
-6. After the first full scan, backfills request only a recent overlap window.
-7. Previously discovered events are retained in:
-   - runtime S.events
-   - session discovery cache
-   - local wallet event history
-   so incremental refreshes cannot make old claims disappear.
-8. Returning to the browser tab triggers an immediate refresh.
-9. "Known Claims" now shows a small LIVE / seconds-ago sync indicator.
+V12 queries those exact token tags in batches of 50 across all configured relays.
+It reads kind 30078 + kind 1 fallback and merges results with live discovery.
 
-CLAIM SAFETY
-The existing selected-token deep availability check is retained.
-The 8-second claim watcher is also retained while mining.
+The sweep:
+- starts automatically after normal startup sync;
+- uses two conservative workers;
+- resumes from its saved cursor after reload;
+- repeats every 6 hours;
+- keeps a compact durable set of discovered claim Token IDs;
+- prevents Known Claims from decreasing when a relay temporarily omits history.
 
-IMPORTANT
-Known Claims remains the public ZB-1 discovery count. It is not a claim that a
-normal explorer can enumerate every shielded memo globally. Canonical claim
-validity still depends on the Zcash transaction and ZB-1 validation.
+FUTURE CLAIM RELIABILITY
+New CLAIM publication now has a discovery acknowledgement target.
+If fewer than 3 relay acknowledgements are received, the CLAIM enters a durable
+repair queue and is retried every 30 seconds.
 
-PAID CLAIM
-V10's bound fee-credit / paid-claim logic is retained as-is.
+WALLET REPAIR
+Existing Noir wallet-history repair remains enabled. When a claimant reconnects,
+a valid historical claim can be rebuilt and republished to discovery.
+
+IMPORTANT LIMIT
+V12 is substantially more complete and stable, but a browser cannot magically
+enumerate a historical shielded memo that was never published to any relay and
+is not available from a connected wallet history.
+
+Canonical validity for a specific Token ID still uses the deep target check and
+Zcash transaction validation before mining/claiming.
+
+The current bound paid-claim fee flow is unchanged.
 
 DEPLOY
 Upload every file in this ZIP to mine.zecblocks.xyz.
+Leave the page open until the historical index sweep reaches 100%.
