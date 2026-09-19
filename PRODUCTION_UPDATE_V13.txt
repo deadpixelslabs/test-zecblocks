@@ -1,0 +1,20 @@
+ZEC BLOCKS MINING V13 — Production Availability Index
+
+Key changes:
+- Supabase production claim snapshot is loaded on startup and every 15 seconds.
+- Claims Seen is server-persistent and does not reset on browser refresh.
+- Find Unclaimed checks candidate IDs against the production DB and exact multi-relay server queries.
+- A final deep compatibility check is required before an ID is suggested as clear.
+- Load Target performs an exact server availability check before mining is enabled.
+- Mining watch rechecks the server while hashing and stops if claim activity appears.
+- Browser historical claim sweep no longer restarts on refresh; history indexing is server-side and persistent.
+- Token input performs a debounced server lookup and blocks known claimed IDs.
+- Existing V12.1 bound fee-credit / Noir / PoW / claim flow remains intact.
+
+Backend services installed in Supabase:
+- zecblocks_mining_snapshot RPC
+- zecblocks-check-claims Edge Function
+- zecblocks-claim-shard-scan Edge Function
+- Persistent claim shard cursor / cron
+
+Production rule: if the availability server cannot reach a relay quorum, mining is blocked rather than guessing that a token is unclaimed.
