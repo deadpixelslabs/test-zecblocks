@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080808">
 <meta name="description" content="ZEC BLOCKS — open-source ZB-1 mining, marketplace and private portfolio on Zcash.">
-<title>ZEC BLOCKS — Mining</title>
+<title>ZEC BLOCKS — Mining V14</title>
 <style>
 :root{--bg:#070707;--panel:#0d0d0d;--panel2:#111;--line:#232323;--line2:#313131;--text:#f4f4f4;--muted:#8b8b8b;--gold:#d3a84f;--gold2:#f1cc76;--green:#78d594;--red:#ff8989;--blue:#86b7ff;--r:14px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.top{height:68px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:24px;padding:0 24px;background:rgba(7,7,7,.92);border-bottom:1px solid #1d1d1d;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;min-width:max-content}.brandmark{width:34px;height:34px;border:1px solid #3c3322;border-radius:8px;display:grid;place-items:center;background:#0d0b08;color:var(--gold2);font-family:ui-monospace,monospace;font-weight:900}.brand b{font-size:13px;letter-spacing:.12em}.nav{display:flex;gap:4px}.nav a{padding:9px 11px;border-radius:9px;color:#8d8d8d;font-size:13px;font-weight:700}.nav a:hover{background:#131313;color:#fff}.topright{margin-left:auto;display:flex;align-items:center;gap:8px}.pill{border:1px solid #292929;background:#0d0d0d;padding:8px 10px;border-radius:999px;font-size:11px;color:#aaa}.liveDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(120,213,148,.7);margin-right:7px}.btn{min-height:39px;padding:0 14px;border:1px solid #2b2b2b;background:#111;color:#ddd;border-radius:10px;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn:hover{border-color:#494949;color:#fff}.btn.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#17120a;border-color:transparent}.btn.green{border-color:rgba(120,213,148,.3);color:#b8f0c6;background:rgba(120,213,148,.08)}.btn.red{border-color:rgba(255,137,137,.3);color:#ffb2b2;background:rgba(255,137,137,.06)}.btn:disabled{opacity:.45;cursor:not-allowed}.walletbtn{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}main{max-width:1420px;margin:0 auto;padding:28px 24px 70px}.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:18px}.card,.heroMain{border:1px solid #202020;background:linear-gradient(180deg,#0e0e0e,#0a0a0a);border-radius:var(--r)}.heroMain{padding:38px;min-height:420px;position:relative;overflow:hidden}.heroMain:after{content:"";position:absolute;width:500px;height:500px;right:-180px;top:-160px;border-radius:50%;background:radial-gradient(circle,rgba(211,168,79,.14),transparent 68%);pointer-events:none}.kicker{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold2);font-weight:900;margin-bottom:17px}.hero h1{font-size:clamp(50px,7vw,88px);line-height:.92;letter-spacing:-.055em;margin:0;max-width:900px}.hero p{max-width:720px;color:#969696;font-size:15px;line-height:1.72;margin:24px 0 28px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin-top:34px;max-width:760px}.stat{background:#0a0a0a;padding:14px 15px}.stat small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.stat b{font-size:14px}.heroSide{padding:22px;display:flex;flex-direction:column}.heroSideTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.heroSideTop h2{font-size:16px;margin:0}.badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:999px;border:1px solid #333;color:#aaa}.badge.live{color:#aee9bd;border-color:rgba(120,213,148,.25);background:rgba(120,213,148,.05)}.art{aspect-ratio:1;border:1px solid #222;border-radius:11px;background:#070707;overflow:hidden}.blockArt{display:block;width:100%;height:100%;shape-rendering:crispEdges;image-rendering:pixelated}.heroSide .kvgrid{margin-top:14px}.kvgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border:1px solid #222;border-radius:10px;overflow:hidden}.kv{background:#0a0a0a;padding:12px}.kv small{display:block;color:#636363;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.kv b{font-size:12px;word-break:break-all}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:36px 0 14px}.sectionHead h2{margin:0;font-size:21px}.sectionHead p{margin:0;color:#6e6e6e;font-size:11px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.panel{padding:22px}.miningGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.terminal{border:1px solid #252525;background:#090909;border-radius:12px;overflow:hidden}.terminalHead{padding:12px 14px;border-bottom:1px solid #1e1e1e;background:#101010;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;gap:9px}.termDot{width:9px;height:9px;border-radius:50%;background:var(--gold2);box-shadow:0 0 14px rgba(240,202,114,.55)}.termBody{padding:14px}.row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #171717;font-size:12px}.row:last-child{border-bottom:0}.key{font-size:9px;color:#696969;text-transform:uppercase;letter-spacing:.09em;font-weight:900;min-width:120px}.val{text-align:right;color:#d8d8d8;word-break:break-all}.inputrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}.input,.select{width:100%;height:42px;border:1px solid #2a2a2a;border-radius:9px;background:#080808;color:#eee;padding:0 12px;outline:none}.input:focus,.select:focus{border-color:#5a492d}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.progress{height:10px;border:1px solid #222;background:#121212;border-radius:999px;overflow:hidden;margin-top:14px}.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s}.hashlog{height:150px;overflow:auto;margin-top:12px;border:1px solid #1d1d1d;border-radius:9px;background:#070707;padding:10px;color:#83c99a;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.sideStack{display:grid;gap:12px}.mini{border:1px solid #242424;border-radius:11px;background:#0a0a0a;padding:16px}.mini h3{margin:0 0 7px;font-size:15px}.mini p{margin:0;color:#7d7d7d;font-size:11px;line-height:1.65}.notice{border:1px solid rgba(240,202,114,.22);background:rgba(240,202,114,.05);color:#cdbb91;padding:11px 12px;border-radius:9px;font-size:11px;line-height:1.55;margin-top:12px}.notice.good{border-color:rgba(120,213,148,.22);background:rgba(120,213,148,.05);color:#aee7bc}.notice.bad{border-color:rgba(255,137,137,.22);background:rgba(255,137,137,.05);color:#ffb0b0}.marketToolbar{display:flex;gap:9px;align-items:center;padding:13px;border-bottom:1px solid #1e1e1e}.marketToolbar .input{max-width:440px}.marketBody{padding:15px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.nft{border:1px solid #202020;border-radius:11px;background:#0c0c0c;overflow:hidden;transition:.16s}.nft:hover{transform:translateY(-2px);border-color:#3a342b}.nftart{aspect-ratio:1;border-bottom:1px solid #1d1d1d}.nftinfo{padding:11px}.nftline{display:flex;justify-content:space-between;align-items:center;gap:8px}.nfttitle{font-size:12px;font-weight:900}.meta{font-size:9px;color:#646464;margin-top:6px;display:flex;justify-content:space-between;gap:8px}.price{font-size:12px;color:#d8bd78;font-weight:900}.empty{padding:42px 20px;text-align:center;color:#666;font-size:12px;border:1px dashed #292929;border-radius:11px}.portfolioTop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.metric{border:1px solid #222;background:#0a0a0a;border-radius:10px;padding:14px}.metric small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:17px;margin-top:6px}.walletbox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.copyline{border:1px solid #242424;border-radius:10px;background:#0a0a0a;padding:12px}.copyline small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.copyline code{font-size:10px;color:#bbb;word-break:break-all}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}.modal.show{display:flex}.modalCard{width:min(560px,100%);max-height:88vh;overflow:auto;border:1px solid #303030;border-radius:14px;background:#0c0c0c;padding:20px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalHead h3{margin:0;font-size:17px}.xbtn{border:0;background:transparent;color:#888;font-size:20px}.field{margin-bottom:12px}.field label{display:block;font-size:9px;color:#717171;text-transform:uppercase;letter-spacing:.09em;font-weight:900;margin-bottom:6px}.field textarea{width:100%;min-height:100px;border:1px solid #292929;background:#080808;color:#ddd;border-radius:9px;padding:10px;resize:vertical}.protocolGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.protocolGrid .mini{min-height:160px}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #191919;margin-top:34px;padding-top:24px;color:#595959;font-size:10px}.footerlinks{display:flex;gap:16px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;z-index:200;max-width:380px;border:1px solid #333;background:#101010;color:#ddd;border-radius:10px;padding:12px 14px;font-size:11px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none}.toast.show{display:block}.muted{color:#777}.gold{color:var(--gold2)}.green{color:var(--green)}.red{color:var(--red)}
@@ -36,7 +36,7 @@
     <h1>Mine the proof.<br>Claim the block.</h1>
     <p>Mine ZEC BLOCKS directly in your browser with ZB-1 application-level SHA-256 proof-of-work. A valid 26-bit proof can be submitted through Noir Wallet and anchored to Zcash Mainnet.</p>
     <div class="actions"><a href="#mining" class="btn gold">Start Mining</a><a href="https://www.zecblocks.xyz" class="btn">Open Marketplace ↗</a><a href="https://docs.zecblocks.xyz" class="btn" target="_blank" rel="noreferrer">Read Protocol</a></div>
-    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Known Claims</small><b id="claimCount">0</b><span id="claimSyncAge" class="tiny muted" style="display:block;margin-top:3px">syncing…</span><span id="claimIndexProgress" class="tiny muted" style="display:block;margin-top:2px">historical index: waiting</span></div></div>
+    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Claims Seen</small><b id="claimCount">0</b><span id="claimSyncAge" class="tiny muted" style="display:block;margin-top:3px">server syncing…</span><span id="claimIndexProgress" class="tiny muted" style="display:block;margin-top:2px">availability index: waiting</span></div></div>
   </div>
   <aside class="card heroSide">
     <div class="heroSideTop"><h2>Next ZEC BLOCK</h2><span class="badge live">LIVE</span></div>
@@ -45,7 +45,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Known Claims uses live discovery plus a full 5,000-token historical index sweep.</p></div><span class="badge live">26-BIT LIVE</span></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Token availability is checked against the persistent production index plus an exact multi-relay server check before mining.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V14 · SERVER MAP</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -66,13 +66,13 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay / Use Credit & Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V12.1 bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V12.1 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V13 production availability + bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
     <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
     <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
-    <div class="mini"><div class="kicker">Availability</div><h3><span id="knownAvailable">5,000</span> known unclaimed</h3><p><span id="knownClaimed">0</span> confirmed/published claim events are currently known by the discovery client. Select any Token ID or use <b>Find Unclaimed</b>.</p></div>
+    <div class="mini"><div class="kicker">Availability · V14 server map</div><h3><span id="knownClaimed">0</span> claims seen</h3><p><b id="knownAvailable">Server map starting…</b> · <span id="availabilityIndexState">loading authoritative Token ID map</span>. A Token ID is only called <b>clear</b> after the production server has classified it; missing data is treated as UNKNOWN, never as unclaimed.</p></div>
     <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
     <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses redundant public relay events plus connected-wallet recovery for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
   </div>
@@ -114,9 +114,11 @@ const CFG={
   supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,paidClaimFeeZec:'0.0013',paidClaimsActive:true,marketFeeBps:300,
   explorer:'/api/zcash',
   relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band','wss://relay.snort.social','wss://nostr.mom'],
-  nostrKind:30078,relayTag:'zb1-mainnet-v1'
+  nostrKind:30078,relayTag:'zb1-mainnet-v1',
+  supabaseUrl:'https://tvwvenyomlwvjtwxasca.supabase.co',
+  supabaseAnon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverClearIds:new Set(),serverUnknownCount:5000,serverPendingCount:0,serverVerifiedCount:0,serverMappingComplete:false,serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,serverSyncBusy:false,serverTimer:null,tokenCheckTimer:null,serverBackfillBusy:false,lastServerBackfill:0};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -355,6 +357,99 @@ function updateKnownTokenIndex(events){
   if(set.size!==before)saveKnownTokenIndex(set);
   return set
 }
+
+async function supabaseRpc(name,body={}){
+  const r=await fetch(CFG.supabaseUrl+'/rest/v1/rpc/'+encodeURIComponent(name),{
+    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon,'authorization':'Bearer '+CFG.supabaseAnon},body:JSON.stringify(body||{})
+  });
+  if(!r.ok){let j=null;try{j=await r.json()}catch{};throw new Error(j?.message||j?.error||('Production index HTTP '+r.status))}
+  return r.json()
+}
+function applyServerMiningSnapshot(d){
+  if(!d||typeof d!=='object')return;
+  S.serverClaimTotal=Math.max(Number(S.serverClaimTotal||0),Number(d.claims_seen||0));
+  S.serverCandidateIds=new Set((Array.isArray(d.candidate_ids)?d.candidate_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
+  S.serverVerifiedIds=new Set((Array.isArray(d.verified_ids)?d.verified_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
+  S.serverClearIds=new Set((Array.isArray(d.clear_ids)?d.clear_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
+  S.serverUnknownCount=Math.max(0,Number(d.unknown_indexed??(CFG.supply-S.serverVerifiedIds.size-S.serverClearIds.size)));
+  S.serverPendingCount=Math.max(0,Number(d.pending_indexed||0));
+  S.serverVerifiedCount=Math.max(S.serverVerifiedIds.size,Number(d.verified_indexed||0));
+  S.serverMappingComplete=!!d.mapping_complete;
+  S.serverScanCursor=Math.max(1,Number(d.scan_cursor||1));
+  S.serverScanComplete=!!d.scan_complete;
+  S.serverScanCompletedAt=d.scan_completed_at||null;
+  S.lastServerSnapshot=Date.now();
+  const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
+  updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
+}
+async function loadServerMiningSnapshot({force=false}={}){
+  if(S.serverSyncBusy)return null;
+  if(!force&&S.lastServerSnapshot&&Date.now()-S.lastServerSnapshot<12000)return null;
+  S.serverSyncBusy=true;
+  try{const d=await supabaseRpc('zecblocks_mining_snapshot',{});applyServerMiningSnapshot(d);return d}
+  catch(e){console.warn('production mining snapshot',e);return null}
+  finally{S.serverSyncBusy=false}
+}
+async function serverCheckClaims(tokenIds,{deep=false}={}){
+  const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
+  if(!ids.length)throw new Error('No valid Token IDs to check.');
+  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-check-claims',{
+    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({tokenIds:ids,deep:!!deep})
+  });
+  const j=await r.json().catch(()=>null);
+  if(!r.ok||!j?.ok)throw new Error(j?.error||('Availability server HTTP '+r.status));
+  for(const id0 of (j.claimed_ids||[])){
+    const id=Number(id0);if(!Number.isInteger(id))continue;
+    S.serverCandidateIds.add(id);S.serverClearIds.delete(id)
+  }
+  for(const id0 of (j.clear_ids||[])){
+    const id=Number(id0);if(!Number.isInteger(id)||S.serverCandidateIds.has(id))continue;
+    S.serverClearIds.add(id)
+  }
+  if(Array.isArray(j.events)&&j.events.length){
+    const evs=j.events.map(x=>normalizeEvent(x));
+    mergeDiscoveryEvents(evs)
+  }else updateAvailabilityCounts();
+  S.lastServerSnapshot=Date.now();
+  updateIndexProgress();updateClaimSyncAge();
+  return j
+}
+async function kickServerClaimIndex(){
+  try{await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-availability-scan',{method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:'{}'})}catch(e){console.warn('server claim shard trigger',e)}
+}
+async function backfillServerClaimsFromBrowser({limit=250}={}){
+  if(S.serverBackfillBusy)return {accepted:0};
+  if(S.lastServerBackfill&&Date.now()-S.lastServerBackfill<45000)return {accepted:0,throttled:true};
+  S.serverBackfillBusy=true;
+  try{
+    const by=new Map();
+    for(const e0 of [...S.events,...discoveryCache(),...localEvents()]){
+      const e=normalizeEvent(e0);
+      if(!structurallyValidClaim(e))continue;
+      if(!/^[0-9a-f]{64}$/i.test(String(e.sourceHash||'')))continue;
+      if(!/^[0-9a-f]{64}$/i.test(String(e.proofHash||'')))continue;
+      const k=String(e.txid||'').toLowerCase();if(!k||by.has(k))continue;
+      if(S.serverVerifiedIds.has(Number(e.tokenId)))continue;
+      by.set(k,e)
+    }
+    const arr=[...by.values()].slice(0,Math.max(0,Number(limit)||0));
+    let accepted=0,rejected=0;
+    for(let i=0;i<arr.length;i+=40){
+      const batch=arr.slice(i,i+40);
+      const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-backfill-client-claims',{
+        method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({claims:batch})
+      });
+      const j=await r.json().catch(()=>null);
+      if(!r.ok||!j?.ok)throw new Error(j?.error||('Backfill HTTP '+r.status));
+      accepted+=Number(j.accepted||0);rejected+=Number(j.rejected||0);
+      if(i+40<arr.length)await new Promise(res=>setTimeout(res,180))
+    }
+    S.lastServerBackfill=Date.now();
+    if(accepted)kickServerClaimIndex().catch(()=>{});
+    return {accepted,rejected}
+  }catch(e){console.warn('client claim backfill',e);return {accepted:0,error:e}}
+  finally{S.serverBackfillBusy=false}
+}
 function relayRetryQueue(){
   try{
     const a=JSON.parse(localStorage.getItem('zb1_relay_retry_v1')||'[]');
@@ -383,9 +478,10 @@ function saveDiscoveryCache(events){
 }
 function updateClaimSyncAge(){
   const el=$('claimSyncAge');if(!el)return;
-  if(!S.lastRelayFetch){el.textContent='syncing…';return}
-  const sec=Math.max(0,Math.floor((Date.now()-S.lastRelayFetch)/1000));
-  el.textContent=sec<3?'live':`${sec}s ago`
+  const t=S.lastServerSnapshot||S.lastRelayFetch;
+  if(!t){el.textContent='server syncing…';return}
+  const sec=Math.max(0,Math.floor((Date.now()-t)/1000));
+  el.textContent=sec<4?'server live':`server ${sec}s ago`
 }
 function saveLocalEvent(e){const a=localEvents();if(!a.some(x=>x.eventId===e.eventId||x.txid&&x.txid===e.txid)){a.push(e);localStorage.setItem('zb1_events_v1',JSON.stringify(a.slice(-10000)))}}
 function nostrSecretHex(){let h=localStorage.getItem('zb1_nostr_sk');return h||null}
@@ -550,9 +646,19 @@ function setClaimStatus(text,kind=''){
   el.style.color=kind==='good'?'#78d594':kind==='bad'?'#ff8989':kind==='warn'?'#f1cc76':'#d8d8d8';
 }
 function updateAvailabilityCounts(){
-  const n=Math.max(S.claims.size,knownTokenIndex().size);
-  $('knownClaimed').textContent=n.toLocaleString();
-  $('knownAvailable').textContent=Math.max(0,CFG.supply-n).toLocaleString();
+  const localUnique=Math.max(S.claims.size,knownTokenIndex().size,S.serverCandidateIds?.size||0);
+  const total=Math.max(Number(S.serverClaimTotal||0),localUnique);
+  $('claimCount').textContent=total.toLocaleString();
+  $('knownClaimed').textContent=total.toLocaleString();
+  const clear=S.serverClearIds?.size||0,verified=S.serverVerifiedIds?.size||0;
+  const pending=Math.max(0,Number(S.serverPendingCount||0));
+  const unknown=Math.max(0,Number(S.serverUnknownCount||0));
+  $('knownAvailable').textContent=clear.toLocaleString()+' server-verified clear IDs';
+  if(S.serverMappingComplete){
+    $('availabilityIndexState').textContent=`map complete · ${verified.toLocaleString()} claimed · ${clear.toLocaleString()} clear`;
+  }else{
+    $('availabilityIndexState').textContent=`${verified.toLocaleString()} claimed mapped · ${clear.toLocaleString()} clear · ${pending.toLocaleString()} pending · ${unknown.toLocaleString()} unknown`;
+  }
 }
 async function verifyProofFields(ev,target){
   try{
@@ -628,17 +734,22 @@ async function reconcileFeeCredit(){
   finally{S.feeReconcileBusy=false}
 }
 
-async function deepRefreshToken(token){
-  // Exact-token scan for new V7 events, plus a general tag scan for older V4-V6 claims.
-  await fetchRelay(Number(token),true);
+async function deepRefreshToken(token,{deep=true}={}){
+  // Production source of truth for availability: persistent DB + exact multi-relay server query.
+  let server=null;
+  try{server=await serverCheckClaims([Number(token)],{deep})}catch(e){console.warn('server exact availability',e)}
+  // Browser relay remains a compatibility/fallback path only; it cannot mark a server-clear token claimed by itself.
+  try{await fetchRelay(Number(token),false)}catch(e){console.warn('browser exact relay fallback',e)}
   return {
     claim:knownClaimForToken(token),
     intent:activeIntentForToken(token),
-    relayOk:S.relayReadOk
+    relayOk:S.relayReadOk,
+    server
   };
 }
-async function checkTargetAvailability(target,{refresh=true}={}){
-  if(refresh)await deepRefreshToken(target.token);
+async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
+  const fresh=refresh?await deepRefreshToken(target.token,{deep}):null;
+  const server=fresh?.server||null;
 
   const events=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===Number(target.token));
   const checked=[];
@@ -658,6 +769,16 @@ async function checkTargetAvailability(target,{refresh=true}={}){
     return {available:false,confirmed:false,event:pending.ev,verify:pending.v};
   }
 
+  const serverStatus=server?.status_by_token?.[String(target.token)]||server?.status_by_token?.[Number(target.token)]||null;
+  if(serverStatus==='claimed'||(server&&Array.isArray(server.claimed_ids)&&server.claimed_ids.includes(Number(target.token)))){
+    setClaimStatus('CLAIM RECORD FOUND · server map blocks duplicate mining','bad');
+    return {available:false,confirmed:false,event:null,serverCandidate:true};
+  }
+  if(serverStatus!=='clear'){
+    setClaimStatus('TOKEN STATUS UNKNOWN · server will not allow mining yet','warn');
+    return {available:false,confirmed:false,event:null,discoveryDown:true,unknown:true};
+  }
+
   const intent=activeIntentForToken(target.token);
   if(intent){
     const pv=await verifyProofFields(intent,target);
@@ -669,18 +790,19 @@ async function checkTargetAvailability(target,{refresh=true}={}){
     if(pv.proof&&mine)setClaimStatus('YOUR CLAIM INTENT ACTIVE · final check clear','good');
   }
 
-  if(S.relayReadOk>0)setClaimStatus('NO CLAIM SEEN · discovery scan clear','good');
-  else{
-    setClaimStatus('DISCOVERY UNAVAILABLE · do not mine yet','warn');
-    return {available:false,confirmed:false,event:null,discoveryDown:true}
+  if(serverStatus==='clear'){
+    setClaimStatus('SERVER VERIFIED CLEAR · safe to mine','good');
+    S.serverClearIds.add(Number(target.token));
+    return {available:true,confirmed:false,event:null,serverClear:true}
   }
-  return {available:true,confirmed:false,event:null}
+  setClaimStatus('TOKEN STATUS UNKNOWN · do not mine yet','warn');
+  return {available:false,confirmed:false,event:null,discoveryDown:true,unknown:true}
 }
 async function loadTarget(){
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     const token=Number($('tokenInput').value);if(!Number.isInteger(token)||token<1||token>CFG.supply)throw new Error('Token ID must be 1–5000.');
-    setClaimStatus('Deep-scanning claim discovery…','warn');
+    setClaimStatus('Checking production server map…','warn');
     $('mineStatus').textContent='Loading source block…';$('hashLog').textContent='Resolving confirmed Genesis and source block from Zcash mainnet…';
     const gh=await resolveGenesis();const sh=gh-token;
     const j=await explorerFetch('block',sh);
@@ -691,16 +813,16 @@ async function loadTarget(){
     $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);
     artSvg($('heroArt'),hash+':'+sh,'ZB #'+token);$('heroToken').textContent='#'+token;$('heroHeight').textContent=sh.toLocaleString();
     if(!availability.available){
-      $('mineStatus').textContent=availability.confirmed?'Already claimed':'Claim already detected';
+      $('mineStatus').textContent=availability.confirmed?'Already claimed':(availability.unknown?'Availability not verified':'Claim already detected');
       $('startMineBtn').disabled=true;$('submitClaimBtn').disabled=true;
       $('hashLog').textContent=availability.confirmed
         ?`ZEC BLOCK #${token} already has a confirmed claim.\nChoose another Token ID.`
-        :`A claim for ZEC BLOCK #${token} is already visible in the discovery feed.\nChoose another Token ID to avoid wasting hashes.`;
-      toast(`ZEC BLOCK #${token} is already claimed / being claimed. Choose another ID.`,8000);
+        :(availability.unknown?`ZEC BLOCK #${token} is still UNKNOWN in the production availability map.\nMining is blocked until the server classifies it CLEAR or CLAIMED.`:`A claim for ZEC BLOCK #${token} is already visible in the discovery feed.\nChoose another Token ID to avoid wasting hashes.`);
+      toast(availability.unknown?`ZEC BLOCK #${token} is not classified yet. Mining stays blocked.`:`ZEC BLOCK #${token} is already claimed / being claimed. Choose another ID.`,8000);
       return false;
     }
     $('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;
-    $('hashLog').textContent='Target loaded. Source hash: '+hash+'\nNo known claim found for this Token ID. Ready to search the locked 26-bit SHA-256 proof with GPU/CPU.';
+    $('hashLog').textContent='Target loaded. Source hash: '+hash+'\nProduction availability map: CLEAR. Ready to search the locked 26-bit SHA-256 proof with GPU/CPU.';
     return true;
   }catch(e){S.target=null;$('sourceInfo').textContent='Unavailable';setClaimStatus('Unavailable');$('mineStatus').textContent='Target load failed';$('hashLog').textContent='ERROR: '+(e.message||String(e));toast(e.message||String(e),8000);return false}
 }
@@ -709,35 +831,61 @@ $('findUnclaimedBtn').onclick=async()=>{
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     $('findUnclaimedBtn').disabled=true;
-    setClaimStatus('Scanning relays for claimed IDs…','warn');
-    await fetchRelay(null,true);
-    if(S.relayReadOk===0)throw new Error('Claim discovery is unavailable. Try again before mining.');
+    setClaimStatus('Searching server-verified clear IDs…','warn');
+    await loadServerMiningSnapshot({force:true});
+    await backfillServerClaimsFromBrowser({limit:200});
 
-    let start=Number($('tokenInput').value)||1,found=null;
-    for(let step=1;step<=CFG.supply;step++){
-      const id=((start-1+step)%CFG.supply)+1;
-      if(S.claims.has(id)||activeIntentForToken(id))continue;
+    const start=Number($('tokenInput').value)||1;
+    let clear=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)&&!knownTokenIndex().has(id)&&!activeIntentForToken(id));
+    clear.sort((a,b)=>(((a-start+CFG.supply)%CFG.supply)-((b-start+CFG.supply)%CFG.supply)));
 
-      // Exact-token query catches V7 events even when a relay truncates its general history.
-      await fetchRelay(id,false);
-      if(!S.claims.has(id)&&!activeIntentForToken(id)){found=id;break}
+    let found=clear[0]||null;
+    if(!found){
+      // No pre-classified clear ID yet: exact-probe a small set. UNKNOWN is never treated as clear.
+      let cursor=1;
+      while(cursor<=CFG.supply&&!found&&cursor<=160){
+        const ids=[];
+        while(ids.length<8&&cursor<=CFG.supply&&cursor<=160){
+          const id=((start-1+cursor)%CFG.supply)+1;cursor++;
+          if(S.serverCandidateIds.has(id)||knownTokenIndex().has(id)||activeIntentForToken(id))continue;
+          ids.push(id)
+        }
+        if(!ids.length)continue;
+        const r=await serverCheckClaims(ids,{deep:false});
+        const clears=(r.clear_ids||[]).map(Number).filter(id=>!S.serverCandidateIds.has(id)&&!knownTokenIndex().has(id));
+        if(clears.length)found=clears[0]
+      }
     }
-    if(!found)throw new Error('No discovery-clear Token ID remains.');
+    if(!found)throw new Error('No server-verified CLEAR Token ID is ready yet. The historical availability map is still syncing; retry shortly. V14 will not guess an unclaimed ID.');
     $('tokenInput').value=String(found);S.target=null;S.proof=null;
-    setClaimStatus('DISCOVERY CLEAR · click Load Target','good');
+    S.serverClearIds.add(found);
+    setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');
     $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';
-    $('submitClaimBtn').disabled=true;$('startMineBtn').disabled=false;
-    toast('Selected ZEC BLOCK #'+found+'. Click LOAD TARGET for the final deep check before mining.');
-  }catch(e){setClaimStatus('Discovery check failed','warn');toast(e.message||String(e),7000)}
+    $('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
+    toast(`Selected ZEC BLOCK #${found} from the production CLEAR map. Click LOAD TARGET for the final check.`);
+  }catch(e){setClaimStatus('No verified-clear ID ready','warn');toast(e.message||String(e),9000)}
   finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
 };
 $('tokenInput').addEventListener('input',()=>{
-  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;
-  const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token);
+  S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
+  const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token),serverKnown=S.serverCandidateIds.has(token),serverClear=S.serverClearIds.has(token);
   if(Number.isInteger(token)&&token>=1&&token<=CFG.supply){
-    if(known){setClaimStatus('KNOWN CLAIM · click Load Target to verify','warn');$('startMineBtn').disabled=true}
-    else if(intent){setClaimStatus('CLAIM INTENT SEEN · click Load Target','warn');$('startMineBtn').disabled=true}
-    else{setClaimStatus('NOT CHECKED · click Load Target','');$('startMineBtn').disabled=true}
+    if(known||serverKnown){setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');return}
+    if(intent){setClaimStatus('CLAIM INTENT SEEN · Load Target will recheck','warn');return}
+    if(serverClear){setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');return}
+    setClaimStatus('UNKNOWN · checking production server…','warn');
+    clearTimeout(S.tokenCheckTimer);
+    S.tokenCheckTimer=setTimeout(async()=>{
+      if(Number($('tokenInput').value)!==token)return;
+      try{
+        const r=await serverCheckClaims([token],{deep:false});
+        if(Number($('tokenInput').value)!==token)return;
+        const st=r?.status_by_token?.[String(token)]||r?.status_by_token?.[token];
+        if(st==='claimed')setClaimStatus('KNOWN CLAIM · duplicate mining blocked','bad');
+        else if(st==='clear')setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');
+        else setClaimStatus('UNKNOWN · server has not classified this Token ID yet','warn');
+      }catch(e){setClaimStatus('SERVER CHECK UNAVAILABLE · do not mine yet','warn')}
+    },350)
   }else setClaimStatus('Select Token ID 1–5000');
 });
 function workerSource(){return `
@@ -962,7 +1110,7 @@ function startClaimWatch(){
   S.claimWatchTimer=setInterval(async()=>{
     if(!S.mining||!S.target)return;
     try{
-      const gate=await checkTargetAvailability(S.target,{refresh:true});
+      const gate=await checkTargetAvailability(S.target,{refresh:true,deep:false});
       if(!gate.available){
         const token=S.target.token;
         stopMining(false);
@@ -1076,14 +1224,12 @@ function startLiveDiscovery(){
 }
 function updateIndexProgress(){
   const el=$('claimIndexProgress');if(!el)return;
-  if(S.indexSweepBusy){
-    const pct=Math.min(100,Math.floor((S.indexSweepCursor/CFG.supply)*100));
-    el.textContent=`historical index: ${pct}% · ${knownTokenIndex().size.toLocaleString()} IDs`
-  }else if(S.indexSweepCursor>=CFG.supply){
-    el.textContent=`historical index: complete · ${knownTokenIndex().size.toLocaleString()} IDs`
-  }else{
-    el.textContent=`historical index: ${Math.floor((S.indexSweepCursor/CFG.supply)*100)}% · ${knownTokenIndex().size.toLocaleString()} IDs`
+  if(S.serverScanComplete){
+    el.textContent=`availability index: complete · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`;
+    return
   }
+  const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
+  el.textContent=`availability index: ${pct}% server-persistent · ${(S.serverCandidateIds?.size||0).toLocaleString()} unique IDs`
 }
 async function queryClaimShard(startToken,batchSize=50){
   if(!S.relay||!S.nostr)return [];
@@ -1293,9 +1439,9 @@ function rebuildState(){
   }
   S.listings=listings;S.offers=offers;
   const durableKnown=updateKnownTokenIndex(claims.values());
-  const knownCount=Math.max(claims.size,durableKnown.size);
-  $('claimCount').textContent=knownCount.toLocaleString();
-  if(CFG.paidClaimsActive&&claims.size>=CFG.freeClaims)localStorage.setItem('zb1_paid_phase_seen','1');
+  const knownCount=Math.max(claims.size,durableKnown.size,S.serverCandidateIds?.size||0);
+  $('claimCount').textContent=Math.max(Number(S.serverClaimTotal||0),knownCount).toLocaleString();
+  if(CFG.paidClaimsActive&&Math.max(Number(S.serverClaimTotal||0),claims.size)>=CFG.freeClaims)localStorage.setItem('zb1_paid_phase_seen','1');
   updateAvailabilityCounts();renderMarket();renderPortfolio();updateWalletUI();
 }
 function currentOwner(id){const c=S.claims.get(Number(id));if(!c)return null;let owner=c.ownerCommitment||null;for(const t of S.transfers.filter(x=>Number(x.tokenId)===Number(id)).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))){if(t.fromCommitment&&owner&&t.fromCommitment!==owner)continue;owner=t.toCommitment||owner}return owner}
@@ -1322,7 +1468,7 @@ function renderPortfolio(){
 }
 $('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalance');const r=await loadWalletHistory();await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();updateWalletUI();toast(`Portfolio synced · ${r?.claims||0} wallet claims repaired into discovery.`)}catch(e){toast(e.message||String(e),7000)}};
 $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');if(currentOwner(tokenId)!==S.ownerCommitment)throw new Error('This wallet is not the current owner in the discovery state.');const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;const sig=await signDerived(msg);const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});await publishRelay(e);modal('transferModal',false);$('recipientCommit').value='';toast('Transfer broadcast: '+txid,8000);await fetchRelay()}catch(e){toast(e.message||String(e),8000)}};
-async function refreshAll(){await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();renderMarket();renderPortfolio()}
+async function refreshAll(){await Promise.allSettled([loadServerMiningSnapshot({force:true}),fetchRelay(null,true)]);await reconcileFeeCredit();updateFeeCreditUI();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
 $('engineSelect').value=localStorage.getItem('zb1_engine_pref')||'auto';
 S.enginePreference=$('engineSelect').value;
@@ -1340,15 +1486,18 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
   await initNostr();
   startLiveDiscovery();
+  await loadServerMiningSnapshot({force:true});
+  kickServerClaimIndex().catch(()=>{});
   try{await resolveGenesis()}catch(e){console.warn(e)}
   try{await connectWallet(true)}catch{}
   await fetchRelay(null,true);
+  backfillServerClaimsFromBrowser({limit:300}).catch(()=>{});
   await reconcileFeeCredit();
   updateFeeCreditUI();
   updateWalletUI();
   updateIndexProgress();
 
-  runClaimIndexSweep().catch(e=>console.warn('historical claim index sweep',e));
+  // Historical availability indexing is server-side and persistent; browser refreshes never restart it.
 
   // Live subscription handles normal updates immediately.
   // 10-second incremental backfill catches relay messages missed by WebSocket.
@@ -1359,15 +1508,14 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   processRelayRepairQueue().catch(()=>{});
   if(!S.relayRetryTimer)S.relayRetryTimer=setInterval(()=>processRelayRepairQueue().catch(()=>{}),30000);
 
-  if(!S.indexSweepTimer)S.indexSweepTimer=setInterval(()=>{
-    localStorage.setItem('zb1_claim_index_cursor_v1','1');
-    runClaimIndexSweep({restart:true}).catch(()=>{})
-  },6*60*60*1000);
+  if(!S.serverTimer)S.serverTimer=setInterval(async()=>{
+    try{await loadServerMiningSnapshot({force:true});await backfillServerClaimsFromBrowser({limit:160})}catch{}
+  },15000);
 
   setInterval(updateClaimSyncAge,1000);
 
   if(!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000)
 })();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadServerMiningSnapshot({force:true}).catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
 </script>
 </body></html>

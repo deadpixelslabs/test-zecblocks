@@ -1,0 +1,14 @@
+ZEC BLOCKS Mining V14 — Authoritative Availability Map
+
+Production changes:
+- Token availability is fail-closed. UNKNOWN is never treated as unclaimed.
+- Persistent 5,000-token server availability map.
+- CLAIMED / CLAIMED_PENDING / CLEAR / UNKNOWN states.
+- Find Unclaimed selects only server-classified CLEAR Token IDs.
+- Load Target exact-checks the production server before mining.
+- Existing browser claim history is backfilled to the server and verified asynchronously.
+- Background relay scanner classifies Token IDs using multi-relay quorum.
+- Duplicate mining is blocked when any verified/pending claim record is present.
+- Visible V14 · SERVER MAP badge confirms the correct build is deployed.
+
+Deploy the CONTENTS of this ZIP at the project root. index.html must be at the deployment root.
