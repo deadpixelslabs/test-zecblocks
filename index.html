@@ -50,12 +50,13 @@
       <div class="row"><span class="key">Owner Commitment</span><span class="val" id="ownerCommit">Connect wallet</span></div>
       <div class="row"><span class="key">Source Block</span><span class="val" id="sourceInfo">Select a token</span></div>
       <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div>
+      <div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div>
       <div class="row"><span class="key">Hashrate</span><span class="val" id="hashrate">0 H/s</span></div>
       <div class="inputrow"><input id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="loadTargetBtn" class="btn">Load Target</button></div>
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
+      <div id="mineNotice" class="notice">GPU mining is used automatically when WebGPU is available; CPU workers remain the fallback. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -104,7 +105,7 @@ const CFG={
   relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net'],
   nostrKind:30078,relayTag:'zb1-mainnet-v1'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -185,7 +186,7 @@ async function loadTarget(){
     const hash=String(deepFind(j,['hash','block_hash','blockHash'])||'');
     if(!/^[0-9a-fA-F]{64}$/.test(hash))throw new Error('Could not resolve source block hash for height '+sh+'.');
     S.target={token,sourceHeight:sh,sourceHash:hash.toLowerCase()};S.proof=null;
-    $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);$('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('hashLog').textContent='Target loaded. Source hash: '+hash+'\nReady to search 26-bit SHA-256 proof.';
+    $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);$('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('hashLog').textContent='Target loaded. Source hash: '+hash+'\nReady to search the same locked 26-bit SHA-256 proof with GPU/CPU.';
     artSvg($('heroArt'),hash+':'+sh,'ZB #'+token);$('heroToken').textContent='#'+token;$('heroHeight').textContent=sh.toLocaleString();
     return true;
   }catch(e){S.target=null;$('sourceInfo').textContent='Unavailable';$('mineStatus').textContent='Target load failed';$('hashLog').textContent='ERROR: '+(e.message||String(e));toast(e.message||String(e),8000);return false}
@@ -197,20 +198,119 @@ const K=[1116352408,1899447441,-1245643825,-373957723,961987163,1508970993,-1841
 function rr(x,n){return(x>>>n)|(x<<(32-n))}function sha(m){const l=m.length,bit=l*8,n=((l+9+63)>>6)<<6,a=new Uint8Array(n);a.set(m);a[l]=128;const dv=new DataView(a.buffer);dv.setUint32(n-4,bit>>>0,false);dv.setUint32(n-8,Math.floor(bit/4294967296),false);let h0=1779033703,h1=-1150833019,h2=1013904242,h3=-1521486534,h4=1359893119,h5=-1694144372,h6=528734635,h7=1541459225,w=new Int32Array(64);for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getInt32(o+i*4,false);for(let i=16;i<64;i++){const x=w[i-15],y=w[i-2],s0=rr(x,7)^rr(x,18)^(x>>>3),s1=rr(y,17)^rr(y,19)^(y>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)|0}let a0=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;for(let i=0;i<64;i++){const S1=rr(e,6)^rr(e,11)^rr(e,25),ch=(e&f)^(~e&g),t1=(h+S1+ch+K[i]+w[i])|0,S0=rr(a0,2)^rr(a0,13)^rr(a0,22),maj=(a0&b)^(a0&c)^(b&c),t2=(S0+maj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a0;a0=(t1+t2)|0}h0=(h0+a0)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0}const out=new Uint8Array(32),od=new DataView(out.buffer);[h0,h1,h2,h3,h4,h5,h6,h7].forEach((x,i)=>od.setInt32(i*4,x,false));return out}
 function zbits(b){let n=0;for(const x of b){if(x===0){n+=8;continue}for(let m=128;(x&m)===0;m>>=1)n++;break}return n}
 onmessage=e=>{const {base,start,step,bits,batch}=e.data;const pre=new Uint8Array(base.length+8);pre.set(base);let nonce=BigInt(start),count=0,t=performance.now();for(;;){let x=nonce;for(let i=0;i<8;i++){pre[base.length+i]=Number(x&255n);x>>=8n}const h=sha(pre);count++;if(zbits(h)>=bits){postMessage({type:'found',nonce:nonce.toString(),hash:Array.from(h).map(x=>x.toString(16).padStart(2,'0')).join(''),count});return}nonce+=BigInt(step);if(count%batch===0){const now=performance.now();postMessage({type:'rate',count:batch,ms:now-t,nonce:nonce.toString()});t=now}}}`}
+
+const GPU_SHA256_WGSL=`
+const K = array<u32, 64>(
+  0x428a2f98u,0x71374491u,0xb5c0fbcfu,0xe9b5dba5u,0x3956c25bu,0x59f111f1u,0x923f82a4u,0xab1c5ed5u,
+  0xd807aa98u,0x12835b01u,0x243185beu,0x550c7dc3u,0x72be5d74u,0x80deb1feu,0x9bdc06a7u,0xc19bf174u,
+  0xe49b69c1u,0xefbe4786u,0x0fc19dc6u,0x240ca1ccu,0x2de92c6fu,0x4a7484aau,0x5cb0a9dcu,0x76f988dau,
+  0x983e5152u,0xa831c66du,0xb00327c8u,0xbf597fc7u,0xc6e00bf3u,0xd5a79147u,0x06ca6351u,0x14292967u,
+  0x27b70a85u,0x2e1b2138u,0x4d2c6dfcu,0x53380d13u,0x650a7354u,0x766a0abbu,0x81c2c92eu,0x92722c85u,
+  0xa2bfe8a1u,0xa81a664bu,0xc24b8b70u,0xc76c51a3u,0xd192e819u,0xd6990624u,0xf40e3585u,0x106aa070u,
+  0x19a4c116u,0x1e376c08u,0x2748774cu,0x34b0bcb5u,0x391c0cb3u,0x4ed8aa4au,0x5b9cca4fu,0x682e6ff3u,
+  0x748f82eeu,0x78a5636fu,0x84c87814u,0x8cc70208u,0x90befffau,0xa4506cebu,0xbef9a3f7u,0xc67178f2u
+);
+struct Params { startNonce:u32, count:u32, targetTop:u32, _pad:u32 };
+struct Result { flag:atomic<u32>, nonce:atomic<u32> };
+@group(0) @binding(0) var<storage, read> tmpl: array<u32>;
+@group(0) @binding(1) var<storage, read> params: Params;
+@group(0) @binding(2) var<storage, read_write> result: Result;
+fn rotr(x:u32,n:u32)->u32{return (x>>n)|(x<<(32u-n));}
+fn compress(inputState:array<u32,8>, block:array<u32,16>)->array<u32,8>{
+  var w:array<u32,64>;
+  for(var i:u32=0u;i<16u;i=i+1u){w[i]=block[i];}
+  for(var i:u32=16u;i<64u;i=i+1u){
+    let x=w[i-15u];let y=w[i-2u];
+    let s0=rotr(x,7u)^rotr(x,18u)^(x>>3u);
+    let s1=rotr(y,17u)^rotr(y,19u)^(y>>10u);
+    w[i]=w[i-16u]+s0+w[i-7u]+s1;
+  }
+  var a=inputState[0];var b=inputState[1];var c=inputState[2];var d=inputState[3];
+  var e=inputState[4];var f=inputState[5];var g=inputState[6];var h=inputState[7];
+  for(var i:u32=0u;i<64u;i=i+1u){
+    let S1=rotr(e,6u)^rotr(e,11u)^rotr(e,25u);let ch=(e&f)^((~e)&g);
+    let t1=h+S1+ch+K[i]+w[i];let S0=rotr(a,2u)^rotr(a,13u)^rotr(a,22u);
+    let maj=(a&b)^(a&c)^(b&c);let t2=S0+maj;
+    h=g;g=f;f=e;e=d+t1;d=c;c=b;b=a;a=t1+t2;
+  }
+  return array<u32,8>(inputState[0]+a,inputState[1]+b,inputState[2]+c,inputState[3]+d,inputState[4]+e,inputState[5]+f,inputState[6]+g,inputState[7]+h);
+}
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) gid:vec3<u32>){
+  let idx=gid.x;if(idx>=params.count){return;}
+  let nonce=params.startNonce+idx;
+  var b0:array<u32,16>;for(var i:u32=0u;i<16u;i=i+1u){b0[i]=tmpl[i];}
+  var state=array<u32,8>(0x6a09e667u,0xbb67ae85u,0x3c6ef372u,0xa54ff53au,0x510e527fu,0x9b05688cu,0x1f83d9abu,0x5be0cd19u);
+  state=compress(state,b0);
+  var b1:array<u32,16>;for(var i:u32=0u;i<16u;i=i+1u){b1[i]=tmpl[16u+i];}
+  b1[11u]=(b1[11u]&0xffffff00u)|(nonce&0xffu);
+  b1[12u]=((nonce>>8u)&0xffu)<<24u|((nonce>>16u)&0xffu)<<16u|((nonce>>24u)&0xffu)<<8u;
+  b1[13u]=0x00000080u;
+  state=compress(state,b1);
+  if(state[0]<params.targetTop){
+    atomicStore(&result.nonce,nonce);
+    atomicStore(&result.flag,1u);
+  }
+}`;
 async function mineBase(){return concat(enc.encode('ZB1:MINE:v1'),hexToBytes(CFG.genesisTxid),u32le(S.target.token),hexToBytes(S.target.sourceHash),hexToBytes(S.ownerCommitment))}
+function gpuTemplateWords(base){
+  if(base.length!==111)throw new Error('Unexpected ZB-1 mining preimage base length: '+base.length);
+  const msg=new Uint8Array(128);msg.set(base,0);msg[119]=0x80;
+  const bitLen=(base.length+8)*8;const dv=new DataView(msg.buffer);dv.setUint32(120,0,false);dv.setUint32(124,bitLen,false);
+  const w=new Uint32Array(32);for(let i=0;i<32;i++)w[i]=dv.getUint32(i*4,false);return w
+}
+async function initGpuMiner(){
+  if(S.gpu?.device)return S.gpu;
+  if(!navigator.gpu)throw new Error('WebGPU is not available in this browser.');
+  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});if(!adapter)throw new Error('No WebGPU adapter found.');
+  const device=await adapter.requestDevice();
+  const module=device.createShaderModule({code:GPU_SHA256_WGSL});
+  const info=await module.getCompilationInfo();const errs=info.messages.filter(x=>x.type==='error');if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
+  const pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}});
+  S.gpu={adapter,device,pipeline};
+  device.lost.then(()=>{S.gpu=null;if(S.mining&&S.miningEngine==='GPU'){S.gpuStop=true;toast('GPU device was lost. Restart mining to use CPU fallback.',7000)}});
+  return S.gpu
+}
+async function verifyGpuCandidate(base,nonce){
+  const pre=concat(base,u64le(BigInt(nonce)));const h=await sha256Bytes(pre);return leadingZeroBits(h)>=CFG.powBits?bytesToHex(h):null
+}
+async function startGpuMining(base){
+  const {device,pipeline}=await initGpuMiner();S.miningEngine='GPU';S.gpuStop=false;$('mineEngine').textContent='WebGPU · SHA-256';$('hashLog').textContent='WebGPU active. Searching the locked ZB-1 26-bit proof…';
+  const template=gpuTemplateWords(base),templateBuf=device.createBuffer({size:128,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});device.queue.writeBuffer(templateBuf,0,template);
+  const paramsBuf=device.createBuffer({size:16,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
+  const resultBuf=device.createBuffer({size:8,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC|GPUBufferUsage.COPY_DST});
+  const readBuf=device.createBuffer({size:8,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ});
+  const bind=pipeline.getBindGroupLayout(0),group=device.createBindGroup({layout:bind,entries:[{binding:0,resource:{buffer:templateBuf}},{binding:1,resource:{buffer:paramsBuf}},{binding:2,resource:{buffer:resultBuf}}]});
+  let start=0,batch=524288,lines=[];const expected=2**CFG.powBits,targetTop=2**(32-CFG.powBits);
+  try{
+    while(S.mining&&!S.gpuStop){
+      if(start>0xffffffff-batch)throw new Error('GPU nonce range exhausted. Restart with CPU fallback.');
+      device.queue.writeBuffer(paramsBuf,0,new Uint32Array([start,batch,targetTop,0]));device.queue.writeBuffer(resultBuf,0,new Uint32Array([0,0]));
+      const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(Math.ceil(batch/256));pass.end();encoder.copyBufferToBuffer(resultBuf,0,readBuf,0,8);
+      const t0=performance.now();device.queue.submit([encoder.finish()]);await readBuf.mapAsync(GPUMapMode.READ);const data=new Uint32Array(readBuf.getMappedRange().slice(0));readBuf.unmap();const ms=Math.max(1,performance.now()-t0);
+      S.hashes+=batch;const rate=batch/(ms/1000),avg=S.hashes/Math.max((performance.now()-S.startMs)/1000,.1);$('hashrate').textContent=formatRate(avg);$('mineProgress').style.width=Math.min(99,(S.hashes/expected)*100)+'%';
+      lines.push('GPU '+start.toLocaleString()+'–'+(start+batch-1).toLocaleString()+' · '+formatRate(rate));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n');
+      if(data[0]===1){const nonce=data[1],hash=await verifyGpuCandidate(base,nonce);if(hash){S.proof={nonce:String(nonce),hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nGPU VERIFIED nonce '+nonce+'\n'+hash;$('submitClaimBtn').disabled=false;toast('GPU found and CPU/WebCrypto verified a valid 26-bit proof.');return}}
+      start+=batch;
+    }
+  }finally{templateBuf.destroy();paramsBuf.destroy();resultBuf.destroy();readBuf.destroy()}
+}
+async function startCpuMining(base,reason=''){
+  S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';let lines=[];$('hashLog').textContent=(reason?reason+'\n':'')+'Starting CPU workers…';
+  const wc=Math.max(1,Math.min(8,navigator.hardwareConcurrency||4)),src=workerSource(),url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
+  for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
+  URL.revokeObjectURL(url)
+}
 async function startMining(){
   try{
-    if(S.mining)return;
-    if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
-    const wanted=Number($('tokenInput').value);
-    if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return;}
-    S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashLog').textContent='Starting workers…';
-    const base=await mineBase(),wc=Math.max(1,Math.min(8,navigator.hardwareConcurrency||4));const src=workerSource(),url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));let lines=[];
-    for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
-    URL.revokeObjectURL(url);
-  }catch(e){S.mining=false;toast(e.message||String(e),7000)}
+    if(S.mining)return;if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');const wanted=Number($('tokenInput').value);if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return}
+    S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
+    const base=await mineBase();
+    if(navigator.gpu){try{await startGpuMining(base);return}catch(e){console.warn('WebGPU miner fallback',e);if(!S.mining)return;await startCpuMining(base,'WebGPU unavailable/failed: '+(e.message||String(e))+'. Falling back to CPU.');return}}
+    await startCpuMining(base,'WebGPU not supported in this browser. CPU fallback active.');
+  }catch(e){S.mining=false;$('mineStatus').textContent='Mining error';toast(e.message||String(e),7000)}
 }
-function stopMining(mark=true){S.mining=false;for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
+function stopMining(mark=true){S.mining=false;S.gpuStop=true;for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 async function submitClaim(){
   try{
@@ -273,6 +373,6 @@ $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToke
 async function refreshAll(){await fetchRelay();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
 artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
-(async()=>{await initNostr();try{await resolveGenesis()}catch(e){console.warn(e)}try{await connectWallet(true)}catch{}await fetchRelay();updateWalletUI()})();
+(async()=>{$('mineEngine').textContent=navigator.gpu?'WebGPU ready · GPU preferred':'CPU fallback';await initNostr();try{await resolveGenesis()}catch(e){console.warn(e)}try{await connectWallet(true)}catch{}await fetchRelay();updateWalletUI()})();
 </script>
 </body></html>
