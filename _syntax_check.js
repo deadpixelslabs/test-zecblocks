@@ -1,110 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080808">
-<meta name="description" content="ZEC BLOCKS — open-source ZB-1 mining, marketplace and private portfolio on Zcash.">
-<title>ZEC BLOCKS — Mining</title>
-<style>
-:root{--bg:#070707;--panel:#0d0d0d;--panel2:#111;--line:#232323;--line2:#313131;--text:#f4f4f4;--muted:#8b8b8b;--gold:#d3a84f;--gold2:#f1cc76;--green:#78d594;--red:#ff8989;--blue:#86b7ff;--r:14px}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.top{height:68px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:24px;padding:0 24px;background:rgba(7,7,7,.92);border-bottom:1px solid #1d1d1d;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;min-width:max-content}.brandmark{width:34px;height:34px;border:1px solid #3c3322;border-radius:8px;display:grid;place-items:center;background:#0d0b08;color:var(--gold2);font-family:ui-monospace,monospace;font-weight:900}.brand b{font-size:13px;letter-spacing:.12em}.nav{display:flex;gap:4px}.nav a{padding:9px 11px;border-radius:9px;color:#8d8d8d;font-size:13px;font-weight:700}.nav a:hover{background:#131313;color:#fff}.topright{margin-left:auto;display:flex;align-items:center;gap:8px}.pill{border:1px solid #292929;background:#0d0d0d;padding:8px 10px;border-radius:999px;font-size:11px;color:#aaa}.liveDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(120,213,148,.7);margin-right:7px}.btn{min-height:39px;padding:0 14px;border:1px solid #2b2b2b;background:#111;color:#ddd;border-radius:10px;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn:hover{border-color:#494949;color:#fff}.btn.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#17120a;border-color:transparent}.btn.green{border-color:rgba(120,213,148,.3);color:#b8f0c6;background:rgba(120,213,148,.08)}.btn.red{border-color:rgba(255,137,137,.3);color:#ffb2b2;background:rgba(255,137,137,.06)}.btn:disabled{opacity:.45;cursor:not-allowed}.walletbtn{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}main{max-width:1420px;margin:0 auto;padding:28px 24px 70px}.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:18px}.card,.heroMain{border:1px solid #202020;background:linear-gradient(180deg,#0e0e0e,#0a0a0a);border-radius:var(--r)}.heroMain{padding:38px;min-height:420px;position:relative;overflow:hidden}.heroMain:after{content:"";position:absolute;width:500px;height:500px;right:-180px;top:-160px;border-radius:50%;background:radial-gradient(circle,rgba(211,168,79,.14),transparent 68%);pointer-events:none}.kicker{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold2);font-weight:900;margin-bottom:17px}.hero h1{font-size:clamp(50px,7vw,88px);line-height:.92;letter-spacing:-.055em;margin:0;max-width:900px}.hero p{max-width:720px;color:#969696;font-size:15px;line-height:1.72;margin:24px 0 28px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin-top:34px;max-width:760px}.stat{background:#0a0a0a;padding:14px 15px}.stat small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.stat b{font-size:14px}.heroSide{padding:22px;display:flex;flex-direction:column}.heroSideTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.heroSideTop h2{font-size:16px;margin:0}.badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:999px;border:1px solid #333;color:#aaa}.badge.live{color:#aee9bd;border-color:rgba(120,213,148,.25);background:rgba(120,213,148,.05)}.art{aspect-ratio:1;border:1px solid #222;border-radius:11px;background:#070707;overflow:hidden}.blockArt{display:block;width:100%;height:100%;shape-rendering:crispEdges;image-rendering:pixelated}.heroSide .kvgrid{margin-top:14px}.kvgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border:1px solid #222;border-radius:10px;overflow:hidden}.kv{background:#0a0a0a;padding:12px}.kv small{display:block;color:#636363;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.kv b{font-size:12px;word-break:break-all}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:36px 0 14px}.sectionHead h2{margin:0;font-size:21px}.sectionHead p{margin:0;color:#6e6e6e;font-size:11px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.panel{padding:22px}.miningGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.terminal{border:1px solid #252525;background:#090909;border-radius:12px;overflow:hidden}.terminalHead{padding:12px 14px;border-bottom:1px solid #1e1e1e;background:#101010;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;gap:9px}.termDot{width:9px;height:9px;border-radius:50%;background:var(--gold2);box-shadow:0 0 14px rgba(240,202,114,.55)}.termBody{padding:14px}.row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #171717;font-size:12px}.row:last-child{border-bottom:0}.key{font-size:9px;color:#696969;text-transform:uppercase;letter-spacing:.09em;font-weight:900;min-width:120px}.val{text-align:right;color:#d8d8d8;word-break:break-all}.inputrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}.input,.select{width:100%;height:42px;border:1px solid #2a2a2a;border-radius:9px;background:#080808;color:#eee;padding:0 12px;outline:none}.input:focus,.select:focus{border-color:#5a492d}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.progress{height:10px;border:1px solid #222;background:#121212;border-radius:999px;overflow:hidden;margin-top:14px}.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s}.hashlog{height:150px;overflow:auto;margin-top:12px;border:1px solid #1d1d1d;border-radius:9px;background:#070707;padding:10px;color:#83c99a;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.sideStack{display:grid;gap:12px}.mini{border:1px solid #242424;border-radius:11px;background:#0a0a0a;padding:16px}.mini h3{margin:0 0 7px;font-size:15px}.mini p{margin:0;color:#7d7d7d;font-size:11px;line-height:1.65}.notice{border:1px solid rgba(240,202,114,.22);background:rgba(240,202,114,.05);color:#cdbb91;padding:11px 12px;border-radius:9px;font-size:11px;line-height:1.55;margin-top:12px}.notice.good{border-color:rgba(120,213,148,.22);background:rgba(120,213,148,.05);color:#aee7bc}.notice.bad{border-color:rgba(255,137,137,.22);background:rgba(255,137,137,.05);color:#ffb0b0}.marketToolbar{display:flex;gap:9px;align-items:center;padding:13px;border-bottom:1px solid #1e1e1e}.marketToolbar .input{max-width:440px}.marketBody{padding:15px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.nft{border:1px solid #202020;border-radius:11px;background:#0c0c0c;overflow:hidden;transition:.16s}.nft:hover{transform:translateY(-2px);border-color:#3a342b}.nftart{aspect-ratio:1;border-bottom:1px solid #1d1d1d}.nftinfo{padding:11px}.nftline{display:flex;justify-content:space-between;align-items:center;gap:8px}.nfttitle{font-size:12px;font-weight:900}.meta{font-size:9px;color:#646464;margin-top:6px;display:flex;justify-content:space-between;gap:8px}.price{font-size:12px;color:#d8bd78;font-weight:900}.empty{padding:42px 20px;text-align:center;color:#666;font-size:12px;border:1px dashed #292929;border-radius:11px}.portfolioTop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.metric{border:1px solid #222;background:#0a0a0a;border-radius:10px;padding:14px}.metric small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:17px;margin-top:6px}.walletbox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.copyline{border:1px solid #242424;border-radius:10px;background:#0a0a0a;padding:12px}.copyline small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.copyline code{font-size:10px;color:#bbb;word-break:break-all}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}.modal.show{display:flex}.modalCard{width:min(560px,100%);max-height:88vh;overflow:auto;border:1px solid #303030;border-radius:14px;background:#0c0c0c;padding:20px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalHead h3{margin:0;font-size:17px}.xbtn{border:0;background:transparent;color:#888;font-size:20px}.field{margin-bottom:12px}.field label{display:block;font-size:9px;color:#717171;text-transform:uppercase;letter-spacing:.09em;font-weight:900;margin-bottom:6px}.field textarea{width:100%;min-height:100px;border:1px solid #292929;background:#080808;color:#ddd;border-radius:9px;padding:10px;resize:vertical}.protocolGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.protocolGrid .mini{min-height:160px}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #191919;margin-top:34px;padding-top:24px;color:#595959;font-size:10px}.footerlinks{display:flex;gap:16px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;z-index:200;max-width:380px;border:1px solid #333;background:#101010;color:#ddd;border-radius:10px;padding:12px 14px;font-size:11px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none}.toast.show{display:block}.muted{color:#777}.gold{color:var(--gold2)}.green{color:var(--green)}.red{color:var(--red)}
-@media(max-width:1050px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{grid-template-columns:1fr 360px}}
-@media(max-width:900px){.nav,.pill.network{display:none}.hero{grid-template-columns:1fr}.miningGrid,.protocolGrid{grid-template-columns:1fr}.portfolioTop{grid-template-columns:1fr 1fr}.walletbox{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.top{padding:0 12px}.topright .btn.secondary{display:none}main{padding:18px 12px 56px}.heroMain{padding:28px 20px}.hero h1{font-size:50px}.stats{grid-template-columns:1fr 1fr}.panel{padding:14px}.grid{grid-template-columns:1fr 1fr;gap:8px}.marketToolbar{flex-wrap:wrap}.marketToolbar .input{max-width:none}.portfolioTop{grid-template-columns:1fr 1fr}.footer{flex-direction:column}}
-
-/* Split-site mode: this deployment is mining-only */
-#market,#market + section,#portfolio,#portfolio + section,#protocol,#protocol + section{display:none!important}
-
-.enginebar{display:grid;grid-template-columns:1fr auto;gap:8px;margin:10px 0 0}
-.enginebar .select{min-width:0}
-.gpuGood{color:#78d594!important}.gpuWarn{color:#f1cc76!important}.gpuBad{color:#ff8989!important}
-@media(max-width:700px){.enginebar{grid-template-columns:1fr}}
-</style>
-
-</head>
-<body>
-<header class="top">
-  <a class="brand" href="https://www.zecblocks.xyz"><span class="brandmark">Z</span><b>ZEC BLOCKS</b></a>
-  <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
-  <div class="topright"><span class="pill network"><span class="liveDot"></span>Zcash Mainnet</span><a class="btn secondary" href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a><button id="walletBtn" class="btn gold walletbtn">Connect Noir Wallet</button></div>
-</header>
-<main id="home">
-<section class="hero">
-  <div class="heroMain">
-    <div class="kicker">ZB-1 MAINNET · 26-BIT MINING LIVE</div>
-    <h1>Mine the proof.<br>Claim the block.</h1>
-    <p>Mine ZEC BLOCKS directly in your browser with ZB-1 application-level SHA-256 proof-of-work. A valid 26-bit proof can be submitted through Noir Wallet and anchored to Zcash Mainnet.</p>
-    <div class="actions"><a href="#mining" class="btn gold">Start Mining</a><a href="https://www.zecblocks.xyz" class="btn">Open Marketplace ↗</a><a href="https://docs.zecblocks.xyz" class="btn" target="_blank" rel="noreferrer">Read Protocol</a></div>
-    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Known Claims</small><b id="claimCount">0</b></div></div>
-  </div>
-  <aside class="card heroSide">
-    <div class="heroSideTop"><h2>Next ZEC BLOCK</h2><span class="badge live">LIVE</span></div>
-    <div class="art"><svg id="heroArt" class="blockArt" viewBox="0 0 600 600"></svg></div>
-    <div class="kvgrid"><div class="kv"><small>Token</small><b id="heroToken">#1</b></div><div class="kv"><small>Source Height</small><b id="heroHeight">Resolving…</b></div><div class="kv"><small>Claim Fee</small><b>First 500: 0</b></div><div class="kv"><small>Network Fee</small><b>Wallet calculated</b></div></div>
-  </aside>
-</section>
-
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining.</p></div><span class="badge live">26-BIT LIVE</span></div>
-<section class="card panel">
-<div class="miningGrid">
-  <div class="terminal">
-    <div class="terminalHead"><span class="termDot"></span>ZB-1 BROWSER MINER</div>
-    <div class="termBody">
-      <div class="row"><span class="key">Genesis TXID</span><span class="val" id="gTx">ecf6fc3a…9379f0f</span></div>
-      <div class="row"><span class="key">Genesis Height</span><span class="val" id="gHeight">Resolving from mainnet…</span></div>
-      <div class="row"><span class="key">Owner Commitment</span><span class="val" id="ownerCommit">Connect wallet</span></div>
-      <div class="row"><span class="key">Source Block</span><span class="val" id="sourceInfo">Select a token</span></div>
-      <div class="row"><span class="key">Claim Status</span><span class="val" id="claimStatus">Select a token</span></div>
-      <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div>
-      <div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div>
-      <div class="row"><span class="key">GPU Status</span><span class="val" id="gpuStatus">Checking WebGPU…</span></div>
-      <div class="row"><span class="key">Hashrate</span><span class="val" id="hashrate">0 H/s</span></div>
-      <div class="inputrow" style="grid-template-columns:1fr auto auto"><input id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="findUnclaimedBtn" class="btn">Find Unclaimed</button><button id="loadTargetBtn" class="btn">Load Target</button></div>
-      <div class="enginebar"><select id="engineSelect" class="select"><option value="auto">Engine: Auto (GPU preferred)</option><option value="gpu">Engine: GPU / WebGPU only</option><option value="cpu">Engine: CPU Web Workers only</option></select><button id="testGpuBtn" class="btn">Detect GPU</button></div>
-      <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button></div>
-      <div class="progress"><i id="mineProgress"></i></div>
-      <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">Choose Auto, GPU-only, or CPU-only. Auto prefers WebGPU and falls back to CPU if GPU initialization fails. The miner checks the public ZB-1 discovery feed before starting and watches the selected Token ID while mining. First 500 canonical valid claims have zero ZB-1 protocol claim fee. A normal Zcash network transaction fee still applies.</div>
-    </div>
-  </div>
-  <div class="sideStack">
-    <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
-    <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
-    <div class="mini"><div class="kicker">Availability</div><h3><span id="knownAvailable">5,000</span> known unclaimed</h3><p><span id="knownClaimed">0</span> claim events are currently known by the discovery client. Select any Token ID or use <b>Find Unclaimed</b>.</p></div>
-    <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
-    <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses public relay events only for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
-  </div>
-</div>
-</section>
-
-<div class="sectionHead" id="market"><div><h2>Marketplace</h2><p>Signed P2P listings and offers. No custody.</p></div><div class="tabs"><button id="refreshMarketBtn" class="btn">Refresh</button><button id="createListingBtn" class="btn gold" disabled>List an NFT</button></div></div>
-<section class="card">
-  <div class="marketToolbar"><input id="marketSearch" class="input" placeholder="Search token ID or seller commitment"><select id="marketSort" class="select"><option value="new">Newest</option><option value="priceLow">Price: low to high</option><option value="priceHigh">Price: high to low</option></select><span class="pill" id="relayStatus">Relays: connecting…</span></div>
-  <div class="marketBody"><div id="marketGrid" class="grid"></div></div>
-</section>
-
-<div class="sectionHead" id="portfolio"><div><h2>Portfolio</h2><p>Connected ZB-1 ownership identity.</p></div><button id="syncPortfolioBtn" class="btn" disabled>Sync Portfolio</button></div>
-<section class="card panel">
-  <div class="portfolioTop"><div class="metric"><small>Owned</small><b id="ownedCount">0</b></div><div class="metric"><small>Active Listings</small><b id="listingCount">0</b></div><div class="metric"><small>Offers Received</small><b id="offerCount">0</b></div><div class="metric"><small>ZEC Available</small><b id="zecBalance">—</b></div></div>
-  <div class="walletbox"><div class="copyline"><small>Derived owner identity</small><code id="portfolioCommit">Connect wallet to reveal your commitment.</code></div><div class="copyline"><small>Shielded account</small><code id="portfolioShielded">Private until you connect.</code></div></div>
-  <div id="portfolioGrid" class="grid"></div>
-</section>
-
-<div class="sectionHead" id="protocol"><div><h2>Open Protocol</h2><p>ZB-1 is documented in public.</p></div><a class="btn" href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Open GitBook</a></div>
-<section class="protocolGrid">
-  <div class="mini"><div class="kicker">Genesis</div><h3>One mainnet anchor</h3><p><code>ecf6fc3a79885f573d79de70a2de85c34667fc1a4fefe034d3a4015269379f0f</code></p><div class="notice good">Genesis is treated as confirmed. The site resolves its mined height from a public Zcash explorer at runtime.</div></div>
-  <div class="mini"><div class="kicker">Source of truth</div><h3>The chain is the database.</h3><p>The relay/order board is only a convenience layer. Anyone can rebuild or replace it. ZB-1 event validity is anchored to Zcash.</p></div>
-</section>
-
-<footer class="footer"><div>© 2026 ZEC BLOCKS · ZB-1 · Mining</div><div class="footerlinks"><a href="https://www.zecblocks.xyz">Marketplace ↗</a><a href="https://x.com/ZEC_BLOCKS" target="_blank" rel="noreferrer">X / @ZEC_BLOCKS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a></div></footer>
-</main>
-
-<div id="listingModal" class="modal"><div class="modalCard"><div class="modalHead"><h3>List ZEC BLOCK</h3><button class="xbtn" data-close="listingModal">×</button></div><div class="field"><label>Token ID</label><select id="listingToken" class="select"></select></div><div class="field"><label>Asking price (ZEC)</label><input id="listingPrice" class="input" value="0.05" inputmode="decimal"></div><div class="field"><label>Expires in days</label><input id="listingDays" class="input" type="number" min="1" max="30" value="7"></div><div class="notice">Listings are signed marketplace intents and published to public relays for discovery. Listing does not transfer the NFT or move ZEC.</div><div class="controls"><button id="publishListingBtn" class="btn gold">Sign & Publish Listing</button></div></div></div>
-<div id="offerModal" class="modal"><div class="modalCard"><div class="modalHead"><h3>Make Offer</h3><button class="xbtn" data-close="offerModal">×</button></div><div class="field"><label>Token</label><input id="offerToken" class="input" disabled></div><div class="field"><label>Offer (ZEC)</label><input id="offerPrice" class="input" inputmode="decimal"></div><div class="notice">Offers are signed intents only. No ZEC is moved by this action. Settlement remains P2P; transfer should only be submitted after both parties agree.</div><div class="controls"><button id="publishOfferBtn" class="btn gold">Sign & Publish Offer</button></div></div></div>
-<div id="transferModal" class="modal"><div class="modalCard"><div class="modalHead"><h3>Transfer ZEC BLOCK</h3><button class="xbtn" data-close="transferModal">×</button></div><div class="field"><label>Token</label><input id="transferToken" class="input" disabled></div><div class="field"><label>Recipient owner commitment (64 hex)</label><input id="recipientCommit" class="input" placeholder="SHA-256 owner commitment"></div><div class="notice bad">Transfers are irreversible protocol events. Verify the recipient commitment carefully before approving the Zcash transaction.</div><div class="controls"><button id="submitTransferBtn" class="btn red">Sign & Submit Transfer</button></div></div></div>
-<div id="toast" class="toast"></div>
-<script>
 'use strict';
 const CFG={
   genesisTxid:'ecf6fc3a79885f573d79de70a2de85c34667fc1a4fefe034d3a4015269379f0f',
@@ -115,7 +8,7 @@ const CFG={
   relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band'],
   nostrKind:30078,relayTag:'zb1-mainnet-v1'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map()};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -356,86 +249,23 @@ function gpuTemplateWords(base){
   const bitLen=(base.length+8)*8;const dv=new DataView(msg.buffer);dv.setUint32(120,0,false);dv.setUint32(124,bitLen,false);
   const w=new Uint32Array(32);for(let i=0;i<32;i++)w[i]=dv.getUint32(i*4,false);return w
 }
-
-function setGpuStatus(text,kind=''){
-  const el=$('gpuStatus'); if(!el)return;
-  el.textContent=text;
-  el.classList.remove('gpuGood','gpuWarn','gpuBad');
-  if(kind==='good')el.classList.add('gpuGood');
-  if(kind==='warn')el.classList.add('gpuWarn');
-  if(kind==='bad')el.classList.add('gpuBad');
-}
-async function detectGpu({toastResult=false}={}){
-  try{
-    if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / a secure context.');
-    if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
-    setGpuStatus('Requesting high-performance adapter…','warn');
-    const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-    if(!adapter)throw new Error('Browser returned no WebGPU adapter.');
-    let name='WebGPU adapter';
-    try{
-      const info=adapter.info;
-      if(info){
-        const parts=[info.vendor,info.architecture,info.device,info.description].filter(Boolean);
-        if(parts.length)name=parts.join(' · ');
-      }
-    }catch{}
-    S.gpuAdapterName=name;
-    S.gpuDiagnostic='READY: '+name;
-    setGpuStatus('READY · '+name,'good');
-    if(toastResult)toast('WebGPU ready: '+name,6000);
-    return {ok:true,adapter,name};
-  }catch(e){
-    S.gpuAdapterName=null;
-    S.gpuDiagnostic='UNAVAILABLE: '+(e.message||String(e));
-    setGpuStatus(S.gpuDiagnostic,'bad');
-    if(toastResult)toast(S.gpuDiagnostic,8000);
-    return {ok:false,error:e};
-  }
-}
-
 async function initGpuMiner(){
   if(S.gpu?.device)return S.gpu;
-  if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / secure context.');
-  if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
-  setGpuStatus('Initializing WebGPU…','warn');
-  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-  if(!adapter)throw new Error('No WebGPU adapter found. Check browser GPU/WebGPU settings and graphics driver.');
-  let name='WebGPU adapter';
-  try{
-    const info=adapter.info;
-    if(info){
-      const parts=[info.vendor,info.architecture,info.device,info.description].filter(Boolean);
-      if(parts.length)name=parts.join(' · ');
-    }
-  }catch{}
-  S.gpuAdapterName=name;
+  if(!navigator.gpu)throw new Error('WebGPU is not available in this browser.');
+  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});if(!adapter)throw new Error('No WebGPU adapter found.');
   const device=await adapter.requestDevice();
   const module=device.createShaderModule({code:GPU_SHA256_WGSL});
-  const info=await module.getCompilationInfo();
-  const errs=info.messages.filter(x=>x.type==='error');
-  if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
-  let pipeline;
-  try{pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}})}
-  catch(e){throw new Error('WebGPU pipeline creation failed: '+(e.message||String(e)))}
+  const info=await module.getCompilationInfo();const errs=info.messages.filter(x=>x.type==='error');if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
+  const pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}});
   S.gpu={adapter,device,pipeline};
-  S.gpuDiagnostic='READY: '+name;
-  setGpuStatus('READY · '+name,'good');
-  device.lost.then(info=>{
-    S.gpu=null;
-    setGpuStatus('GPU DEVICE LOST · '+(info?.message||'unknown reason'),'bad');
-    if(S.mining&&S.miningEngine==='GPU'){
-      S.gpuStop=true;
-      toast('GPU device was lost. Stop and restart mining.',7000)
-    }
-  });
+  device.lost.then(()=>{S.gpu=null;if(S.mining&&S.miningEngine==='GPU'){S.gpuStop=true;toast('GPU device was lost. Restart mining to use CPU fallback.',7000)}});
   return S.gpu
 }
 async function verifyGpuCandidate(base,nonce){
   const pre=concat(base,u64le(BigInt(nonce)));const h=await sha256Bytes(pre);return leadingZeroBits(h)>=CFG.powBits?bytesToHex(h):null
 }
 async function startGpuMining(base){
-  const {device,pipeline}=await initGpuMiner();S.miningEngine='GPU';S.gpuStop=false;$('mineEngine').textContent='GPU · WebGPU · SHA-256';setGpuStatus('ACTIVE · '+(S.gpuAdapterName||'WebGPU adapter'),'good');$('hashLog').textContent='WebGPU active. Searching the locked ZB-1 26-bit proof…';
+  const {device,pipeline}=await initGpuMiner();S.miningEngine='GPU';S.gpuStop=false;$('mineEngine').textContent='WebGPU · SHA-256';$('hashLog').textContent='WebGPU active. Searching the locked ZB-1 26-bit proof…';
   const template=gpuTemplateWords(base),templateBuf=device.createBuffer({size:128,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});device.queue.writeBuffer(templateBuf,0,template);
   const paramsBuf=device.createBuffer({size:16,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST});
   const resultBuf=device.createBuffer({size:8,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC|GPUBufferUsage.COPY_DST});
@@ -458,7 +288,7 @@ async function startGpuMining(base){
 async function startCpuMining(base,reason=''){
   S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';let lines=[];$('hashLog').textContent=(reason?reason+'\n':'')+'Starting CPU workers…';
   const wc=Math.max(1,Math.min(8,navigator.hardwareConcurrency||4)),src=workerSource(),url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
-  for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=prefix+lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
+  for(let i=0;i<wc;i++){const w=new Worker(url);S.workers.push(w);w.onmessage=async ev=>{if(!S.mining)return;const d=ev.data;if(d.type==='rate'){S.hashes+=d.count;const secs=(performance.now()-S.startMs)/1000;$('hashrate').textContent=formatRate(S.hashes/Math.max(secs,.1));const expected=2**CFG.powBits,p=Math.min(99,(S.hashes/expected)*100);$('mineProgress').style.width=p+'%';lines.push('CPU nonce '+d.nonce+' · '+formatRate(d.count/(d.ms/1000)));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n')}else if(d.type==='found'){S.proof={nonce:d.nonce,hash:d.hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nFOUND nonce '+d.nonce+'\n'+d.hash;$('submitClaimBtn').disabled=false;toast('Valid 26-bit proof found. Review and submit the claim.')}};w.postMessage({base,start:String(i),step:wc,bits:CFG.powBits,batch:20000})}
   URL.revokeObjectURL(url)
 }
 async function startMining(){
@@ -467,40 +297,8 @@ async function startMining(){
     const gate=await checkTargetAvailability(S.target,{refresh:true});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} already has a known claim. Choose another Token ID.`);
     S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;startClaimWatch();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
     const base=await mineBase();
-    const pref=$('engineSelect')?.value||S.enginePreference||'auto';
-    S.enginePreference=pref;
-    if(pref==='cpu'){
-      await startCpuMining(base,'CPU-only selected by user.');
-      return;
-    }
-    if(pref==='gpu'){
-      try{
-        await startGpuMining(base);
-        return;
-      }catch(e){
-        console.error('GPU-only mining failed',e);
-        stopMining(false);
-        $('mineStatus').textContent='GPU unavailable';
-        $('mineEngine').textContent='GPU requested · failed';
-        setGpuStatus('ERROR · '+(e.message||String(e)),'bad');
-        $('hashLog').textContent='GPU-ONLY MODE FAILED:\n'+(e.message||String(e))+'\n\nNo CPU fallback was started because GPU-only was selected.';
-        toast('GPU could not start. See GPU Status / log for the exact reason.',9000);
-        return;
-      }
-    }
-    // Auto mode: GPU first, CPU fallback.
-    if(navigator.gpu){
-      try{
-        await startGpuMining(base);
-        return;
-      }catch(e){
-        console.warn('WebGPU miner fallback',e);
-        if(!S.mining)return;
-        await startCpuMining(base,'AUTO GPU FAILED: '+(e.message||String(e))+'. CPU fallback active.');
-        return;
-      }
-    }
-    await startCpuMining(base,'AUTO: WebGPU API not available. CPU fallback active.');
+    if(navigator.gpu){try{await startGpuMining(base);return}catch(e){console.warn('WebGPU miner fallback',e);if(!S.mining)return;await startCpuMining(base,'WebGPU unavailable/failed: '+(e.message||String(e))+'. Falling back to CPU.');return}}
+    await startCpuMining(base,'WebGPU not supported in this browser. CPU fallback active.');
   }catch(e){S.mining=false;$('mineStatus').textContent='Mining error';toast(e.message||String(e),7000)}
 }
 
@@ -603,25 +401,5 @@ $('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalanc
 $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');if(currentOwner(tokenId)!==S.ownerCommitment)throw new Error('This wallet is not the current owner in the discovery state.');const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;const sig=await signDerived(msg);const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});await publishRelay(e);modal('transferModal',false);$('recipientCommit').value='';toast('Transfer broadcast: '+txid,8000);await fetchRelay()}catch(e){toast(e.message||String(e),8000)}};
 async function refreshAll(){await fetchRelay();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
-$('engineSelect').value=localStorage.getItem('zb1_engine_pref')||'auto';
-S.enginePreference=$('engineSelect').value;
-$('engineSelect').onchange=()=>{
-  S.enginePreference=$('engineSelect').value;
-  localStorage.setItem('zb1_engine_pref',S.enginePreference);
-  if(S.enginePreference==='cpu'){$('mineEngine').textContent='CPU selected';setGpuStatus('GPU bypassed by user','warn')}
-  else if(S.enginePreference==='gpu'){$('mineEngine').textContent='GPU selected';detectGpu()}
-  else{$('mineEngine').textContent='Auto · GPU preferred';detectGpu()}
-};
-$('testGpuBtn').onclick=()=>detectGpu({toastResult:true});
 artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
-(async()=>{
-  $('mineEngine').textContent=S.enginePreference==='cpu'?'CPU selected':S.enginePreference==='gpu'?'GPU selected':'Auto · GPU preferred';
-  if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
-  await initNostr();
-  try{await resolveGenesis()}catch(e){console.warn(e)}
-  try{await connectWallet(true)}catch{}
-  await fetchRelay();
-  updateWalletUI()
-})();
-</script>
-</body></html>
+(async()=>{$('mineEngine').textContent=navigator.gpu?'WebGPU ready · GPU preferred':'CPU fallback';await initNostr();try{await resolveGenesis()}catch(e){console.warn(e)}try{await connectWallet(true)}catch{}await fetchRelay();updateWalletUI()})();

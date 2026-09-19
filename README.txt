@@ -29,4 +29,15 @@ Deploy the entire folder to mine.zecblocks.xyz.V4 AVAILABILITY GUARD
 
 IMPORTANT:
 "Known unclaimed" means no claim is currently visible to this public discovery client.
-The canonical ZB-1 result is still determined by valid confirmed Zcash protocol events.
+The canonical ZB-1 result is still determined by valid confirmed Zcash protocol events.V5 GPU SELECTOR + DIAGNOSTICS
+- Manual engine selector:
+  * Auto (GPU preferred, CPU fallback)
+  * GPU / WebGPU only
+  * CPU Web Workers only
+- Detect GPU button
+- Visible GPU Status row with exact WebGPU failure reason
+- GPU-only mode NEVER silently falls back to CPU
+- Auto mode preserves fallback reason in the mining log
+- Attempts to show WebGPU adapter/vendor information when browser exposes it
+- Engine preference persists in localStorage
+- Genesis TXID, source rule, SHA-256 preimage, 26-bit difficulty and claim rules are unchanged.
