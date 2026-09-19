@@ -66,7 +66,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay / Use Credit & Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V12 bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V12 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V12.1 bound claim-credit flow active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V12.1 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -303,11 +303,11 @@ async function verifyPaidClaimFee(txid,{requireConfirmed=true,ownerCommitment=nu
 async function waitBoundFeeConfirmation(voucher,timeoutMs=210000){const started=Date.now();while(Date.now()-started<timeoutMs){try{return await verifyPaidClaimFee(voucher.txid,{requireConfirmed:true,ownerCommitment:S.ownerCommitment,feeSig:voucher.feeSig})}catch(e){if(!/not confirmed/i.test(String(e.message||e)))throw e}$('mineStatus').textContent='Fee credit paid · waiting for Zcash confirmation…';await new Promise(r=>setTimeout(r,10000))}throw new Error('Fee transaction is still waiting for confirmation. Your paid claim credit is saved; try Submit Claim again after it confirms.')}
 function transparentBalanceZat(){const z=zecToZat(S.balance?.transparent??'0');return z==null?0n:z}
 async function refreshBalance(){try{S.balance=await rpc('zcash_getBalance');updateWalletUI();return S.balance}catch{return S.balance}}
-async function ensureTransparentFunding(){await refreshBalance();if(transparentBalanceZat()>=200000n)return true;const addr=String(S.connection?.transparent||'');if(!/^t[13][A-Za-z0-9]{20,}$/.test(addr))throw new Error('Noir Wallet did not expose a mainnet transparent address.');const ok=window.confirm('Your transparent balance is too low for the 0.0013 ZEC paid-claim fee. Move 0.002 ZEC from your shielded balance to your own transparent address now? This creates a public link between this top-up and your transparent address.');if(!ok)throw new Error('Transparent fee funding is required for V12 bound claim credits.');toast('Approve the 0.002 ZEC Shielded → Transparent self-transfer in Noir Wallet.',9000);const txid=String(await rpc('zcash_sendTransaction',[{to:addr,amount:'0.002',fundingSource:'shielded'}])).toLowerCase();throw new Error(`Transparent top-up broadcast (${short(txid,8)}). Wait for it to confirm, then click Submit Claim again. No protocol fee has been paid yet.`)}
+async function ensureTransparentFunding(){await refreshBalance();if(transparentBalanceZat()>=200000n)return true;const addr=String(S.connection?.transparent||'');if(!/^t[13][A-Za-z0-9]{20,}$/.test(addr))throw new Error('Noir Wallet did not expose a mainnet transparent address.');const ok=window.confirm('Your transparent balance is too low for the 0.0013 ZEC paid-claim fee. Move 0.002 ZEC from your shielded balance to your own transparent address now? This creates a public link between this top-up and your transparent address.');if(!ok)throw new Error('Transparent fee funding is required for V12.1 bound claim credits.');toast('Approve the 0.002 ZEC Shielded → Transparent self-transfer in Noir Wallet.',9000);const txid=String(await rpc('zcash_sendTransaction',[{to:addr,amount:'0.002',fundingSource:'shielded'}])).toLowerCase();throw new Error(`Transparent top-up broadcast (${short(txid,8)}). Wait for it to confirm, then click Submit Claim again. No protocol fee has been paid yet.`)}
 
 async function acquirePaidClaimFee(){
   let existing=loadFeeVoucher();
-  if(existing?.status==='pending'){await reconcileFeeCredit();existing=loadFeeVoucher();if(existing?.status==='pending')throw new Error(`Your previous paid claim #${existing.attempt?.tokenId||'?'} is still unresolved. V12 will not charge another fee.`)}
+  if(existing?.status==='pending'){await reconcileFeeCredit();existing=loadFeeVoucher();if(existing?.status==='pending')throw new Error(`Your previous paid claim #${existing.attempt?.tokenId||'?'} is still unresolved. V12.1 will not charge another fee.`)}
   if(existing&&existing.status!=='consumed'){if(!existing.feeSig)throw new Error('Old unbound fee voucher detected. Use Recover Fee Credit to bind it to this Noir wallet before reuse.');await verifyPaidClaimFee(existing.txid,{requireConfirmed:false,ownerCommitment:S.ownerCommitment,feeSig:existing.feeSig});existing.status='available';existing.attempt=null;saveFeeVoucher(existing);toast('Using your existing bound 0.0013 ZEC claim credit. No second protocol fee.',7000);return existing}
   await ensureTransparentFunding();
   const currentKey=await rpc('zcash_getPublicKey',[{signingMode:'current'}]),currentAddr=String(currentKey?.address||'');if(currentAddr!==String(S.connection?.transparent||''))throw new Error('Noir current signing key does not match the connected transparent address.');
@@ -489,14 +489,38 @@ async function loadWalletHistory(){
 }
 function parseMemo(m){const p=m.split('|');if(p[0]!=='ZB1'||p.length<3)return null;const type={C:'CLAIM',T:'TRANSFER'}[p[1]]||p[1];const e={protocol:'ZB1',type,v:Number(p[2])||1,memo:m};for(const x of p.slice(3)){const i=x.indexOf('=');if(i>0)e[x.slice(0,i)]=x.slice(i+1)}if(type==='CLAIM'){e.tokenId=Number(e.T);e.nonce=e.N;e.pubkey=e.K;e.ownerCommitment=e.O||null;e.signature=e.S;e.feeTxid=String(e.F||'').toLowerCase();e.feeSig=e.R||null;e.feeZat=e.Z?Number(e.Z):null}else if(type==='TRANSFER'){e.tokenId=Number(e.I);e.toCommitment=e.O;e.pubkey=e.K;e.signature=e.S}return e}
 function normalizeEvent(e){return {...e,eventId:e.eventId||e.txid||crypto.randomUUID(),timestamp:Number(e.timestamp)||Math.floor(Date.now()/1000)}}
+const CHAIN_REQ_CACHE=new Map(),CHAIN_REQ_INFLIGHT=new Map();
+function chainClientTtl(kind){
+  return kind==='block'?12000:kind==='tx'?5000:kind==='health'?8000:7000
+}
+async function chainProxyJson(url,key,kind){
+  const cached=CHAIN_REQ_CACHE.get(key),t=Date.now();
+  if(cached&&cached.until>t)return cached.data;
+  if(CHAIN_REQ_INFLIGHT.has(key))return CHAIN_REQ_INFLIGHT.get(key);
+  const job=(async()=>{
+    let r;
+    try{r=await fetch(url,{headers:{accept:'application/json'}})}
+    catch(e){throw new Error('Chain-data proxy unreachable. Upload the api/zcash.js file together with index.html.')}
+    let j=null;try{j=await r.json()}catch{}
+    if(!r.ok){
+      const retry=r.status===429?' Chain provider is rate-limited; retry shortly.':'';
+      throw new Error((j?.error||('Chain-data proxy error '+r.status))+retry)
+    }
+    const data=j?.data??j;
+    CHAIN_REQ_CACHE.set(key,{data,until:Date.now()+chainClientTtl(kind)});
+    if(CHAIN_REQ_CACHE.size>350){
+      const first=CHAIN_REQ_CACHE.keys().next().value;
+      CHAIN_REQ_CACHE.delete(first)
+    }
+    return data
+  })().finally(()=>CHAIN_REQ_INFLIGHT.delete(key));
+  CHAIN_REQ_INFLIGHT.set(key,job);
+  return job
+}
 async function explorerFetch(kind,id){
   const url=CFG.explorer+'?kind='+encodeURIComponent(kind)+(id!=null?'&id='+encodeURIComponent(String(id)):'');
-  let r;
-  try{r=await fetch(url,{headers:{accept:'application/json'},cache:'no-store'})}
-  catch(e){throw new Error('Chain-data proxy unreachable. Upload the api/zcash.js file together with index.html.')}
-  let j=null;try{j=await r.json()}catch{}
-  if(!r.ok)throw new Error(j?.error||('Chain-data proxy error '+r.status));
-  return j?.data??j;
+  const key=kind+'|'+String(id??'');
+  return chainProxyJson(url,key,kind)
 }
 function deepFind(obj,keys){if(!obj||typeof obj!=='object')return null;for(const k of keys)if(obj[k]!=null)return obj[k];for(const v of Object.values(obj)){if(v&&typeof v==='object'){const x=deepFind(v,keys);if(x!=null)return x}}return null}
 async function resolveGenesis(){
@@ -955,7 +979,7 @@ function stopMining(mark=true){S.mining=false;S.gpuStop=true;if(S.claimWatchTime
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 async function submitClaim(){
   let voucher=null;try{
-    if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');await reconcileFeeCredit();const unresolved=loadFeeVoucher();if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. V12 will not charge another fee.`);
+    if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');await reconcileFeeCredit();const unresolved=loadFeeVoucher();if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. V12.1 will not charge another fee.`);
     const preFeeCheck=await checkTargetAvailability(S.target,{refresh:true});if(!preFeeCheck.available)throw new Error(`ZEC BLOCK #${S.target.token} was claimed or is being submitted. No new protocol fee was sent.`);
     const intentMsg=`ZB1:CLAIM_INTENT:v3|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}`,intentSig=await rpc('zcash_signMessage',[intentMsg,{signingMode:'derived'}]),intent=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM_INTENT',eventId:`intent:${S.ownerCommitment}:${S.target.token}:${S.proof.nonce}`,tokenId:S.target.token,nonce:S.proof.nonce,pubkey:intentSig.pubkey,signature:intentSig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,timestamp:Math.floor(Date.now()/1000),expires:Math.floor(Date.now()/1000)+600,status:'awaiting-fee'});await publishRelay(intent,{fallback:false});
     $('submitClaimBtn').disabled=true;voucher=await acquirePaidClaimFee();await waitBoundFeeConfirmation(voucher);
