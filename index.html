@@ -1155,7 +1155,8 @@ async function startCpuMining(base,reason=''){
 async function startMining(){
   try{
     if(S.mining)return;if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');const wanted=Number($('tokenInput').value);if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return}
-    const gate=await checkTargetAvailability(S.target,{refresh:true});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} already has a known claim. Choose another Token ID.`);
+    await ensureMiningLease(wanted,{force:true});
+    const gate=await checkTargetAvailability(S.target,{refresh:false});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} is no longer available. Use Find Unclaimed again.`);
     S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;startClaimWatch();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
     const base=await mineBase();
     const pref=$('engineSelect')?.value||S.enginePreference||'auto';
@@ -1200,31 +1201,36 @@ function startClaimWatch(){
   S.claimWatchTimer=setInterval(async()=>{
     if(!S.mining||!S.target)return;
     try{
-      const gate=await checkTargetAvailability(S.target,{refresh:true,deep:false});
-      if(!gate.available){
-        const token=S.target.token;
-        stopMining(false);
-        setClaimStatus(gate.intent?'COMPETING CLAIM INTENT DETECTED':'COMPETING CLAIM DETECTED','bad');
-        $('mineStatus').textContent='Target claimed / pending';
-        $('hashLog').textContent+=`\n\nSTOPPED: A claim/claim-intent for ZEC BLOCK #${token} appeared while you were mining.\nChoose another Token ID.`;
-        toast(`Mining stopped: claim activity detected for ZEC BLOCK #${token}.`,9000);
-      }
-    }catch(e){console.warn('claim watch',e)}
-  },8000);
+      await validateMiningLease();
+      const gate=await checkTargetAvailability(S.target,{refresh:false,deep:false});
+      if(!gate.available)throw new Error('claim activity detected');
+      updateLeaseUI()
+    }catch(e){
+      const token=S.target?.token;
+      stopMining(false);
+      S.miningLease=null;updateLeaseUI();
+      setClaimStatus('TARGET NO LONGER CLEAR · mining stopped','bad');
+      $('mineStatus').textContent='Target claimed / reservation lost';
+      $('hashLog').textContent+=`\n\nSTOPPED: ZEC BLOCK #${token} is no longer safely reserved/clear.\nUse Find Unclaimed for a new verified target.`;
+      toast(`Mining stopped: ZEC BLOCK #${token} is no longer verified clear.`,9000)
+    }
+  },12000);
 }
 
-function stopMining(mark=true){S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark)$('mineStatus').textContent='Stopped'}
+function stopMining(mark=true){S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark){$('mineStatus').textContent='Stopped';releaseMiningLease().catch(()=>{})}}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 async function submitClaim(){
   let voucher=null;try{
     if(!S.proof||!S.target)throw new Error('No valid proof is ready.');if(!S.ownerCommitment)throw new Error('Connect wallet first.');await reconcileFeeCredit();const unresolved=loadFeeVoucher();if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. V12.1 will not charge another fee.`);
+    await validateMiningLease();
     const preFeeCheck=await checkTargetAvailability(S.target,{refresh:true});if(!preFeeCheck.available)throw new Error(`ZEC BLOCK #${S.target.token} was claimed or is being submitted. No new protocol fee was sent.`);
     const intentMsg=`ZB1:CLAIM_INTENT:v3|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}`,intentSig=await rpc('zcash_signMessage',[intentMsg,{signingMode:'derived'}]),intent=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM_INTENT',eventId:`intent:${S.ownerCommitment}:${S.target.token}:${S.proof.nonce}`,tokenId:S.target.token,nonce:S.proof.nonce,pubkey:intentSig.pubkey,signature:intentSig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,timestamp:Math.floor(Date.now()/1000),expires:Math.floor(Date.now()/1000)+600,status:'awaiting-fee'});await publishRelay(intent,{fallback:false});
     $('submitClaimBtn').disabled=true;voucher=await acquirePaidClaimFee();await waitBoundFeeConfirmation(voucher);
+    try{await validateMiningLease()}catch(e){voucher.status='available';voucher.attempt=null;saveFeeVoucher(voucher);throw new Error(`ZEC BLOCK #${S.target.token} lost its reservation after the fee step. Your paid claim credit remains AVAILABLE; use Find Unclaimed again.`)}
     const postFeeCheck=await checkTargetAvailability(S.target,{refresh:true});if(!postFeeCheck.available){voucher.status='available';voucher.attempt=null;saveFeeVoucher(voucher);$('mineStatus').textContent='Target taken · 1 bound fee credit available';throw new Error(`ZEC BLOCK #${S.target.token} became unavailable after the fee was paid. The 0.0013 ZEC is already in treasury, but your bound protocol claim credit remains AVAILABLE. Choose another Token ID; no second protocol fee is required.`)}
     const feeTxid=String(voucher.txid).toLowerCase(),feeSig=String(voucher.feeSig||''),payload={tokenId:S.target.token,nonce:S.proof.nonce,ownerCommitment:S.ownerCommitment,feeTxid,feeSig},msg=claimV3Message(payload),sig=await rpc('zcash_signMessage',[msg,{signingMode:'derived'}]),memo=`ZB1|C|3|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}|S=${sig.signature}|F=${feeTxid}|R=${feeSig}|Z=${CFG.paidClaimFeeZat}`;if(enc.encode(memo).length>512)throw new Error(`V3 claim memo is ${enc.encode(memo).length} bytes; maximum is 512.`);
     $('mineStatus').textContent='Bound fee confirmed · approve claim transaction…';const txid=String(await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}])).toLowerCase();if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid claim TXID.');const ev=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM',txid,memo,tokenId:S.target.token,nonce:S.proof.nonce,signature:sig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,feeTxid,feeSig,feeZat:CFG.paidClaimFeeZat,timestamp:Math.floor(Date.now()/1000),status:'pending'});
-    voucher.status='pending';voucher.attempt={tokenId:S.target.token,claimTxid:txid,nonce:String(S.proof.nonce),sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,startedAt:Math.floor(Date.now()/1000)};saveFeeVoucher(voucher);saveLocalEvent(ev);try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('claim relay publish',e)}S.proof=null;$('mineStatus').textContent='Claim broadcast · bound fee credit pending result';toast(`V3 claim broadcast. Bound fee credit remains PENDING until the canonical winner is confirmed. TX ${short(txid,8)}.`,10000);await refreshAll();await reconcileFeeCredit()
+    voucher.status='pending';voucher.attempt={tokenId:S.target.token,claimTxid:txid,nonce:String(S.proof.nonce),sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,startedAt:Math.floor(Date.now()/1000)};saveFeeVoucher(voucher);saveLocalEvent(ev);try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('claim relay publish',e)}await releaseMiningLease().catch(()=>{});S.proof=null;$('mineStatus').textContent='Claim broadcast · bound fee credit pending result';toast(`V3 claim broadcast. Bound fee credit remains PENDING until the canonical winner is confirmed. TX ${short(txid,8)}.`,10000);await refreshAll();await reconcileFeeCredit()
   }catch(e){$('submitClaimBtn').disabled=false;const v=loadFeeVoucher();if(v?.status==='available')$('mineStatus').textContent='1 bound paid claim credit available';else if(v?.status==='pending')$('mineStatus').textContent='Paid claim pending canonical result';else $('mineStatus').textContent='Claim not submitted';toast(e.message||String(e),12000)}
 }
 $('submitClaimBtn').onclick=submitClaim;
