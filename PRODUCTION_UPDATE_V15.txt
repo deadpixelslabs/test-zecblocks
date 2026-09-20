@@ -1,0 +1,15 @@
+ZEC BLOCKS Mining V15 — Reserved Finder
+
+Production changes:
+- Server-authoritative Find Unclaimed flow.
+- Live exact multi-relay verification before token assignment.
+- Atomic per-token mining reservation bound to owner commitment.
+- Final recheck after reservation closes the discovery race window.
+- Lease revalidation while mining.
+- Revalidation before and after the claim-fee step.
+- Automatic mining stop if claim activity appears or reservation becomes invalid.
+- Existing bound fee-credit verification fix included.
+
+Deployment check:
+The miner UI must visibly show:
+V15 · RESERVED FINDER
