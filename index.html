@@ -20,13 +20,36 @@
 .enginebar .select{min-width:0}
 .gpuGood{color:#78d594!important}.gpuWarn{color:#f1cc76!important}.gpuBad{color:#ff8989!important}
 @media(max-width:700px){.enginebar{grid-template-columns:1fr}}
+
+.zecsCard{padding:0;overflow:hidden;position:relative}
+.zecsCard:before{content:"";position:absolute;width:520px;height:520px;border-radius:50%;right:-190px;top:-260px;background:radial-gradient(circle,rgba(211,168,79,.13),transparent 68%);pointer-events:none}
+.zecsLayout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);position:relative;z-index:1}
+.zecsMain{padding:30px;border-right:1px solid #202020}
+.zecsSide{padding:24px;background:rgba(8,8,8,.55)}
+.zecsTicker{font-size:clamp(46px,7vw,82px);line-height:.9;letter-spacing:-.06em;margin:4px 0 14px}
+.zecsLead{max-width:760px;color:#8e8e8e;font-size:13px;line-height:1.7;margin:0 0 24px}
+.zecsMetrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin:20px 0}
+.zecsMetric{background:#0a0a0a;padding:14px}
+.zecsMetric small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.zecsMetric b{font-size:14px}
+.zecsProgressTop{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-top:24px}
+.zecsProgressTop small{color:#666;font-size:10px;text-transform:uppercase;letter-spacing:.1em}
+.zecsProgressTop b{font-size:18px}
+.zecsProgress{height:12px;border:1px solid #292929;background:#080808;border-radius:999px;overflow:hidden;margin:10px 0 8px}
+.zecsProgress>i{display:block;width:0%;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.zecsMintPayload{font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d6be82;border:1px solid #30291b;background:#0c0a07;border-radius:10px;padding:13px;overflow-wrap:anywhere;margin:18px 0}
+.zecsComing{width:100%;min-height:48px;font-size:13px;margin-top:10px}
+.zecsSide .mini{margin-bottom:10px}
+.zecsSide .mini:last-child{margin-bottom:0}
+@media(max-width:900px){.zecsLayout{grid-template-columns:1fr}.zecsMain{border-right:0;border-bottom:1px solid #202020}.zecsMetrics{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.zecsMain,.zecsSide{padding:20px}.zecsMetrics{grid-template-columns:1fr 1fr}}
 </style>
 
 </head>
 <body>
 <header class="top">
   <a class="brand" href="https://www.zecblocks.xyz"><span class="brandmark">Z</span><b>ZEC BLOCKS</b></a>
-  <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
+  <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="#zecs">$ZECS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
   <div class="topright"><span class="pill network"><span class="liveDot"></span>Zcash Mainnet</span><a class="btn secondary" href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a><button id="walletBtn" class="btn gold walletbtn">Connect Noir Wallet</button></div>
 </header>
 <main id="home">
@@ -77,6 +100,61 @@
     <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses redundant public relay events plus connected-wallet recovery for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
   </div>
 </div>
+</section>
+
+<div class="sectionHead" id="zecs">
+  <div>
+    <h2>$ZECS Mint</h2>
+    <p>ZB-20 token minting on Zcash · exclusively for ZEC BLOCKS NFT holders.</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="badge">ZB-20</span>
+    <span class="badge">COMING SOON</span>
+  </div>
+</div>
+<section class="card zecsCard">
+  <div class="zecsLayout">
+    <div class="zecsMain">
+      <div class="kicker">ZB-20 · ZCASH MAINNET</div>
+      <div class="zecsTicker">$ZECS</div>
+      <p class="zecsLead">The first ZB-20 token built on top of the ZB-1 protocol. ZECS is not an inscription token and not an ERC-20-style smart-contract token. Mint, transfer and balances are reconstructed deterministically from valid ZB-20 protocol events anchored on Zcash.</p>
+
+      <div class="zecsMetrics">
+        <div class="zecsMetric"><small>Max Supply</small><b>21,000,000</b></div>
+        <div class="zecsMetric"><small>Per Mint</small><b>210 ZECS</b></div>
+        <div class="zecsMetric"><small>Mint Price</small><b>FREE</b></div>
+        <div class="zecsMetric"><small>Eligibility</small><b>ZEC BLOCKS Holders</b></div>
+      </div>
+
+      <div class="zecsProgressTop">
+        <div><small>Mint Progress</small><br><b>0 / 21,000,000 ZECS</b></div>
+        <b class="gold">0%</b>
+      </div>
+      <div class="zecsProgress" aria-label="ZECS mint progress 0 percent"><i></i></div>
+      <div class="tiny muted">0 successful mint events · 100,000 maximum mint events</div>
+
+      <div class="zecsMintPayload">{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}</div>
+      <button class="btn gold zecsComing" disabled>Mint 210 ZECS · Coming Soon</button>
+    </div>
+
+    <div class="zecsSide">
+      <div class="mini">
+        <div class="kicker">Holder gated</div>
+        <h3>ZEC BLOCKS NFT holders only</h3>
+        <p>Only current ZEC BLOCKS holders will be eligible to participate when minting opens.</p>
+      </div>
+      <div class="mini">
+        <div class="kicker">Fair launch</div>
+        <h3>0 premine · 0 team allocation</h3>
+        <p>No admin mint. No presale. ZECS begins at zero circulating supply and the public mint progress starts at 0%.</p>
+      </div>
+      <div class="mini">
+        <div class="kicker">Protocol</div>
+        <h3>Not an inscription</h3>
+        <p>ZECS uses the ZB-20 protocol layer with canonical events anchored on Zcash. The mint payload is fixed and deterministic.</p>
+      </div>
+    </div>
+  </div>
 </section>
 
 <div class="sectionHead" id="market"><div><h2>Marketplace</h2><p>Signed P2P listings and offers. No custody.</p></div><div class="tabs"><button id="refreshMarketBtn" class="btn">Refresh</button><button id="createListingBtn" class="btn gold" disabled>List an NFT</button></div></div>
