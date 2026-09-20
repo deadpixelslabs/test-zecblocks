@@ -45,7 +45,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Token availability is checked against the persistent production index plus an exact multi-relay server check before mining.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V14 · SERVER MAP</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now performs a live multi-relay check, atomically reserves a verified-clear Token ID for your wallet, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15 · RESERVED FINDER</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -55,7 +55,7 @@
       <div class="row"><span class="key">Genesis Height</span><span class="val" id="gHeight">Resolving from mainnet…</span></div>
       <div class="row"><span class="key">Owner Commitment</span><span class="val" id="ownerCommit">Connect wallet</span></div>
       <div class="row"><span class="key">Source Block</span><span class="val" id="sourceInfo">Select a token</span></div>
-      <div class="row"><span class="key">Claim Status</span><span class="val" id="claimStatus">Select a token</span></div>
+      <div class="row"><span class="key">Claim Status</span><span class="val" id="claimStatus">Select a token</span></div><div class="row"><span class="key">Reservation</span><span class="val" id="leaseStatus">None</span></div>
       <div class="row"><span class="key">Fee Credit</span><span class="val" id="feeCreditStatus">None</span></div>
       <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div>
       <div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div>
@@ -118,7 +118,7 @@ const CFG={
   supabaseUrl:'https://tvwvenyomlwvjtwxasca.supabase.co',
   supabaseAnon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY'
 };
-const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverClearIds:new Set(),serverUnknownCount:5000,serverPendingCount:0,serverVerifiedCount:0,serverMappingComplete:false,serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,serverSyncBusy:false,serverTimer:null,tokenCheckTimer:null,serverBackfillBusy:false,lastServerBackfill:0};
+const S={provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverClearIds:new Set(),serverUnknownCount:5000,serverPendingCount:0,serverVerifiedCount:0,serverMappingComplete:false,serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,serverSyncBusy:false,serverTimer:null,tokenCheckTimer:null,serverBackfillBusy:false,lastServerBackfill:0,miningLease:null,leaseRenewTimer:null,leaseCheckBusy:false};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -460,6 +460,64 @@ async function serverCheckClaims(tokenIds,{deep=false}={}){
   updateIndexProgress();updateClaimSyncAge();
   return j
 }
+function updateLeaseUI(){
+  const el=$('leaseStatus');if(!el)return;
+  const l=S.miningLease;
+  if(!l){el.textContent='None';el.style.color='#888';return}
+  const left=Math.max(0,Math.floor((Number(l.expiresAt||0)*1000-Date.now())/1000));
+  el.textContent=`#${l.tokenId} · RESERVED · ${left}s`;
+  el.style.color=left>30?'#78d594':'#f1cc76'
+}
+async function leaseRequest(action,body={}){
+  if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
+  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-mining-lease',{
+    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},
+    body:JSON.stringify({action,ownerCommitment:S.ownerCommitment,...body})
+  });
+  const j=await r.json().catch(()=>null);
+  if(!r.ok||!j)throw new Error(j?.error||('Mining reservation server HTTP '+r.status));
+  return j
+}
+function setMiningLease(j){
+  if(!j?.ok||!Number.isInteger(Number(j.token_id))||!/^[0-9a-f]{48}$/i.test(String(j.lease_token||'')))return null;
+  S.miningLease={tokenId:Number(j.token_id),leaseToken:String(j.lease_token),expiresAt:Number(j.expires_at||0),verifiedAt:Number(j.verified_at||Math.floor(Date.now()/1000)),relaysOk:Number(j.relays_ok||0)};
+  updateLeaseUI();return S.miningLease
+}
+async function releaseMiningLease({silent=true}={}){
+  const l=S.miningLease;if(!l)return;
+  S.miningLease=null;updateLeaseUI();
+  try{await leaseRequest('release',{tokenId:l.tokenId,leaseToken:l.leaseToken})}
+  catch(e){if(!silent)throw e;console.warn('release mining reservation',e)}
+}
+async function validateMiningLease(){
+  if(S.leaseCheckBusy)return S.miningLease;
+  const l=S.miningLease;
+  if(!l)throw new Error('No active mining reservation. Use Find Unclaimed first.');
+  S.leaseCheckBusy=true;
+  try{
+    const j=await leaseRequest('validate',{tokenId:l.tokenId,leaseToken:l.leaseToken});
+    if(!j?.ok){S.miningLease=null;updateLeaseUI();throw new Error(j?.error||'Reserved token is no longer clear.')}
+    l.expiresAt=Number(j.expires_at||l.expiresAt);l.verifiedAt=Number(j.verified_at||Math.floor(Date.now()/1000));l.relaysOk=Number(j.relays_ok||l.relaysOk||0);
+    updateLeaseUI();return l
+  }finally{S.leaseCheckBusy=false}
+}
+async function ensureMiningLease(tokenId,{force=false}={}){
+  tokenId=Number(tokenId);const l=S.miningLease;
+  if(l&&l.tokenId===tokenId&&Number(l.expiresAt||0)>Math.floor(Date.now()/1000)+30){
+    if(!force&&Date.now()-Number(l.verifiedAt||0)*1000<20000)return l;
+    return validateMiningLease()
+  }
+  if(l)await releaseMiningLease();
+  const j=await leaseRequest('reserve_specific',{tokenId});
+  if(!j?.ok)throw new Error(j?.error==='TOKEN_NOT_DEEP_CLEAR'?`ZEC BLOCK #${tokenId} is not verified unclaimed across the live relays.`:(j?.error||'Could not reserve this ZEC BLOCK.'));
+  return setMiningLease(j)
+}
+async function findAndReserveMiningToken(startToken){
+  const j=await leaseRequest('reserve',{startToken:Number(startToken)||1});
+  if(!j?.ok)throw new Error(j?.error==='NO_DEEP_VERIFIED_CLEAR_TOKEN_AVAILABLE'?'No deeply verified unclaimed ZEC BLOCK is available right now. Retry in a few seconds.':(j?.error||'Could not find an unclaimed ZEC BLOCK.'));
+  const l=setMiningLease(j);if(!l)throw new Error('Reservation server returned an invalid lease.');return l
+}
+
 async function kickServerClaimIndex(){
   try{await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-availability-scan',{method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:'{}'})}catch(e){console.warn('server claim shard trigger',e)}
 }
