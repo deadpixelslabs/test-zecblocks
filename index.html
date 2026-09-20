@@ -171,6 +171,52 @@ function updateFeeCreditUI(){
 function feeTxidOf(e){return String(e?.feeTxid||e?.F||'').toLowerCase()}
 function txOutputAddress(o){return String(o?.address||o?.addr||o?.scriptPubKey?.addresses?.[0]||o?.scriptPubKey?.address||'')}
 
+// Zcash explorers do not all expose transparent input addresses at the same path.
+// Keep fee-credit binding strict, but resolve payer addresses from nested prevout/script
+// objects and, when necessary, from the referenced previous transaction output.
+function collectTransparentAddresses(obj,out=new Set(),depth=0){
+  if(obj==null||depth>8)return out;
+  if(typeof obj==='string'){
+    if(/^t[13][1-9A-HJ-NP-Za-km-z]{20,}$/i.test(obj))out.add(obj);
+    return out
+  }
+  if(Array.isArray(obj)){for(const v of obj)collectTransparentAddresses(v,out,depth+1);return out}
+  if(typeof obj!=='object')return out;
+  for(const [k,v] of Object.entries(obj)){
+    const key=String(k).toLowerCase();
+    if((key.includes('address')||key==='addr')&&typeof v==='string'&&/^t[13][1-9A-HJ-NP-Za-km-z]{20,}$/i.test(v))out.add(v);
+    else if((key.includes('address')||key==='addr')&&Array.isArray(v)){
+      for(const x of v)if(typeof x==='string'&&/^t[13][1-9A-HJ-NP-Za-km-z]{20,}$/i.test(x))out.add(x)
+    }
+    if(v&&typeof v==='object')collectTransparentAddresses(v,out,depth+1)
+  }
+  return out
+}
+function prevoutRef(input){
+  const prev=input?.prevout||input?.previous_output||input?.previousOutput||{};
+  const txid=String(
+    input?.prevTxid||input?.prev_txid||input?.previousTxid||input?.previous_txid||
+    prev?.txid||prev?.hash||input?.txid||''
+  ).replace(/^0x/,'').toLowerCase();
+  const rawIndex=input?.vout??input?.outputIndex??input?.output_index??input?.prevout_n??prev?.n??prev?.vout??prev?.index;
+  const index=Number(rawIndex);
+  return {txid,index}
+}
+async function transparentInputAddresses(inputs){
+  const out=new Set();
+  for(const input of inputs||[]){
+    collectTransparentAddresses(input,out);
+    const {txid,index}=prevoutRef(input);
+    if(!/^[0-9a-f]{64}$/.test(txid)||!Number.isInteger(index)||index<0)continue;
+    try{
+      const prevTx=await explorerFetch('tx',txid);
+      const prevOuts=Array.isArray(prevTx?.outputs)?prevTx.outputs:(deepFind(prevTx,['outputs','vout'])||[]);
+      if(Array.isArray(prevOuts)&&prevOuts[index])collectTransparentAddresses(prevOuts[index],out)
+    }catch(e){console.warn('fee prevout resolve',txid,index,e)}
+  }
+  return out
+}
+
 const B58_ALPH='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 function bytesToBigIntBE(b){let x=0n;for(const v of b)x=(x<<8n)|BigInt(v);return x}
 const SECP_P=0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
@@ -299,7 +345,7 @@ async function verifyPaidClaimFee(txid,{requireConfirmed=true,ownerCommitment=nu
   if(paid!==BigInt(CFG.paidClaimFeeZat))throw new Error(`Protocol fee output must be exactly ${CFG.paidClaimFeeZec} ZEC to treasury.`);
   const bh=Number(deepFind(tx,['blockHeight','block_height','blockheight','height']));if(requireConfirmed&&(!Number.isInteger(bh)||bh<=0))throw new Error('Protocol fee transaction is not confirmed yet.');
   let payerAddress=null,payerPubkey=null;
-  if(ownerCommitment&&feeSig){const fm=claimFeeReceiptMessage(ownerCommitment,txid);payerPubkey=await recoverZcashMessagePubkey(fm,feeSig);payerAddress=await pubkeyToMainnetTAddress(payerPubkey);const inputAddresses=ins.map(txOutputAddress).filter(Boolean);if(!inputAddresses.includes(payerAddress))throw new Error('Fee credit is not bound to the Noir transparent key that signed the fee receipt.')}
+  if(ownerCommitment&&feeSig){const fm=claimFeeReceiptMessage(ownerCommitment,txid);payerPubkey=await recoverZcashMessagePubkey(fm,feeSig);payerAddress=await pubkeyToMainnetTAddress(payerPubkey);const inputAddresses=await transparentInputAddresses(ins);if(!inputAddresses.has(payerAddress))throw new Error('Fee credit payer could not be matched to the Noir transparent key that signed the fee receipt. Use Recover Fee Credit only if this fee was paid by the connected Noir wallet.')}
   return {ok:true,confirmed:Number.isInteger(bh)&&bh>0,blockHeight:bh||null,paidZat:paid.toString(),txid,payerAddress,payerPubkey}
 }
 async function waitBoundFeeConfirmation(voucher,timeoutMs=210000){const started=Date.now();while(Date.now()-started<timeoutMs){try{return await verifyPaidClaimFee(voucher.txid,{requireConfirmed:true,ownerCommitment:S.ownerCommitment,feeSig:voucher.feeSig})}catch(e){if(!/not confirmed/i.test(String(e.message||e)))throw e}$('mineStatus').textContent='Fee credit paid · waiting for Zcash confirmation…';await new Promise(r=>setTimeout(r,10000))}throw new Error('Fee transaction is still waiting for confirmation. Your paid claim credit is saved; try Submit Claim again after it confirms.')}
