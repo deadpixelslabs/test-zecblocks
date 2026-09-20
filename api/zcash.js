@@ -1,5 +1,6 @@
 const BASES = [
-  { id: 'cipherscan-api', base: 'https://api.mainnet.cipherscan.app/api' }
+  { id: 'cipherscan-api', base: 'https://api.mainnet.cipherscan.app/api' },
+  { id: 'cipherscan-web-api', base: 'https://cipherscan.app/api' }
 ];
 
 // Warm-function request coalescing / stale cache.
