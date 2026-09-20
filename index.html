@@ -853,7 +853,8 @@ async function deepRefreshToken(token,{deep=true}={}){
 }
 async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
   const fresh=refresh?await deepRefreshToken(target.token,{deep}):null;
-  const server=fresh?.server||null;
+  const leaseClear=!!(S.miningLease&&Number(S.miningLease.tokenId)===Number(target.token)&&Number(S.miningLease.expiresAt||0)>Math.floor(Date.now()/1000));
+  const server=fresh?.server||(leaseClear?{status_by_token:{[String(target.token)]:'clear'},clear_ids:[Number(target.token)],complete:true,relays_ok:Number(S.miningLease.relaysOk||3)}:null);
 
   const events=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===Number(target.token));
   const checked=[];
@@ -906,14 +907,15 @@ async function loadTarget(){
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     const token=Number($('tokenInput').value);if(!Number.isInteger(token)||token<1||token>CFG.supply)throw new Error('Token ID must be 1–5000.');
-    setClaimStatus('Checking production server map…','warn');
-    $('mineStatus').textContent='Loading source block…';$('hashLog').textContent='Resolving confirmed Genesis and source block from Zcash mainnet…';
+    setClaimStatus('Deep-checking live relays + reserving token…','warn');
+    $('mineStatus').textContent='Verifying unclaimed token…';$('hashLog').textContent='Checking live ZB-1 claim state and reserving this Token ID before mining…';
+    await ensureMiningLease(token);
     const gh=await resolveGenesis();const sh=gh-token;
     const j=await explorerFetch('block',sh);
     const hash=String(deepFind(j,['hash','block_hash','blockHash'])||'');
     if(!/^[0-9a-fA-F]{64}$/.test(hash))throw new Error('Could not resolve source block hash for height '+sh+'.');
     S.target={token,sourceHeight:sh,sourceHash:hash.toLowerCase()};S.proof=null;
-    const availability=await checkTargetAvailability(S.target,{refresh:true});
+    const availability=await checkTargetAvailability(S.target,{refresh:false});
     $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);
     artSvg($('heroArt'),hash+':'+sh,'ZB #'+token);$('heroToken').textContent='#'+token;$('heroHeight').textContent=sh.toLocaleString();
     if(!availability.available){
@@ -925,8 +927,8 @@ async function loadTarget(){
       toast(availability.unknown?`ZEC BLOCK #${token} is not classified yet. Mining stays blocked.`:`ZEC BLOCK #${token} is already claimed / being claimed. Choose another ID.`,8000);
       return false;
     }
-    $('mineStatus').textContent='Target ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;
-    $('hashLog').textContent='Target loaded. Source hash: '+hash+'\nProduction availability map: CLEAR. Ready to search the locked 26-bit SHA-256 proof with GPU/CPU.';
+    $('mineStatus').textContent='Target reserved · ready';$('startMineBtn').disabled=false;$('submitClaimBtn').disabled=true;
+    $('hashLog').textContent='Target loaded. Source hash: '+hash+'\nLIVE MULTI-RELAY CHECK: CLEAR. Token reserved for this wallet. Ready to mine.';
     return true;
   }catch(e){S.target=null;$('sourceInfo').textContent='Unavailable';setClaimStatus('Unavailable');$('mineStatus').textContent='Target load failed';$('hashLog').textContent='ERROR: '+(e.message||String(e));toast(e.message||String(e),8000);return false}
 }
@@ -935,42 +937,26 @@ $('findUnclaimedBtn').onclick=async()=>{
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     $('findUnclaimedBtn').disabled=true;
-    setClaimStatus('Searching server-verified clear IDs…','warn');
-    await loadServerMiningSnapshot({force:true});
-    await backfillServerClaimsFromBrowser({limit:200});
-
+    setClaimStatus('Finding + deep-verifying + reserving…','warn');
+    $('mineStatus').textContent='Finding a safe target…';
     const start=Number($('tokenInput').value)||1;
-    let clear=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)&&!knownTokenIndex().has(id)&&!activeIntentForToken(id));
-    clear.sort((a,b)=>(((a-start+CFG.supply)%CFG.supply)-((b-start+CFG.supply)%CFG.supply)));
-
-    let found=clear[0]||null;
-    if(!found){
-      // No pre-classified clear ID yet: exact-probe a small set. UNKNOWN is never treated as clear.
-      let cursor=1;
-      while(cursor<=CFG.supply&&!found&&cursor<=160){
-        const ids=[];
-        while(ids.length<8&&cursor<=CFG.supply&&cursor<=160){
-          const id=((start-1+cursor)%CFG.supply)+1;cursor++;
-          if(S.serverCandidateIds.has(id)||knownTokenIndex().has(id)||activeIntentForToken(id))continue;
-          ids.push(id)
-        }
-        if(!ids.length)continue;
-        const r=await serverCheckClaims(ids,{deep:false});
-        const clears=(r.clear_ids||[]).map(Number).filter(id=>!S.serverCandidateIds.has(id)&&!knownTokenIndex().has(id));
-        if(clears.length)found=clears[0]
-      }
-    }
-    if(!found)throw new Error('No server-verified CLEAR Token ID is ready yet. The historical availability map is still syncing; retry shortly. V14 will not guess an unclaimed ID.');
-    $('tokenInput').value=String(found);S.target=null;S.proof=null;
-    S.serverClearIds.add(found);
-    setClaimStatus('SERVER VERIFIED CLEAR · click Load Target','good');
-    $('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';
-    $('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
-    toast(`Selected ZEC BLOCK #${found} from the production CLEAR map. Click LOAD TARGET for the final check.`);
-  }catch(e){setClaimStatus('No verified-clear ID ready','warn');toast(e.message||String(e),9000)}
-  finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
+    const lease=await findAndReserveMiningToken(start);
+    $('tokenInput').value=String(lease.tokenId);
+    S.target=null;S.proof=null;
+    S.serverClearIds.add(lease.tokenId);
+    setClaimStatus(`RESERVED CLEAR · ${lease.relaysOk}+ live relays verified`,'good');
+    toast(`Reserved ZEC BLOCK #${lease.tokenId}. Loading target automatically…`,6000);
+    const ok=await loadTarget();
+    if(!ok)throw new Error('Reserved token could not be loaded safely. Please retry Find Unclaimed.');
+  }catch(e){
+    setClaimStatus('No safe reserved ID ready','warn');
+    $('mineStatus').textContent='Finder retry needed';
+    toast(e.message||String(e),10000)
+  }finally{$('findUnclaimedBtn').disabled=!S.ownerCommitment}
 };
 $('tokenInput').addEventListener('input',()=>{
+  const typed=Number($('tokenInput').value);
+  if(S.miningLease&&Number(S.miningLease.tokenId)!==typed)releaseMiningLease().catch(()=>{});
   S.target=null;S.proof=null;$('sourceInfo').textContent='Select a token';$('mineStatus').textContent='Idle';$('submitClaimBtn').disabled=true;$('startMineBtn').disabled=true;
   const token=Number($('tokenInput').value),known=knownClaimForToken(token),intent=activeIntentForToken(token),serverKnown=S.serverCandidateIds.has(token),serverClear=S.serverClearIds.has(token);
   if(Number.isInteger(token)&&token>=1&&token<=CFG.supply){
