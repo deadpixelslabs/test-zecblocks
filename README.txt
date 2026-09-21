@@ -5,6 +5,13 @@ This repository serves mine.zecblocks.xyz. The marketplace is a separate deploym
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
 
+Claim counts and audit queue
+- The headline Confirmed claims counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.
+- Claims seen remains in Mining settings & details as a historical count of distinct NFT IDs encountered, including invalid/unconfirmed attempts. A later valid claim for an already observed ID can increase Confirmed claims without increasing Claims seen.
+- The historical counter and ownership validation rules are unchanged. The frontend does not count local mining attempts as successful claims.
+- supabase/migrations/20260921214901_fair_claim_audit_queue.sql fixes audit starvation: the least recently updated outstanding transaction is selected first. Failed audits update their timestamp and move behind older work. Payload ranking, deduplication, batch limits and existing service-role-only grants are preserved.
+- Relay duplicates of an already finalized transaction are excluded from automatic re-auditing. This protects existing confirmed claims without marking any unverified claim valid.
+
 Mining interface
 - Charcoal/champagne and ivory themes; no public release labels.
 - NFT mining and ZECS minting use separate accessible tabs. #mining and #zecs remain shareable; changing tabs never restarts mining or sends a transaction.
@@ -82,9 +89,10 @@ npx playwright install --with-deps chromium
 node --test tests/mining.test.cjs
 node _syntax_check.js
 
+Queue regression: node tests/claim-audit-queue.cjs emits a read-only PostgreSQL SELECT built from the migration. Execute it in the SQL editor; all four returned checks must be true. The fixtures reproduce 35 failing retries blocking older claims and cover richer payload selection, batch limits and finalized duplicate protection.
+
 GitHub Actions runs the regression suite and saves desktop/mobile screenshots as mining-ui.
 Wallet and API fixtures are synthetic. Tests run real CPU hashing at lower fixture difficulty only; production remains 26 bits.
 They do not spend real ZEC or prove a real Noir/mainnet transaction, hardware WebGPU performance, or external relay uptime.
 
 Production check: node tests/live-read-check.cjs performs read-only deployment/API checks. The main workflow runs it after regression tests; it never opens a wallet or reserves a token.
-

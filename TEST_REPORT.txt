@@ -1,4 +1,21 @@
-Mining interface verification
+Claim counter and audit queue investigation — 2026-09-21
+
+Production evidence:
+- At 21:38–21:39 UTC, claims_seen stayed 3,551 while canonical availability rose from 2,738 to 2,740.
+- zecblocks_claims_seen_live uses the greatest historical/observed unique-ID count, including events without a validity filter. 761 available IDs had already been observed more than six hours earlier. A valid new claim on those IDs need not increase the historical counter.
+- At 21:45 UTC, all 30 selected audit transactions were deferred retries. Another 42 signature-verified but protocol-unaudited transactions and 3 pending transactions were outside the batch; some had waited since September 19. The final ORDER BY updated_at DESC repeatedly favored retries whose failure refreshed updated_at.
+- No canonical-clear ID overlapped a protocol-audited, chain-confirmed, verified CLAIM in the database checks. The deployed finder checks relay quorum and availability before/after reservation. This is evidence about current indexed state, not proof that every wallet or future race will succeed.
+- Applied fair_claim_audit_queue at 21:49 UTC. Oldest outstanding work now runs first; finalized transaction duplicates are excluded. Existing function ACL remains postgres + service_role only. Claim validation, chain rules and historical counters are unchanged.
+- At 21:50:26 UTC, canonical claims were 2,787, claims_seen remained 3,551, and only four older untouched items remained in the selected 40-item queue. Background validation, rather than manual count changes, produced these results. Totals continue changing with live activity.
+
+Verification:
+- 27/27 local Node/Chromium regression tests passed, including a confirmed-count increase with unchanged historical count, stale responses and failed reads.
+- Read-only PostgreSQL regression generated from the actual migration passed all four checks: older claims get selected, 30 unique transactions per batch, richer duplicate payload preferred, finalized claims protected.
+- Inline script syntax and git diff whitespace checks passed.
+- Main UI now shows Confirmed claims; Claims seen is retained with a historical-count explanation in details. Production read check requires both displays and checks the canonical count field.
+- Existing external transactions were inspected through production indexer records; no real wallet transaction was initiated. Direct explorer access from this environment timed out. Some transactions may remain deferred until chain data is available.
+
+Previous mining interface verification
 
 Local regression suite: 26/26 passed. Syntax and DOM ID/reference checks passed.
 Existing CPU proof, single-broadcast, account change, fee gate and recovery fixtures remain active.

@@ -19,15 +19,19 @@ async function json(url, body) {
     try {
       const page = await fetch(base + '/?release-check=' + Date.now(), { signal: AbortSignal.timeout(15000) }).then(r => r.text());
       assert.match(page, /data-mining-layout="collection"/);
+      assert.match(page, /id="confirmedClaimCount"/);
+      assert.match(page, /unique NFT IDs in claim history/);
       const [snapshot, zecs] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {})
       ]);
       assert.ok(Number.isInteger(Number(snapshot.claims_seen)));
       assert.ok(Number(snapshot.claims_seen) >= 0 && Number(snapshot.claims_seen) <= 5000);
+      assert.ok(Number.isInteger(Number(snapshot.verified_indexed)));
+      assert.ok(Number(snapshot.verified_indexed) >= 0 && Number(snapshot.verified_indexed) <= 5000);
       assert.ok(Array.isArray(snapshot.clear_ids));
       assert.ok(Number.isFinite(Number(zecs.minted_supply)));
-      console.log(JSON.stringify({ live: base, claimsSeen: snapshot.claims_seen, clearCandidates: snapshot.clear_ids.length, zecsMinted: zecs.minted_supply, zecsMintOpen: zecs.mint_open }));
+      console.log(JSON.stringify({ live: base, claimsSeen: snapshot.claims_seen, confirmedClaims: snapshot.verified_indexed, clearCandidates: snapshot.clear_ids.length, zecsMinted: zecs.minted_supply, zecsMintOpen: zecs.mint_open }));
       return;
     } catch (e) {
       lastError = e;
@@ -36,4 +40,3 @@ async function json(url, body) {
   }
   throw lastError;
 })().catch(e => { console.error(e); process.exitCode = 1; });
-

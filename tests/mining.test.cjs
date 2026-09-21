@@ -106,6 +106,20 @@ test('stale responses, local events and failed reads cannot overwrite canonical 
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,506');
  }finally{await f.browser.close()}
 });
+test('confirmed claims advance independently of historical IDs and ignore stale or failed reads',async()=>{
+ const f=await fixture();try{
+  assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,660');
+  assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  await f.page.evaluate(()=>{applyServerLiveStats({claims_seen:3505,canonical_claims:2661,canonical_clear:2282,canonical_verifying:57,canonical_unknown:0,generated_at:200});rebuildState()});
+  assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
+  assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  await f.page.evaluate(()=>applyServerMiningSnapshot({claims_seen:3505,verified_indexed:2660,generated_at:100}));
+  f.fail(true);await f.page.evaluate(()=>loadServerLiveStats({force:true}));
+  assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
+  assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
 test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',async()=>{
  const f=await fixture();try{
   await f.connect();f.slow(true);
