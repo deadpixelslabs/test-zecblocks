@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.6 · STABLE WALLET SESSION</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.7 · NOIR SESSION READY</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.6 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.7 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -872,15 +872,51 @@ async function waitForNoirProvider(timeoutMs=2200){
   }
   return p
 }
+function noirLockedError(e){
+  return /wallet\s*(is\s*)?not\s*unlocked|wallet\s*locked|unlock\s*(your\s*)?wallet|locked wallet/i.test(String(e?.message||e?.reason||e||''))
+}
+function markNoirLocked(e){
+  if(!noirLockedError(e))return false;
+  S.noirLocked=true;
+  queueMicrotask(()=>{try{updateWalletUI()}catch{}});
+  return true
+}
+async function noirCall(p,method,params){
+  const a=Array.isArray(params)?params:[];
+  // Prefer Noir's current typed provider API. Raw RPC remains a compatibility fallback.
+  if(method==='zcash_requestAccounts'&&typeof p.connect==='function')return p.connect();
+  if(method==='zcash_getAccounts'&&typeof p.getAccounts==='function')return p.getAccounts();
+  if(method==='zcash_getPublicKey'&&typeof p.getPublicKey==='function')return p.getPublicKey(a[0]);
+  if(method==='zcash_getBalance'&&typeof p.getBalance==='function')return p.getBalance(a[0]);
+  if(method==='zcash_getTransactionHistory'&&typeof p.getTransactionHistory==='function')return p.getTransactionHistory();
+  if(method==='zcash_signMessage'&&typeof p.signMessage==='function')return p.signMessage(a[0],a[1]);
+  if(method==='zcash_sendTransaction'&&typeof p.sendTransaction==='function')return p.sendTransaction(a[0]);
+  if(typeof p.request!=='function')throw new Error('Noir Wallet provider is unavailable.');
+  return p.request({method,...(params?{params}: {})})
+}
 async function walletRpc(p,method,params,{timeoutMs=0}={}){
-  const req=p.request({method,...(params?{params}: {})});
+  const req=noirCall(p,method,params).then(v=>{
+    if(method!=='zcash_getAccounts')S.noirLocked=false;
+    return v
+  }).catch(e=>{markNoirLocked(e);throw e});
   if(!timeoutMs)return req;
   return Promise.race([
     req,
     new Promise((_,rej)=>setTimeout(()=>rej(new Error(method+' timed out. Unlock Noir Wallet and retry.')),timeoutMs))
   ])
 }
-async function rpc(method,params){const p=provider();if(!p)throw new Error('Noir Wallet is not installed or not ready. Unlock the extension and retry.');return p.request({method,...(params?{params}: {})})}
+async function rpc(method,params){
+  const p=provider();
+  if(!p)throw new Error('Noir Wallet is not installed or not ready. Unlock the extension and retry.');
+  try{
+    const v=await noirCall(p,method,params);
+    if(method!=='zcash_getAccounts')S.noirLocked=false;
+    return v
+  }catch(e){
+    if(markNoirLocked(e))throw new Error('Noir Wallet is locked. Open the extension, unlock it, then click Unlock Noir Wallet.');
+    throw e
+  }
+}
 function clearNoirSession(){
   S.provider=null;S.connection=null;S.pubkey=null;S.ownerCommitment=null;S.balance=null;
   updateWalletUI()
@@ -940,11 +976,12 @@ async function connectWallet(silent=false){
     }
     if(!conn||(Array.isArray(conn)&&conn.length===0))return false;
 
-    S.provider=p;S.connection=conn;
     const k=await walletRpc(p,'zcash_getPublicKey',[{signingMode:'derived'}],{timeoutMs:silent?5000:0});
     if(!k?.pubkey)throw new Error('Noir Wallet did not return a derived public key.');
-    S.pubkey=k.pubkey;
-    S.ownerCommitment=await sha256HexBytes(hexToBytes(k.pubkey));
+    const nextOwner=await sha256HexBytes(hexToBytes(k.pubkey));
+
+    // Commit the session only after Noir proves the wallet is actually usable.
+    S.provider=p;S.connection=conn;S.pubkey=k.pubkey;S.ownerCommitment=nextOwner;S.noirLocked=false;
 
     bindNoirProviderEvents(p);
 
@@ -957,15 +994,23 @@ async function connectWallet(silent=false){
 
   S.noirConnectPromise=job;
   try{return await job}
-  catch(e){if(!silent)toast(e.message||String(e),7000);else console.warn('silent Noir connect',e);return false}
+  catch(e){
+    if(noirLockedError(e)){
+      S.noirLocked=true;
+      if(!silent)toast('Noir Wallet is locked. Open Noir Wallet, unlock it, then click Unlock Noir Wallet.',8000)
+    }else if(!silent)toast(e.message||String(e),7000);
+    else console.warn('silent Noir connect',e);
+    updateWalletUI();
+    return false
+  }
   finally{
     if(S.noirConnectPromise===job)S.noirConnectPromise=null;
     if(!silent&&btn){btn.disabled=false;updateWalletUI()}
   }
 }
 function updateWalletUI(){updateFeeCreditUI();
-  const connected=!!S.connection;
-  $('walletBtn').textContent=connected?short(S.ownerCommitment,6):'Connect Noir Wallet';
+  const connected=!!S.connection&&!!S.ownerCommitment&&!S.noirLocked;
+  $('walletBtn').textContent=S.noirLocked?'Unlock Noir Wallet':connected?short(S.ownerCommitment,6):'Connect Noir Wallet';
   $('ownerCommit').textContent=connected?short(S.ownerCommitment,12):'Connect wallet';
   $('portfolioCommit').textContent=connected?S.ownerCommitment:'Connect wallet to reveal your commitment.';
   $('portfolioShielded').textContent=connected?(S.connection.shielded||'—'):'Private until you connect.';
