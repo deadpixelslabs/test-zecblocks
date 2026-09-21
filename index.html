@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.9 · ZECS RECOVERY SAFE</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.10 · GLOBAL TRANSACTION SAFETY</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.9 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.10 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -217,6 +217,20 @@ function zcashTxidFromResult(v){
     v?.txid??v?.txId??v?.transactionId??v?.transaction_id??v?.hash??v?.id??
     v?.result?.txid??v?.result?.txId??v?.data?.txid??v?.data?.txId??'';
   return String(raw||'').replace(/^0x/,'').trim().toLowerCase()
+}
+async function zcashTxidOrHistory(raw,{memo='',label='Zcash transaction'}={}){
+  let txid=zcashTxidFromResult(raw);
+  if(/^[0-9a-f]{64}$/.test(txid))return txid;
+  if(memo){
+    try{
+      const hist=await rpc('zcash_getTransactionHistory');
+      const rows=(Array.isArray(hist)?hist:[]).filter(h=>String(h?.memo||'').trim()===String(memo).trim());
+      const hit=rows.sort((a,b)=>Number(b?.timestamp||0)-Number(a?.timestamp||0))[0];
+      txid=zcashTxidFromResult(hit);
+      if(/^[0-9a-f]{64}$/.test(txid))return txid
+    }catch(e){console.warn(label+' history recovery',e)}
+  }
+  throw new Error(label+' may already have been broadcast, but Noir did not return a recognizable TXID. Do not submit it again until wallet history is checked.')
 }
 function walletRejected(e){return /reject|denied|declined|cancelled|canceled|user rejected|4001/i.test(String(e?.message||e?.reason||e||''))}
 function hexToBytes(hex){hex=hex.replace(/^0x/,'');if(hex.length%2)hex='0'+hex;const a=new Uint8Array(hex.length/2);for(let i=0;i<a.length;i++)a[i]=parseInt(hex.slice(i*2,i*2+2),16);return a}
@@ -2247,7 +2261,31 @@ function renderPortfolio(){
   for(const c of own){const card=document.createElement('article');card.className='nft';card.innerHTML=`<div class="nftart"><svg class="blockArt" viewBox="0 0 600 600"></svg></div><div class="nftinfo"><div class="nftline"><span class="nfttitle">ZEC BLOCK #${c.tokenId}</span><span class="badge live">OWNED</span></div><div class="meta"><span>Source ${esc(c.sourceHeight||'—')}</span><span>${esc(short(c.txid||'',6))}</span></div><div class="controls"><button class="btn listOne">List</button><button class="btn transferOne">Transfer</button></div></div>`;artSvg(card.querySelector('svg'),(c.sourceHash||CFG.genesisTxid)+':'+(c.sourceHeight||c.tokenId),'ZB #'+c.tokenId);card.querySelector('.listOne').onclick=()=>{openListing();$('listingToken').value=String(c.tokenId)};card.querySelector('.transferOne').onclick=()=>{S.transferToken=c.tokenId;$('transferToken').value='ZEC BLOCK #'+c.tokenId;modal('transferModal',true)};g.appendChild(card)}
 }
 $('syncPortfolioBtn').onclick=async()=>{try{S.balance=await rpc('zcash_getBalance');const r=await loadWalletHistory();await fetchRelay(null,true);await reconcileFeeCredit();updateFeeCreditUI();updateWalletUI();toast(`Portfolio synced · ${r?.claims||0} wallet claims repaired into discovery.`)}catch(e){toast(e.message||String(e),7000)}};
-$('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');if(currentOwner(tokenId)!==S.ownerCommitment)throw new Error('This wallet is not the current owner in the discovery state.');const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;const sig=await signDerived(msg);const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');const txid=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});await publishRelay(e);modal('transferModal',false);$('recipientCommit').value='';toast('Transfer broadcast: '+txid,8000);await fetchRelay()}catch(e){toast(e.message||String(e),8000)}};
+$('submitTransferBtn').onclick=async()=>{
+  try{
+    const tokenId=Number(S.transferToken),to=$('recipientCommit').value.trim().toLowerCase();
+    if(!/^[0-9a-f]{64}$/.test(to))throw new Error('Recipient commitment must be exactly 64 hex characters.');
+    if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
+
+    // Same canonical transfer gate as the production marketplace.
+    await indexFunction('zecblocks-usdc-buy-preflight',{
+      action:'transfer_check',tokenId,ownerCommitment:S.ownerCommitment
+    });
+
+    const msg=`ZB1:TRANSFER:v1|G=${CFG.genesisTxid}|T=${tokenId}|F=${S.ownerCommitment}|O=${to}`;
+    const sig=await signDerived(msg);
+    const memo=`ZB1|T|1|I=${tokenId}|O=${to}|K=${sig.pubkey}|S=${sig.signature}`;
+    if(enc.encode(memo).length>512)throw new Error('Transfer memo exceeds 512 bytes.');
+
+    const raw=await rpc('zcash_sendTransaction',[{to:CFG.mailbox,amount:'0.00000001',memo,fundingSource:'shielded'}]);
+    const txid=await zcashTxidOrHistory(raw,{memo,label:'ZB-1 transfer'});
+    const e=normalizeEvent({protocol:'ZB1',v:1,type:'TRANSFER',txid,memo,tokenId,fromCommitment:S.ownerCommitment,toCommitment:to,pubkey:sig.pubkey,signature:sig.signature,timestamp:Math.floor(Date.now()/1000),status:'pending'});
+    await publishRelay(e);
+    modal('transferModal',false);$('recipientCommit').value='';
+    toast('Transfer broadcast · '+short(txid,8)+' · canonical ownership will update after chain verification.',9000);
+    await fetchRelay(null,true)
+  }catch(e){toast(e.message||String(e),10000)}
+};
 
 const ZECS_MINT_MESSAGE='{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}';
 const ZECS_MAX_SUPPLY=21000000;
