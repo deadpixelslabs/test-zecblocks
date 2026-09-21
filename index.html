@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.5 · IDEMPOTENT CLAIM</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.6 · STABLE WALLET SESSION</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.5 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.6 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -863,18 +863,105 @@ function saveLocalEvent(e){const a=localEvents();if(!a.some(x=>x.eventId===e.eve
 function nostrSecretHex(){let h=localStorage.getItem('zb1_nostr_sk');return h||null}
 function setNostrSecretHex(h){localStorage.setItem('zb1_nostr_sk',h)}
 function provider(){const w=window.noirwallet;return w&&w.isNoirWallet&&w.zcash?w.zcash:null}
-async function rpc(method,params){const p=provider();if(!p)throw new Error('Noir Wallet is not installed. Install the official mainnet extension first.');return p.request({method,...(params?{params}: {})})}
-async function connectWallet(silent=false){
+async function waitForNoirProvider(timeoutMs=2200){
+  const end=Date.now()+timeoutMs;
+  let p=provider();
+  while(!p&&Date.now()<end){
+    await new Promise(r=>setTimeout(r,100));
+    p=provider()
+  }
+  return p
+}
+async function walletRpc(p,method,params,{timeoutMs=0}={}){
+  const req=p.request({method,...(params?{params}: {})});
+  if(!timeoutMs)return req;
+  return Promise.race([
+    req,
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error(method+' timed out. Unlock Noir Wallet and retry.')),timeoutMs))
+  ])
+}
+async function rpc(method,params){const p=provider();if(!p)throw new Error('Noir Wallet is not installed or not ready. Unlock the extension and retry.');return p.request({method,...(params?{params}: {})})}
+function clearNoirSession(){
+  S.provider=null;S.connection=null;S.pubkey=null;S.ownerCommitment=null;S.balance=null;
+  updateWalletUI()
+}
+function bindNoirProviderEvents(p){
+  if(S.noirEventsProvider===p)return;
   try{
-    const p=provider(); if(!p){if(!silent){toast('Noir Wallet not detected. Opening the official setup guide.');window.open('https://docs.zknoir.com/get-started/','_blank','noopener')}return}
-    const c=await rpc(silent?'zcash_getAccounts':'zcash_requestAccounts'); if(!c)return;
-    S.provider=p;S.connection=c;
-    const k=await rpc('zcash_getPublicKey',[{signingMode:'derived'}]); if(!k?.pubkey)throw new Error('Noir Wallet did not return a derived public key.');
-    S.pubkey=k.pubkey;S.ownerCommitment=await sha256HexBytes(hexToBytes(k.pubkey));
-    try{S.balance=await rpc('zcash_getBalance')}catch{}
-    updateWalletUI(); await loadWalletHistory(); await refreshAll();
-    p.on?.('accountsChanged',()=>connectWallet(true).catch(()=>{}));
-  }catch(e){if(!silent)toast(e.message||String(e),7000)}
+    if(S.noirEventsProvider&&S.noirAccountsHandler)S.noirEventsProvider.off?.('accountsChanged',S.noirAccountsHandler)
+  }catch{}
+  S.noirAccountsHandler=async()=>{
+    clearNoirSession();
+    try{await connectWallet(true)}catch(e){console.warn('Noir account refresh',e)}
+  };
+  try{p.on?.('accountsChanged',S.noirAccountsHandler)}catch(e){console.warn('Noir accountsChanged unavailable',e)}
+  S.noirEventsProvider=p
+}
+function backgroundWalletSync(owner){
+  (async()=>{
+    try{
+      const bal=await walletRpc(S.provider,'zcash_getBalance',null,{timeoutMs:6000});
+      if(S.ownerCommitment===owner){S.balance=bal;updateWalletUI()}
+    }catch(e){console.warn('Noir balance background sync',e)}
+    try{
+      await loadWalletHistory();
+      if(S.ownerCommitment!==owner)return;
+      rebuildState();updateWalletUI()
+    }catch(e){console.warn('wallet history background sync',e)}
+    try{
+      if(S.ownerCommitment===owner)await refreshAll()
+    }catch(e){console.warn('wallet refresh background sync',e)}
+    try{
+      if(S.ownerCommitment===owner)await reconcileFeeCredit()
+    }catch(e){console.warn('fee credit background sync',e)}
+    if(S.ownerCommitment===owner){updateFeeCreditUI();updateWalletUI()}
+  })()
+}
+async function connectWallet(silent=false){
+  if(S.noirConnectPromise){
+    try{await S.noirConnectPromise}catch{}
+    if(S.connection&&S.ownerCommitment)return true;
+    if(silent)return false
+  }
+  const btn=$('walletBtn');
+  const job=(async()=>{
+    if(!silent&&btn){btn.disabled=true;btn.textContent='Connecting…'}
+    const p=provider()||await waitForNoirProvider(silent?1200:2600);
+    if(!p){
+      if(!silent)toast('Noir Wallet was not detected. Unlock/enable the extension, then click Connect again.',7000);
+      return false
+    }
+    let conn;
+    if(silent){
+      try{conn=await walletRpc(p,'zcash_getAccounts',null,{timeoutMs:3500})}
+      catch(e){console.warn('silent Noir reconnect',e);return false}
+    }else{
+      conn=await walletRpc(p,'zcash_requestAccounts')
+    }
+    if(!conn||(Array.isArray(conn)&&conn.length===0))return false;
+
+    S.provider=p;S.connection=conn;
+    const k=await walletRpc(p,'zcash_getPublicKey',[{signingMode:'derived'}],{timeoutMs:silent?5000:0});
+    if(!k?.pubkey)throw new Error('Noir Wallet did not return a derived public key.');
+    S.pubkey=k.pubkey;
+    S.ownerCommitment=await sha256HexBytes(hexToBytes(k.pubkey));
+
+    bindNoirProviderEvents(p);
+
+    // Wallet is connected now. History/indexer/relay work stays in the background.
+    updateWalletUI();
+    backgroundWalletSync(S.ownerCommitment);
+    if(!silent)toast('Noir Wallet connected.',3500);
+    return true
+  })();
+
+  S.noirConnectPromise=job;
+  try{return await job}
+  catch(e){if(!silent)toast(e.message||String(e),7000);else console.warn('silent Noir connect',e);return false}
+  finally{
+    if(S.noirConnectPromise===job)S.noirConnectPromise=null;
+    if(!silent&&btn){btn.disabled=false;updateWalletUI()}
+  }
 }
 function updateWalletUI(){updateFeeCreditUI();
   const connected=!!S.connection;
