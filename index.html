@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.11 · FREE CLAIM TEST</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.12 · CANONICAL API</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.11 test claim mode: canonical safe finder + relay-stable reservation + global submitting/claimed lock remain active. Protocol claim fee is temporarily bypassed for testing, so claiming uses one Zcash anchor transaction only and the wallet pays only the normal Zcash network fee. The 0.0013 ZEC paid-phase reference remains displayed in the summary card.</div>
+      <div id="mineNotice" class="notice">V15.8.12 canonical API + free claim test mode: canonical safe finder + relay-stable reservation + global submitting/claimed lock remain active. Protocol claim fee is temporarily bypassed for testing, so claiming uses one Zcash anchor transaction only and the wallet pays only the normal Zcash network fee. The 0.0013 ZEC paid-phase reference remains displayed in the summary card.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -651,12 +651,47 @@ function updateKnownTokenIndex(events){
   return set
 }
 
-async function supabaseRpc(name,body={}){
-  const r=await fetch(CFG.supabaseUrl+'/rest/v1/rpc/'+encodeURIComponent(name),{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon,'authorization':'Bearer '+CFG.supabaseAnon},body:JSON.stringify(body||{})
+async function backendJson(op,{method='POST',body=null,query={}}={}){
+  const qs=new URLSearchParams({op:String(op||'')});
+  for(const [k,v] of Object.entries(query||{}))if(v!=null)qs.set(k,String(v));
+  const r=await fetch('/api/zb?'+qs.toString(),{
+    method,
+    headers:{'content-type':'application/json','accept':'application/json'},
+    ...(method==='GET'?{}:{body:JSON.stringify(body||{})}),
+    cache:'no-store'
   });
-  if(!r.ok){let j=null;try{j=await r.json()}catch{};throw new Error(j?.message||j?.error||('Production index HTTP '+r.status))}
-  return r.json()
+  const j=await r.json().catch(()=>null);
+  if(!r.ok||!j?.ok)throw new Error(j?.error||j?.message||('Canonical backend HTTP '+r.status));
+  return j.data
+}
+async function supabaseRpc(name,body={}){
+  return backendJson('rpc',{method:'POST',body:body||{},query:{name}})
+}
+function saveAuthoritativeStatsCache(){
+  try{
+    const v={
+      savedAt:Date.now(),
+      claimsSeen:Number(S.serverClaimTotal||0),
+      canonicalClaims:Number(S.serverVerifiedCount||0),
+      canonicalClear:Number(S.serverClearCount||0),
+      canonicalVerifying:Number(S.serverPendingCount||0),
+      canonicalUnknown:Number(S.serverUnknownCount||0)
+    };
+    if(v.claimsSeen>0)localStorage.setItem('zb1_authoritative_stats_v1',JSON.stringify(v))
+  }catch{}
+}
+function restoreAuthoritativeStatsCache(){
+  try{
+    const v=JSON.parse(localStorage.getItem('zb1_authoritative_stats_v1')||'null');
+    if(!v||!Number.isFinite(Number(v.claimsSeen))||Number(v.claimsSeen)<=0)return false;
+    S.serverClaimTotal=Number(v.claimsSeen);
+    S.serverVerifiedCount=Math.max(0,Number(v.canonicalClaims||0));
+    S.serverClearCount=Math.max(0,Number(v.canonicalClear||0));
+    S.serverPendingCount=Math.max(0,Number(v.canonicalVerifying||0));
+    S.serverUnknownCount=Math.max(0,Number(v.canonicalUnknown||0));
+    S.serverCacheAt=Number(v.savedAt||0);
+    return true
+  }catch{return false}
 }
 function applyServerMiningSnapshot(d){
   if(!d||typeof d!=='object')return;
@@ -674,7 +709,7 @@ function applyServerMiningSnapshot(d){
   S.serverScanCompletedAt=d.scan_completed_at||null;
   S.lastServerSnapshot=Date.now();
   const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
-  updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
+  saveAuthoritativeStatsCache();updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
 }
 function applyServerLiveStats(d){
   if(!d||d.ok===false)return;
@@ -688,18 +723,15 @@ function applyServerLiveStats(d){
   S.serverScanComplete=d.scan_complete===true;
   S.serverMappingComplete=(S.serverUnknownCount===0&&S.serverPendingCount===0&&(S.serverVerifiedCount+S.serverClearCount===CFG.supply));
   S.lastServerStats=Date.now();
-  updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
+  saveAuthoritativeStatsCache();updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
 }
 async function loadServerLiveStats({force=false}={}){
   if(S.serverStatsBusy)return null;
   if(!force&&S.lastServerStats&&Date.now()-S.lastServerStats<7000)return null;
   S.serverStatsBusy=true;
   try{
-    const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-live-stats',{
-      method:'GET',headers:{'apikey':CFG.supabaseAnon},cache:'no-store'
-    });
-    const j=await r.json().catch(()=>null);
-    if(!r.ok||!j?.ok)throw new Error(j?.error||('Live stats HTTP '+r.status));
+    const j=await backendJson('live-stats',{method:'GET'});
+    if(!j?.ok)throw new Error(j?.error||'Live stats unavailable');
     applyServerLiveStats(j);return j
   }catch(e){console.warn('production live stats',e);return null}
   finally{S.serverStatsBusy=false}
@@ -716,14 +748,8 @@ async function auditClaimToken(tokenId){
   tokenId=Number(tokenId);
   if(!Number.isInteger(tokenId)||tokenId<1||tokenId>CFG.supply)return null;
   try{
-    const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-claim-audit',{
-      method:'POST',
-      headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},
-      body:JSON.stringify({tokenId}),
-      cache:'no-store'
-    });
-    const j=await r.json().catch(()=>null);
-    if(!r.ok||!j?.ok)throw new Error(j?.error||('Claim audit HTTP '+r.status));
+    const j=await backendJson('claim-audit',{method:'POST',body:{tokenId}});
+    if(!j?.ok)throw new Error(j?.error||'Claim audit unavailable');
     return j
   }catch(e){
     console.warn('exact claim audit',tokenId,e);
@@ -734,11 +760,8 @@ async function auditClaimToken(tokenId){
 async function serverCheckClaims(tokenIds,{deep=false}={}){
   const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
   if(!ids.length)throw new Error('No valid Token IDs to check.');
-  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-check-claims',{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({tokenIds:ids,deep:!!deep})
-  });
-  const j=await r.json().catch(()=>null);
-  if(!r.ok||!j?.ok)throw new Error(j?.error||('Availability server HTTP '+r.status));
+  const j=await backendJson('check-claims',{method:'POST',body:{tokenIds:ids,deep:!!deep}});
+  if(!j?.ok)throw new Error(j?.error||'Availability server unavailable');
   for(const id0 of (j.claimed_ids||[])){
     const id=Number(id0);if(!Number.isInteger(id))continue;
     S.serverCandidateIds.add(id);S.serverClearIds.delete(id)
@@ -769,12 +792,8 @@ function updateLeaseUI(){
 }
 async function leaseRequest(action,body={}){
   if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
-  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-mining-lease',{
-    method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},
-    body:JSON.stringify({action,ownerCommitment:S.ownerCommitment,...body})
-  });
-  const j=await r.json().catch(()=>null);
-  if(!r.ok||!j)throw new Error(j?.error||('Mining reservation server HTTP '+r.status));
+  const j=await backendJson('mining-lease',{method:'POST',body:{action,ownerCommitment:S.ownerCommitment,...body}});
+  if(!j)throw new Error('Mining reservation server unavailable');
   return j
 }
 function setMiningLease(j){
@@ -843,7 +862,7 @@ async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeToken
 }
 
 async function kickServerClaimIndex(){
-  try{await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-availability-scan',{method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:'{}'})}catch(e){console.warn('server claim shard trigger',e)}
+  try{await backendJson('availability-scan',{method:'POST',body:{}})}catch(e){console.warn('server claim shard trigger',e)}
 }
 async function backfillServerClaimsFromBrowser({limit=250}={}){
   if(S.serverBackfillBusy)return {accepted:0};
@@ -864,11 +883,8 @@ async function backfillServerClaimsFromBrowser({limit=250}={}){
     let accepted=0,rejected=0;
     for(let i=0;i<arr.length;i+=40){
       const batch=arr.slice(i,i+40);
-      const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-backfill-client-claims',{
-        method:'POST',headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},body:JSON.stringify({claims:batch})
-      });
-      const j=await r.json().catch(()=>null);
-      if(!r.ok||!j?.ok)throw new Error(j?.error||('Backfill HTTP '+r.status));
+      const j=await backendJson('backfill-client-claims',{method:'POST',body:{claims:batch}});
+      if(!j?.ok)throw new Error(j?.error||'Backfill unavailable');
       accepted+=Number(j.accepted||0);rejected+=Number(j.rejected||0);
       if(i+40<arr.length)await new Promise(res=>setTimeout(res,180))
     }
@@ -906,10 +922,13 @@ function saveDiscoveryCache(events){
 }
 function updateClaimSyncAge(){
   const el=$('claimSyncAge');if(!el)return;
-  const t=Math.max(Number(S.lastServerStats||0),Number(S.lastServerSnapshot||0),Number(S.lastRelayFetch||0));
-  if(!t){el.textContent='server syncing…';return}
+  const t=Math.max(Number(S.lastServerStats||0),Number(S.lastServerSnapshot||0));
+  if(!t){
+    if(Number(S.serverCacheAt||0)>0){el.textContent='canonical cache · reconnecting';return}
+    el.textContent='canonical server syncing…';return
+  }
   const sec=Math.max(0,Math.floor((Date.now()-t)/1000));
-  el.textContent=sec<4?'server live':`server ${sec}s ago`
+  el.textContent=sec<4?'canonical live':`canonical ${sec}s ago`
 }
 function saveLocalEvent(e){const a=localEvents();if(!a.some(x=>x.eventId===e.eventId||x.txid&&x.txid===e.txid)){a.push(e);localStorage.setItem('zb1_events_v1',JSON.stringify(a.slice(-10000)))}}
 function nostrSecretHex(){let h=localStorage.getItem('zb1_nostr_sk');return h||null}
@@ -1223,9 +1242,8 @@ function setClaimStatus(text,kind=''){
   el.style.color=kind==='good'?'#78d594':kind==='bad'?'#ff8989':kind==='warn'?'#f1cc76':'#d8d8d8';
 }
 function updateAvailabilityCounts(){
-  const localUnique=Math.max(S.claims.size,knownTokenIndex().size,S.serverCandidateIds?.size||0);
-  const total=Math.max(Number(S.serverClaimTotal||0),localUnique);
-  $('claimCount').textContent=total.toLocaleString();
+  const total=Math.max(0,Number(S.serverClaimTotal||0));
+  $('claimCount').textContent=total>0?total.toLocaleString():'—';
   const clear=Math.max(0,Number(S.serverClearCount||0));
   const verified=Math.max(0,Number(S.serverVerifiedCount||0));
   const pending=Math.max(0,Number(S.serverPendingCount||0));
@@ -2401,15 +2419,9 @@ function zecsSetStatus(text,kind=''){
   el.textContent=text;el.className='zecsStatus'+(kind?' '+kind:'')
 }
 async function zecsFunction(action,body={}){
-  const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-zb20-mint',{
-    method:'POST',
-    headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},
-    body:JSON.stringify({action,...body}),
-    cache:'no-store'
-  });
-  const j=await r.json().catch(()=>null);
-  if(!r.ok||!j?.ok){
-    const e=new Error(j?.error||('ZECS mint service HTTP '+r.status));
+  const j=await backendJson('zb20-mint',{method:'POST',body:{action,...body}});
+  if(!j?.ok){
+    const e=new Error(j?.error||'ZECS mint service unavailable');
     e.code=j?.error||'ZECS_SERVICE_ERROR';throw e
   }
   return j
@@ -2614,6 +2626,10 @@ $('engineSelect').onchange=()=>{
 $('testGpuBtn').onclick=()=>detectGpu({toastResult:true});
 artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
 (async()=>{
+  restoreAuthoritativeStatsCache();
+  updateAvailabilityCounts();
+  updateIndexProgress();
+  updateClaimSyncAge();
   $('mineEngine').textContent=S.enginePreference==='cpu'?'CPU selected':S.enginePreference==='gpu'?'GPU selected':'Auto · GPU preferred';
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
   await initNostr();
