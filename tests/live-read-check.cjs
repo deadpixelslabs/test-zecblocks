@@ -18,7 +18,7 @@ async function json(url, body) {
   for (let attempt = 0; attempt < 12; attempt++) {
     try {
       const page = await fetch(base + '/?release-check=' + Date.now(), { signal: AbortSignal.timeout(15000) }).then(r => r.text());
-      assert.match(page, /<body data-mining-version="16\.1\.1">/);
+      assert.match(page, /data-mining-layout="collection"/);
       const [snapshot, zecs] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {})

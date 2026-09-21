@@ -30,6 +30,7 @@ test('inline scripts parse',()=>{for(const m of html.matchAll(/<script[^>]*>([\s
 const {chromium}=require('playwright'),pub='02'+'11'.repeat(32),txid='ab'.repeat(32);
 const snapshot={claims_seen:3505,generated_at:100,verified_ids:[1,2],candidate_ids:[1,2],clear_ids:[71,72,73,74,75,76,77,78,79,80,81,82,83],verified_indexed:2660,clear_indexed:2283,pending_indexed:57,unknown_indexed:0};
 const stats={tick:'ZECS',mint_open:true,deploy_status:'confirmed',minted_supply:156660,confirmed_events:746,pending_events:4};
+async function openZecs(page){await page.getByRole('tab',{name:'$ZECS',exact:true}).click();}
 async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1360,height:1000},colorScheme:'dark'});
@@ -89,7 +90,11 @@ test('startup survives missing relay CDN; canonical counters, saved theme and mo
   fs.mkdirSync(path.join(root,'test-artifacts'),{recursive:true});
   await p.screenshot({path:path.join(root,'test-artifacts/light-mobile.png'),fullPage:true});
   await p.setViewportSize({width:1360,height:1000});await p.getByRole('button',{name:'Switch to dark mode'}).click();
-  await p.screenshot({path:path.join(root,'test-artifacts/dark-desktop.png'),fullPage:true});assert.deepEqual(f.errors,[]);
+  await p.screenshot({path:path.join(root,'test-artifacts/dark-desktop.png'),fullPage:true});
+  await openZecs(p);await p.screenshot({path:path.join(root,'test-artifacts/zecs-dark-desktop.png'),fullPage:true});
+  await p.setViewportSize({width:390,height:844});await p.getByRole('button',{name:'Switch to light mode'}).click();
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await p.screenshot({path:path.join(root,'test-artifacts/zecs-light-mobile.png'),fullPage:true});assert.deepEqual(f.errors,[]);
   assert.equal(f.calls.filter(c=>c.op==='availability-scan').length,0,'public visits must not start the full server scan');
  }finally{await f.browser.close()}
 });
@@ -107,7 +112,7 @@ test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',a
   await f.page.evaluate(()=>{document.getElementById('findUnclaimedBtn').click();document.getElementById('findUnclaimedBtn').click()});
   await f.page.waitForFunction(()=>S.target?.token===71&&!S.targetBusy);
   assert.equal(f.calls.filter(c=>c.op==='mining-lease'&&c.body.action==='reserve').length,1);
-  await f.page.locator('#engineSelect').selectOption('cpu');
+  await f.page.locator('#miningDetails > summary').click();await f.page.locator('#engineSelect').selectOption('cpu');
   await f.page.evaluate(()=>CFG.powBits=8);
   await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>!!S.proof);
   assert.equal(await f.page.evaluate(()=>leadingZeroBits(hexToBytes(S.proof.hash))>=8),true);
@@ -123,7 +128,7 @@ test('account switch stops CPU workers and invalidates target',async()=>{
  const f=await fixture();try{
   await f.connect();await f.page.locator('#findUnclaimedBtn').click();await f.page.waitForFunction(()=>S.target&&!S.targetBusy);
   await f.page.evaluate(()=>CFG.powBits=256);
-  await f.page.locator('#engineSelect').selectOption('cpu');await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>S.mining);
+  await f.page.locator('#miningDetails > summary').click();await f.page.locator('#engineSelect').selectOption('cpu');await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>S.mining);
   assert.equal(await f.page.locator('#tokenInput').isDisabled(),true);
   await f.page.evaluate(()=>window.walletTest.handlers.accountsChanged());await f.page.waitForFunction(()=>!S.mining&&!S.target);
   assert.equal(await f.page.evaluate(()=>S.workers.length),0);assert.equal(await f.page.locator('#submitClaimBtn').isDisabled(),true);
@@ -131,7 +136,7 @@ test('account switch stops CPU workers and invalidates target',async()=>{
 });
 test('ZECS registration recovery reuses signature without sending a second mint',async()=>{
  const f=await fixture();try{
-  await f.connect();f.registerFail(true);await f.page.locator('#zecsMintBtn').click();
+  await f.connect();f.registerFail(true);await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();
   await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>!!loadZecsPendingTxid()&&!!loadZecsRegistration()),true);
   const signs=await f.page.evaluate(()=>window.walletTest.signs);
@@ -143,8 +148,8 @@ test('ZECS registration recovery reuses signature without sending a second mint'
 test('ambiguous ZECS broadcast remains locked when wallet history is temporarily empty',async()=>{
  const f=await fixture();try{
   await f.connect();await f.page.evaluate(()=>window.walletTest.mode='unknown');
-  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!!loadZecsBroadcastLock());
-  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!!loadZecsBroadcastLock());
+  await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
   assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);assert.equal(await f.page.evaluate(()=>window.walletTest.sends),1);
  }finally{await f.browser.close()}
 });
@@ -167,7 +172,7 @@ test('claim gate requires quorum and accepts only this wallet matching intent',a
 test('wallet rejection clears a ZECS no-broadcast lock and permits a later deliberate retry',async()=>{
  const f=await fixture();try{
   await f.connect();await f.page.evaluate(()=>window.walletTest.mode='rejected');
-  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
+  await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
   assert.equal(await f.page.locator('#zecsMintBtn').isDisabled(),false);
  }finally{await f.browser.close()}
@@ -186,7 +191,7 @@ test('52 and 125 historical ZECS mints are checked in complete batches, without 
    assert.deepEqual(missing,[]);
   }
   assert.ok(f.calls.filter(c=>c.op==='zb20-mint'&&c.body.action==='lookup').every(c=>c.body.txids.length<=50));
-  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
@@ -206,7 +211,7 @@ test('manual recovery releases a confirmed discovery lock without asking for ano
   await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
   f.registered.set(txid,{txid,status:'confirmed',owner_commitment:owner});
   await f.page.evaluate(txid=>saveZecsBroadcastLock({status:'recovery_required',found:[txid]}),txid);
-  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
   assert.equal(await f.page.evaluate(()=>walletTest.signs+walletTest.sends),0);
  }finally{await f.browser.close()}
@@ -226,7 +231,7 @@ test('legacy NFT lock protects its own ID while a different block can mine and c
   await f.page.locator('#findUnclaimedBtn').click();await f.page.waitForFunction(()=>S.target&&!S.targetBusy);
   assert.ok(f.calls.some(c=>c.op==='mining-lease'&&c.body.excludeTokens?.includes(3874)));
   assert.equal(await f.page.locator('#startMineBtn').isDisabled(),false);
-  await f.page.locator('#engineSelect').selectOption('cpu');await f.page.evaluate(()=>CFG.powBits=8);
+  await f.page.locator('#miningDetails > summary').click();await f.page.locator('#engineSelect').selectOption('cpu');await f.page.evaluate(()=>CFG.powBits=8);
   await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>S.proof);
   await f.page.locator('#submitClaimBtn').click();await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
   assert.deepEqual(await f.page.evaluate(()=>claimRecoveries().map(x=>x.tokenId).sort((a,b)=>a-b)),[71,3874]);
@@ -270,7 +275,7 @@ test('hung wallet history releases the action and preserves pending recovery',as
    walletTest.historyHang=true;saveZecsBroadcastLock({status:'broadcast_unknown'});
    const old=setTimeout;window.setTimeout=(fn,ms,...args)=>old(fn,ms===WALLET_READ_TIMEOUT?40:ms,...args);
   });
-  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy);
+  await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy);
   assert.match(await f.page.locator('#zecsStatus').textContent(),/timed out/);
   assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);
   assert.equal(await f.page.locator('#zecsRecoverBtn').isDisabled(),false);
@@ -298,9 +303,9 @@ test('recovering one mint preserves other queued TXIDs across a registration fai
   await f.connect();
   const ids=['cd'.repeat(32),'ef'.repeat(32)];
   await f.page.evaluate(ids=>saveZecsBroadcastLock({status:'recovery_required',found:ids}),ids);
-  f.registerFail(true);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  f.registerFail(true);await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
   assert.deepEqual(new Set(await f.page.evaluate(()=>loadZecsBroadcastLock().found)),new Set(ids));
-  f.registerFail(false);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  f.registerFail(false);await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
   assert.equal(await f.page.evaluate(()=>walletTest.sends),0);
  }finally{await f.browser.close()}
@@ -325,5 +330,54 @@ test('slow NFT indexer recovery does not hold the wallet action gate',async()=>{
   assert.equal(await f.page.locator('#findUnclaimedBtn').isDisabled(),false);
   assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),true);
   assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(3874)),true);
+ }finally{await f.browser.close()}
+});
+
+test('gallery previews use source blocks; search, pagination and selection keep the wallet flow intact',async()=>{
+ const f=await fixture();try{
+  const p=f.page;
+  await p.waitForFunction(()=>document.querySelectorAll('.candidate-art svg:not(:empty)').length===6);
+  assert.equal(f.calls.filter(c=>c.op==='mining-lease').length,0,'browsing artwork never reserves or sends');
+  assert.equal(await p.locator('[data-candidate]').count(),6);
+  assert.equal(await p.locator('#connectMineBtn').isVisible(),true);
+  await p.getByRole('button',{name:'Next candidates',exact:true}).click();
+  assert.equal(await p.locator('[data-candidate]').first().getAttribute('data-candidate'),'77');
+  await p.getByLabel('Search available NFT numbers').fill('83');
+  assert.equal(await p.locator('[data-candidate]').count(),1);
+  await p.getByLabel('Search available NFT numbers').fill('9999');
+  assert.match(await p.locator('#availableTokens').textContent(),/No available NFT matches/);
+  await p.getByLabel('Search available NFT numbers').fill('71');
+  await f.connect();
+  await p.getByRole('button',{name:'Select ZEC BLOCK #71',exact:true}).click();
+  await p.waitForFunction(()=>S.target?.token===71&&!S.targetBusy);
+  assert.equal(await p.locator('#startMineBtn').isVisible(),true);
+  assert.equal(await p.locator('#submitClaimBtn').isVisible(),false);
+  assert.equal(await p.locator('#artTitle').textContent(),'ZEC BLOCK #71');
+  assert.equal(await p.locator('[data-candidate="71"]').getAttribute('aria-pressed'),'true');
+  await p.waitForFunction(()=>document.querySelector('[data-candidate="71"] svg').childElementCount>0);
+  assert.equal(await p.locator('[data-candidate="71"] svg').innerHTML(),await p.locator('#heroArt').innerHTML());
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('NFT and ZECS tabs preserve active mining; deep links and keyboard navigation work',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();
+  await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.locator('#miningDetails > summary').click();await p.locator('#engineSelect').selectOption('cpu');
+  await p.evaluate(()=>CFG.powBits=256);await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.mining);
+  await openZecs(p);
+  assert.equal(await p.locator('#mining').isHidden(),true);
+  assert.equal(await p.locator('#zecs').isVisible(),true);
+  assert.equal(await p.locator('#zecsMintBtn').isDisabled(),true);
+  assert.equal(await p.evaluate(()=>S.mining&&S.workers.length>0),true);
+  await p.getByRole('tab',{name:'$ZECS',exact:true}).press('ArrowLeft');
+  assert.equal(await p.getByRole('tab',{name:'Mine NFTs',exact:true}).getAttribute('aria-selected'),'true');
+  assert.equal(await p.locator('#stopMineBtn').isVisible(),true);
+  await p.locator('#stopMineBtn').click();assert.equal(await p.evaluate(()=>S.mining),false);
+  await openZecs(p);await p.reload({waitUntil:'domcontentloaded'});
+  await p.waitForFunction(()=>document.getElementById('zecsTab').getAttribute('aria-selected')==='true');
+  assert.equal(await p.locator('#zecs').isVisible(),true);
+  assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });

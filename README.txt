@@ -1,9 +1,19 @@
-ZEC BLOCKS — Mining Studio V16.1.1
+ZEC BLOCKS — Mining
 
 This repository serves mine.zecblocks.xyz. The marketplace is a separate deployment.
 
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
+
+Mining interface
+- Charcoal/champagne and ivory themes; no public release labels.
+- NFT mining and ZECS minting use separate accessible tabs. #mining and #zecs remain shareable; changing tabs never restarts mining or sends a transaction.
+- The main action follows wallet connection, NFT selection, proof search and claim approval. Pending claims remain visible with recovery controls.
+- The six-item gallery renders previews from the same source block hash, height and artwork renderer as the selected NFT. Browsing never reserves an NFT. Selection still uses the canonical live availability and lease checks.
+- Gallery search filters the server's available candidates. Surprise Me selects a candidate and checks it before mining. Pending local claims are excluded.
+- Artwork reads use a two-worker queue with a bounded memory cache; stale responses cannot paint a new page of candidates. A failed preview does not change availability or block selection.
+- Mining settings, source identifiers and diagnostics are collapsed. Proof search uses an indeterminate animation because it has no guaranteed completion time.
+- Reduced-motion settings, visible keyboard focus, arrow-key tab navigation and persistent light/dark preferences are supported.
 
 What changed in V16.1.1
 - Public page loads no longer start the heavy availability scan. Existing server cron owns that job; exact target checks and recovery ingestion remain active.

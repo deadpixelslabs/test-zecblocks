@@ -3,71 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080808">
+<meta name="theme-color" content="#101110">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23101110%22%2F%3E%3Cpath%20fill%3D%22%23e7d4a6%22%20d%3D%22m24%207%2016%208-16%208-16-8zM8%2019l14%207v6L8%2025zm32%200v6l-14%207v-6zM8%2029l14%207v6L8%2035zm32%200v6l-14%207v-6z%22%2F%3E%3C%2Fsvg%3E">
 <meta name="description" content="ZEC BLOCKS — open-source ZB-1 mining, marketplace and private portfolio on Zcash.">
-<title>ZEC BLOCKS — Mining Studio</title>
+<title>ZEC BLOCKS — Mining</title>
 <style>
-[hidden]{display:none!important}
-:root{--bg:#070707;--panel:#0d0d0d;--panel2:#111;--line:#232323;--line2:#313131;--text:#f4f4f4;--muted:#8b8b8b;--gold:#d3a84f;--gold2:#f1cc76;--green:#78d594;--red:#ff8989;--blue:#86b7ff;--r:14px}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.top{height:68px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:24px;padding:0 24px;background:rgba(7,7,7,.92);border-bottom:1px solid #1d1d1d;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;min-width:max-content}.brandmark{width:34px;height:34px;border:1px solid #3c3322;border-radius:8px;display:grid;place-items:center;background:#0d0b08;color:var(--gold2);font-family:ui-monospace,monospace;font-weight:900}.brand b{font-size:13px;letter-spacing:.12em}.nav{display:flex;gap:4px}.nav a{padding:9px 11px;border-radius:9px;color:#8d8d8d;font-size:13px;font-weight:700}.nav a:hover{background:#131313;color:#fff}.topright{margin-left:auto;display:flex;align-items:center;gap:8px}.pill{border:1px solid #292929;background:#0d0d0d;padding:8px 10px;border-radius:999px;font-size:11px;color:#aaa}.liveDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(120,213,148,.7);margin-right:7px}.btn{min-height:39px;padding:0 14px;border:1px solid #2b2b2b;background:#111;color:#ddd;border-radius:10px;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn:hover{border-color:#494949;color:#fff}.btn.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#17120a;border-color:transparent}.btn.green{border-color:rgba(120,213,148,.3);color:#b8f0c6;background:rgba(120,213,148,.08)}.btn.red{border-color:rgba(255,137,137,.3);color:#ffb2b2;background:rgba(255,137,137,.06)}.btn:disabled{opacity:.45;cursor:not-allowed}.walletbtn{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}main{max-width:1420px;margin:0 auto;padding:28px 24px 70px}.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:18px}.card,.heroMain{border:1px solid #202020;background:linear-gradient(180deg,#0e0e0e,#0a0a0a);border-radius:var(--r)}.heroMain{padding:38px;min-height:420px;position:relative;overflow:hidden}.heroMain:after{content:"";position:absolute;width:500px;height:500px;right:-180px;top:-160px;border-radius:50%;background:radial-gradient(circle,rgba(211,168,79,.14),transparent 68%);pointer-events:none}.kicker{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold2);font-weight:900;margin-bottom:17px}.hero h1{font-size:clamp(50px,7vw,88px);line-height:.92;letter-spacing:-.055em;margin:0;max-width:900px}.hero p{max-width:720px;color:#969696;font-size:15px;line-height:1.72;margin:24px 0 28px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin-top:34px;max-width:760px}.stat{background:#0a0a0a;padding:14px 15px}.stat small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.stat b{font-size:14px}.heroSide{padding:22px;display:flex;flex-direction:column}.heroSideTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.heroSideTop h2{font-size:16px;margin:0}.badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:999px;border:1px solid #333;color:#aaa}.badge.live{color:#aee9bd;border-color:rgba(120,213,148,.25);background:rgba(120,213,148,.05)}.art{aspect-ratio:1;border:1px solid #222;border-radius:11px;background:#070707;overflow:hidden}.blockArt{display:block;width:100%;height:100%;shape-rendering:crispEdges;image-rendering:pixelated}.heroSide .kvgrid{margin-top:14px}.kvgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border:1px solid #222;border-radius:10px;overflow:hidden}.kv{background:#0a0a0a;padding:12px}.kv small{display:block;color:#636363;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.kv b{font-size:12px;word-break:break-all}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:36px 0 14px}.sectionHead h2{margin:0;font-size:21px}.sectionHead p{margin:0;color:#6e6e6e;font-size:11px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.panel{padding:22px}.miningGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.terminal{border:1px solid #252525;background:#090909;border-radius:12px;overflow:hidden}.terminalHead{padding:12px 14px;border-bottom:1px solid #1e1e1e;background:#101010;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;gap:9px}.termDot{width:9px;height:9px;border-radius:50%;background:var(--gold2);box-shadow:0 0 14px rgba(240,202,114,.55)}.termBody{padding:14px}.row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #171717;font-size:12px}.row:last-child{border-bottom:0}.key{font-size:9px;color:#696969;text-transform:uppercase;letter-spacing:.09em;font-weight:900;min-width:120px}.val{text-align:right;color:#d8d8d8;word-break:break-all}.inputrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}.input,.select{width:100%;height:42px;border:1px solid #2a2a2a;border-radius:9px;background:#080808;color:#eee;padding:0 12px;outline:none}.input:focus,.select:focus{border-color:#5a492d}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.progress{height:10px;border:1px solid #222;background:#121212;border-radius:999px;overflow:hidden;margin-top:14px}.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s}.hashlog{height:150px;overflow:auto;margin-top:12px;border:1px solid #1d1d1d;border-radius:9px;background:#070707;padding:10px;color:#83c99a;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.sideStack{display:grid;gap:12px}.mini{border:1px solid #242424;border-radius:11px;background:#0a0a0a;padding:16px}.mini h3{margin:0 0 7px;font-size:15px}.mini p{margin:0;color:#7d7d7d;font-size:11px;line-height:1.65}.notice{border:1px solid rgba(240,202,114,.22);background:rgba(240,202,114,.05);color:#cdbb91;padding:11px 12px;border-radius:9px;font-size:11px;line-height:1.55;margin-top:12px}.notice.good{border-color:rgba(120,213,148,.22);background:rgba(120,213,148,.05);color:#aee7bc}.notice.bad{border-color:rgba(255,137,137,.22);background:rgba(255,137,137,.05);color:#ffb0b0}.marketToolbar{display:flex;gap:9px;align-items:center;padding:13px;border-bottom:1px solid #1e1e1e}.marketToolbar .input{max-width:440px}.marketBody{padding:15px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.nft{border:1px solid #202020;border-radius:11px;background:#0c0c0c;overflow:hidden;transition:.16s}.nft:hover{transform:translateY(-2px);border-color:#3a342b}.nftart{aspect-ratio:1;border-bottom:1px solid #1d1d1d}.nftinfo{padding:11px}.nftline{display:flex;justify-content:space-between;align-items:center;gap:8px}.nfttitle{font-size:12px;font-weight:900}.meta{font-size:9px;color:#646464;margin-top:6px;display:flex;justify-content:space-between;gap:8px}.price{font-size:12px;color:#d8bd78;font-weight:900}.empty{padding:42px 20px;text-align:center;color:#666;font-size:12px;border:1px dashed #292929;border-radius:11px}.portfolioTop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.metric{border:1px solid #222;background:#0a0a0a;border-radius:10px;padding:14px}.metric small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:17px;margin-top:6px}.walletbox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.copyline{border:1px solid #242424;border-radius:10px;background:#0a0a0a;padding:12px}.copyline small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.copyline code{font-size:10px;color:#bbb;word-break:break-all}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}.modal.show{display:flex}.modalCard{width:min(560px,100%);max-height:88vh;overflow:auto;border:1px solid #303030;border-radius:14px;background:#0c0c0c;padding:20px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalHead h3{margin:0;font-size:17px}.xbtn{border:0;background:transparent;color:#888;font-size:20px}.field{margin-bottom:12px}.field label{display:block;font-size:9px;color:#717171;text-transform:uppercase;letter-spacing:.09em;font-weight:900;margin-bottom:6px}.field textarea{width:100%;min-height:100px;border:1px solid #292929;background:#080808;color:#ddd;border-radius:9px;padding:10px;resize:vertical}.protocolGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.protocolGrid .mini{min-height:160px}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #191919;margin-top:34px;padding-top:24px;color:#595959;font-size:10px}.footerlinks{display:flex;gap:16px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;z-index:200;max-width:380px;border:1px solid #333;background:#101010;color:#ddd;border-radius:10px;padding:12px 14px;font-size:11px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none}.toast.show{display:block}.muted{color:#777}.gold{color:var(--gold2)}.green{color:var(--green)}.red{color:var(--red)}
-@media(max-width:1050px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{grid-template-columns:1fr 360px}}
-@media(max-width:900px){.nav,.pill.network{display:none}.hero{grid-template-columns:1fr}.miningGrid,.protocolGrid{grid-template-columns:1fr}.portfolioTop{grid-template-columns:1fr 1fr}.walletbox{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.top{padding:0 12px}.topright .btn.secondary{display:none}main{padding:18px 12px 56px}.heroMain{padding:28px 20px}.hero h1{font-size:50px}.stats{grid-template-columns:1fr 1fr}.panel{padding:14px}.grid{grid-template-columns:1fr 1fr;gap:8px}.marketToolbar{flex-wrap:wrap}.marketToolbar .input{max-width:none}.portfolioTop{grid-template-columns:1fr 1fr}.footer{flex-direction:column}}
-
-/* Split-site mode: this deployment is mining-only */
-#market,#market + section,#portfolio,#portfolio + section,#protocol,#protocol + section{display:none!important}
-
-.enginebar{display:grid;grid-template-columns:1fr auto;gap:8px;margin:10px 0 0}
-.enginebar .select{min-width:0}
-.gpuGood{color:#78d594!important}.gpuWarn{color:#f1cc76!important}.gpuBad{color:#ff8989!important}
-@media(max-width:700px){.enginebar{grid-template-columns:1fr}}
-
-.zecsCard{padding:0;overflow:hidden;position:relative}
-.zecsCard:before{content:"";position:absolute;width:520px;height:520px;border-radius:50%;right:-190px;top:-260px;background:radial-gradient(circle,rgba(211,168,79,.13),transparent 68%);pointer-events:none}
-.zecsLayout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);position:relative;z-index:1}
-.zecsMain{padding:30px;border-right:1px solid #202020}
-.zecsSide{padding:24px;background:rgba(8,8,8,.55)}
-.zecsTicker{font-size:clamp(46px,7vw,82px);line-height:.9;letter-spacing:-.06em;margin:4px 0 14px}
-.zecsLead{max-width:760px;color:#8e8e8e;font-size:13px;line-height:1.7;margin:0 0 24px}
-.zecsMetrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin:20px 0}
-.zecsMetric{background:#0a0a0a;padding:14px}
-.zecsMetric small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
-.zecsMetric b{font-size:14px}
-.zecsProgressTop{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-top:24px}
-.zecsProgressTop small{color:#666;font-size:10px;text-transform:uppercase;letter-spacing:.1em}
-.zecsProgressTop b{font-size:18px}
-.zecsProgress{height:12px;border:1px solid #292929;background:#080808;border-radius:999px;overflow:hidden;margin:10px 0 8px}
-.zecsProgress>i{display:block;width:0%;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2))}
-.zecsMintPayload{font:11px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d6be82;border:1px solid #30291b;background:#0c0a07;border-radius:10px;padding:13px;overflow-wrap:anywhere;margin:18px 0}
-.zecsComing{width:100%;min-height:48px;font-size:13px;margin-top:10px}
-.zecsActions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:10px}
-.zecsActions .btn{min-height:48px}
-.zecsStatus{margin-top:10px;border:1px solid #242424;background:#090909;border-radius:10px;padding:12px;color:#8b8b8b;font-size:11px;line-height:1.55}
-.zecsStatus.good{border-color:rgba(120,213,148,.25);color:#aee7bc;background:rgba(120,213,148,.04)}
-.zecsStatus.warn{border-color:rgba(240,202,114,.25);color:#d8c38b;background:rgba(240,202,114,.04)}
-.zecsStatus.bad{border-color:rgba(255,137,137,.25);color:#ffb0b0;background:rgba(255,137,137,.04)}
-@media(max-width:600px){.zecsActions{grid-template-columns:1fr}}
-.zecsSide .mini{margin-bottom:10px}
-.zecsSide .mini:last-child{margin-bottom:0}
-@media(max-width:900px){.zecsLayout{grid-template-columns:1fr}.zecsMain{border-right:0;border-bottom:1px solid #202020}.zecsMetrics{grid-template-columns:1fr 1fr}}
-@media(max-width:600px){.zecsMain,.zecsSide{padding:20px}.zecsMetrics{grid-template-columns:1fr 1fr}}
-
-/* Mining Studio — comfortable contrast, responsive controls, persisted themes. */
-:root{color-scheme:dark;--bg:#0b101b;--panel:#111a29;--panel2:#172235;--line:#263348;--line2:#3d526b;--text:#eef3fb;--muted:#a1aec2;--gold:#dab05a;--gold2:#f5d68e;--green:#83deb0;--red:#ff9aab;--r:22px}
-:root[data-theme="light"]{color-scheme:light;--bg:#f1f5fa;--panel:#fff;--panel2:#eaf0f8;--line:#d6dfeb;--line2:#a7b6cb;--text:#17243a;--muted:#52647c;--gold:#c49535;--gold2:#9b6a12;--green:#147849;--red:#b52e48}
-body{background:radial-gradient(ellipse at 30% 0,rgba(116,149,202,.09),transparent 50%),var(--bg);line-height:1.5}
-main{max-width:1320px;padding:30px 28px 60px}.top{background:var(--bg);border-color:var(--line);height:76px}.brand b{font-size:13px}.brandmark{background:var(--panel2);border-color:var(--line);color:var(--gold2)}.nav a{color:var(--muted)}.nav a:hover{color:var(--text);background:var(--panel2)}
-.card,.heroMain{background:var(--panel);border-color:var(--line);box-shadow:0 12px 40px #0000000a}.hero{grid-template-columns:minmax(0,1.5fr) minmax(280px,.65fr);gap:22px}.heroMain{padding:38px;min-height:auto}.hero h1{font-size:clamp(44px,5.5vw,76px);line-height:1.05}.hero p{color:var(--muted);font-size:15px;max-width:570px;line-height:1.8}.heroSide{padding:22px}.heroSide .art{max-width:290px;width:100%;margin:auto;border-color:var(--line)}.kicker{color:var(--gold2);font-size:11px;letter-spacing:.16em}.heroMain:after{background:radial-gradient(circle,#dab05a16,transparent 68%)}
-.btn{min-height:46px;padding:10px 16px;font-size:13px;background:var(--panel2);color:var(--text);border-color:var(--line);border-radius:12px;transition:background .15s,border-color .15s,transform .15s}.btn:hover{border-color:var(--line2);color:var(--text);transform:translateY(-1px)}.btn.gold{background:linear-gradient(135deg,#f3d48c,#dbb45b);color:#211b0e;border-color:#dfb966}.btn.green{color:var(--green);background:#38aa7710;border-color:#38aa7750}.btn.red{color:var(--red);background:#cf466210;border-color:#cf466250}.btn:disabled{transform:none;opacity:.48}.btn:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #7ca8ed;outline-offset:3px}
-.stats,.kvgrid,.zecsMetrics{background:var(--line);border-color:var(--line)}.stat,.kv,.zecsMetric,.metric{background:var(--panel2)}.stat small,.kv small,.zecsMetric small,.metric small,.key{color:var(--muted);font-size:10px}.stat b{font-size:16px}.pill,.badge{border-color:var(--line);background:var(--panel2);color:var(--muted)}.badge.live{color:var(--green);border-color:#38aa7750}.sectionHead{scroll-margin-top:94px;margin-top:38px;align-items:center}.sectionHead h2{font-size:25px;letter-spacing:-.025em}.sectionHead p{font-size:13px;color:var(--muted);max-width:800px;margin-top:5px}.sectionHead>div:last-child{flex-wrap:wrap}
-.miningGrid{grid-template-columns:minmax(0,1.4fr) minmax(270px,.7fr);gap:22px}.terminal,.mini{border-color:var(--line);background:var(--panel);border-radius:16px}.terminalHead{background:var(--panel2);border-color:var(--line);font-size:12px;padding:16px 20px}.termBody{padding:20px}.row{border-color:var(--line);padding:10px 0;font-size:13px}.val{color:var(--text)}.mini{padding:20px}.mini p,.zecsLead{color:var(--muted);font-size:13px;line-height:1.75}.mini h3{font-size:17px}.input,.select{min-height:46px;height:auto;background:var(--bg);color:var(--text);border-color:var(--line);font-size:14px}.input:focus,.select:focus{outline:2px solid #7ca8ed;border-color:transparent}.hashlog{background:var(--bg);border-color:var(--line);color:var(--green);font-size:12px;height:130px}.notice{font-size:13px;color:var(--muted);border-color:var(--line);background:var(--panel2)}.notice.good{color:var(--green)}.notice.bad{color:var(--red)}.progress,.zecsProgress{background:var(--panel2);border-color:var(--line)}.progress>i,.zecsProgress>i{background:linear-gradient(90deg,#bd8d32,#e6c575)}.muted{color:var(--muted)}
-.workflow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0 0}.workflow div{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:15px}.workflow b{font-size:13px}.workflow span{display:block;color:var(--gold2);font-size:11px;margin-bottom:5px}.workflow p{margin:4px 0 0;font-size:12px;color:var(--muted)}.available{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}.availableHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.availableHead h3{font-size:16px;margin:0}.available p{color:var(--muted);font-size:12px}.candidateGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:12px 0}.candidate{padding:10px 4px;font-variant-numeric:tabular-nums}.pagination{display:flex;align-items:center;gap:12px;justify-content:flex-end;font-size:12px;color:var(--muted)}.receipt{padding:14px;border:1px solid #38aa7750;border-radius:12px;margin-top:12px;color:var(--green);font-size:13px}.receipt a{text-decoration:underline}details{margin-top:16px}summary{cursor:pointer;font-size:13px;color:var(--muted);padding:10px 0}
-.zecsSide{background:var(--panel2)}.zecsMain{border-color:var(--line)}.zecsTicker{font-size:64px}.zecsLead{font-size:14px}.zecsStatus{background:var(--panel2);color:var(--muted);border-color:var(--line);font-size:13px}.zecsStatus.good{color:var(--green)}.zecsStatus.warn{color:var(--gold2)}.zecsStatus.bad{color:var(--red)}.zecsProgressTop small{color:var(--muted)}.zecsMintPayload{background:var(--bg);border-color:var(--line);color:var(--muted)}.footer{border-color:var(--line);color:var(--muted);font-size:12px}.toast{background:var(--panel);color:var(--text);border-color:var(--line);font-size:14px;max-width:min(420px,calc(100vw - 36px))}.tiny{font-size:11px}
-[data-theme="light"] .val,[data-theme="light"] .gpuGood,[data-theme="light"] .gpuWarn,[data-theme="light"] .gpuBad{color:var(--text)!important}
-@media(max-width:1050px){.hero{grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr)}.top{gap:14px;padding:0 18px}.nav a{padding:8px}.pill.network{display:none}}
-@media(max-width:900px){.hero,.miningGrid{grid-template-columns:1fr}.heroSide{display:none}.heroMain{padding:32px}.sectionHead{align-items:flex-start;flex-direction:column;gap:12px}}
-@media(max-width:600px){main{padding:20px 14px 40px}.top{height:auto;min-height:70px;padding:10px 14px;gap:8px;flex-wrap:wrap}.brand b{font-size:10px}.brandmark{width:29px;height:29px}.topright{gap:6px}.topright .btn{font-size:11px;padding:9px;min-height:42px}.walletbtn{max-width:135px}.heroMain{padding:26px 20px}.hero h1{font-size:44px}.hero p{font-size:14px}.stats{margin-top:26px}.workflow{gap:7px}.workflow div{padding:12px 8px}.workflow b{font-size:11px}.workflow p{font-size:11px}.panel{padding:12px}.termBody{padding:14px}.inputrow{grid-template-columns:1fr 1fr!important}.inputrow input{grid-column:1/-1}.controls .btn{flex:1 1 auto}.key{min-width:95px}.candidateGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.zecsMain,.zecsSide{padding:20px}.sectionHead h2{font-size:23px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
+:root{color-scheme:dark;--bg:#101110;--panel:#181917;--panel2:#20211e;--line:#30312b;--line2:#575a4d;--text:#f1f0e9;--muted:#a6a79c;--gold:#ddc38b;--gold2:#e7d4a6;--green:#9ec9a7;--red:#ee9d91;--r:24px;--shadow:0 24px 60px #00000014}
+:root[data-theme="light"]{color-scheme:light;--bg:#f6f5ef;--panel:#fffefa;--panel2:#eeeee5;--line:#ddded1;--line2:#a2a58f;--text:#23271e;--muted:#646a59;--gold:#84612c;--gold2:#795a27;--green:#397349;--red:#aa4032;--shadow:0 24px 60px #444a2010}
+*{box-sizing:border-box}[hidden]{display:none!important}html{scroll-behavior:smooth;scroll-padding-top:105px}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button,a,input,select,summary{-webkit-tap-highlight-color:transparent}button{cursor:pointer}a{color:inherit;text-decoration:none}button:disabled{cursor:not-allowed}button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:4px}button:disabled{opacity:.45}h1,h2,h3,p{margin:0}svg{display:block}small{font-size:12px}b,strong{font-weight:600}::selection{background:#dcc38b55}.muted{color:var(--muted)}.gold{color:var(--gold2)}.tiny{font-size:12px}.icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}.eyebrow,.kicker{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.top{height:84px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;background:var(--bg)}.nav-inner{max-width:1280px;height:100%;margin:auto;padding:0 36px;display:flex;align-items:center;gap:52px}.brand{display:flex;gap:12px;align-items:center;flex-shrink:0}.brandmark{width:36px;height:40px;color:var(--gold2)}.brand b{font-size:14px;letter-spacing:.09em}.nav{display:flex;gap:28px;font-size:13px;color:var(--muted)}.nav a:hover,.nav a[aria-current="page"]{color:var(--text)}.topright{display:flex;align-items:center;gap:12px;margin-left:auto}.btn{display:inline-flex;justify-content:center;align-items:center;gap:9px;padding:12px 18px;min-height:46px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:11px;font-weight:600;font-size:13px;line-height:1.4;transition:background .18s,border-color .18s,transform .18s}.btn:hover:not(:disabled){background:var(--panel2);border-color:var(--line2)}.btn.gold{background:var(--gold2);color:#262219;border-color:var(--gold2)}.btn.gold:hover:not(:disabled){background:#f0dfb8;border-color:#f0dfb8;transform:translateY(-1px)}[data-theme="light"] .btn.gold{background:#263522;color:#f7f5eb;border-color:#263522}[data-theme="light"] .btn.gold:hover:not(:disabled){background:#3d4d33}.btn.green{background:var(--green);color:#132418;border-color:var(--green)}[data-theme="light"] .btn.green{color:#fff}.btn.red{color:var(--red);border-color:#ac655844}.btn.subtle{border-color:transparent;color:var(--muted)}.btn.subtle:hover:not(:disabled){border-color:var(--line)}.icon-btn{padding:10px;width:44px;min-height:44px}.walletbtn{max-width:185px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.liveDot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex:none}.network{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+main{max-width:1280px;margin:auto;padding:44px 36px 24px}.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:32px}.intro .eyebrow{display:flex;align-items:center;gap:9px;margin-bottom:12px}.intro h1{font-size:clamp(35px,4.2vw,58px);font-weight:500;line-height:1.12;letter-spacing:-.055em}.intro h1 em{font-family:Georgia,serif;font-weight:400;color:var(--gold2)}.intro p{margin-top:14px;color:var(--muted);font-size:14px;max-width:530px}.collection-stats{display:flex;gap:28px;padding-bottom:3px;flex:none}.collection-stat{padding-left:24px;border-left:1px solid var(--line)}.collection-stat small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.collection-stat b{display:block;font-size:24px;letter-spacing:-.035em;font-variant-numeric:tabular-nums}.workspace-nav{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0 24px;border-top:1px solid var(--line)}.experience-tabs{display:flex;gap:5px;background:var(--panel2);padding:5px;border-radius:12px}.experience-tab{background:none;border:0;color:var(--muted);border-radius:8px;padding:10px 21px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:600}.experience-tab[aria-selected="true"]{background:var(--panel);color:var(--text);box-shadow:0 2px 8px #00000016}.workspace-help{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}.workspace-help:hover{color:var(--text)}.workspace-help .icon{width:16px;height:16px}.mining-layout{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:22px}.art-stage{border:1px solid var(--line);border-radius:var(--r);background:radial-gradient(ellipse at 50% 50%,#c5a86b0d,transparent 65%),var(--panel);overflow:hidden;position:relative;display:flex;flex-direction:column;min-width:0;padding:24px 28px;min-height:490px}.art-stage:before{content:"";position:absolute;inset:65px 35px;border:1px solid #b8aa8320;border-radius:50%;pointer-events:none}.art-stage:after{content:"";position:absolute;inset:32px 68px;border:1px solid #b8aa8311;border-radius:50%;pointer-events:none}.stage-top,.stage-bottom{display:flex;align-items:center;justify-content:space-between;gap:14px;z-index:1}.stage-top .eyebrow{font-size:10px}.badge{display:inline-flex;align-items:center;gap:7px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:10px;white-space:nowrap;letter-spacing:.025em;background:var(--panel)}.badge.live{color:var(--green)}.art-frame{position:relative;width:min(100%,338px);aspect-ratio:1;align-self:center;margin:28px auto;border-radius:12px;overflow:hidden;box-shadow:0 20px 55px #00000035;border:1px solid #554a3022;z-index:1;background:#080808;transition:box-shadow .4s}.blockArt{width:100%;height:100%;shape-rendering:crispEdges}.art-frame:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 40%,#e7d4a627 50%,transparent 60%);transform:translateY(-110%);opacity:0}.is-mining .art-frame:after{opacity:1;animation:scan 4s linear infinite}.is-proof .art-frame{box-shadow:0 0 0 1px var(--green),0 20px 65px #9ec9a718}.stage-bottom{margin-top:auto}.stage-bottom h2{font-size:18px;font-weight:500;letter-spacing:-.035em}.stage-bottom small{color:var(--muted);font-size:11px}.stage-bottom .source-caption{text-align:right}.mining-console{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:28px;min-width:0;display:flex;flex-direction:column;box-shadow:var(--shadow)}.console-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:26px}.console-heading h2{font-size:18px;letter-spacing:-.025em;font-weight:500}.console-heading span{color:var(--muted);font-size:11px}.mining-steps{list-style:none;padding:0;display:flex;margin:0 0 26px;gap:0}.mining-steps li{font-size:10px;color:var(--muted);flex:1;display:flex;align-items:center;gap:7px;position:relative}.mining-steps li:after{content:"";height:1px;background:var(--line);flex:1;margin:0 8px 0 2px}.mining-steps li:last-child:after{display:none}.mining-steps i{font-style:normal;width:22px;height:22px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:10px;flex:none}.mining-steps [aria-current="step"]{color:var(--gold2)}.mining-steps [aria-current="step"] i{border-color:var(--gold);background:#e7d4a60c}.mining-steps .complete{color:var(--green)}.mining-steps .complete i{border-color:var(--green)}.action-copy{min-height:80px;margin-bottom:18px}.action-copy h3{font-size:27px;letter-spacing:-.04em;font-weight:500;line-height:1.2;margin-bottom:9px}.action-copy p{font-size:13px;color:var(--muted);max-width:390px;line-height:1.65}.target-picker{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:7px;margin-bottom:16px}.target-picker label{font-size:11px;color:var(--muted);padding-left:9px;flex:none}.input,.select{min-height:44px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:9px;padding:10px 12px;width:100%;min-width:0;font-size:13px}.target-picker input{background:none;border:0;width:100%;padding:7px 4px;font-size:17px;min-height:36px;font-variant-numeric:tabular-nums}.target-picker .btn{white-space:nowrap;flex-shrink:0;min-height:36px;padding:8px 13px;font-size:11px;background:var(--panel2)}.primary-actions{display:flex;gap:10px}.primary-actions .btn{width:100%;min-height:53px;font-size:14px;letter-spacing:-.01em}.primary-actions .btn:after{content:"↗";margin-left:auto;font-size:17px}.primary-actions .btn:before{content:"";width:17px}.primary-actions .btn:disabled:after{content:""}.secondary-actions{display:flex;justify-content:center;align-items:center;gap:4px;margin:8px 0 15px}.secondary-actions .btn{font-weight:400;min-height:38px;font-size:12px;padding:8px 12px}.fee-note{margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;color:var(--muted);text-align:center}.fee-note .icon{width:13px;height:13px}.mining-meter{margin-bottom:16px}.meter-labels{display:flex;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:12px;color:var(--muted)}.meter-labels b{color:var(--text);font-variant-numeric:tabular-nums}.progress,.zecsProgress{height:5px;background:var(--line);border-radius:5px;overflow:hidden}.progress>i,.zecsProgress>i{display:block;height:100%;width:0;background:var(--gold2);border-radius:5px}.is-mining .progress>i{width:35%!important;animation:search 2.4s ease-in-out infinite}.is-proof .progress>i{background:var(--green)}.mining-meter small{display:block;color:var(--muted);margin-top:8px;font-size:10px}.recovery-area:empty{display:none}.notice,.receipt,.zecsStatus{padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);font-size:12px;line-height:1.65;overflow-wrap:anywhere;color:var(--muted);margin-top:12px}.notice.good,.receipt,.zecsStatus.good{color:var(--green);border-color:#82b38a40}.notice.bad,.zecsStatus.bad{color:var(--red);border-color:#ac655844}.zecsStatus.warn{color:var(--gold2)}.receipt a{display:inline-block;text-decoration:underline;text-underline-offset:3px}.recovery-area>.btn{margin-top:12px;width:100%;font-size:12px;color:var(--gold2)}
+.details-shell{margin:18px 0 0;padding:0 22px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}details>summary{list-style:none;cursor:pointer;padding:16px 0;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:10px}details>summary::-webkit-details-marker{display:none}details>summary:after{content:"+";margin-left:auto;font-size:18px;font-weight:400}details[open]>summary:after{content:"−"}details>summary:hover{color:var(--text)}.details-layout{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:0 0 20px}.row{display:flex;align-items:start;justify-content:space-between;gap:20px;font-size:11px;padding:10px 0;border-bottom:1px solid var(--line)}.key{color:var(--muted);flex-shrink:0}.val{text-align:right;overflow-wrap:anywhere;color:var(--text)}.enginebar{display:flex;gap:8px}.enginebar .btn{font-size:11px;flex:none}.details-layout h3{font-size:12px;font-weight:500;margin:12px 0}.hashlog{font:11px/1.7 ui-monospace,monospace;color:var(--muted);height:120px;overflow:auto;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}.availability-detail{margin-top:14px;color:var(--muted);font-size:11px;line-height:1.8}.availability-detail b{color:var(--text)}[data-theme="light"] .val{color:var(--text)!important}.available{margin-top:44px}.availableHead{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:22px}.availableHead h2{font-size:24px;font-weight:500;letter-spacing:-.035em;margin:4px 0 5px}.availableHead p{font-size:12px;color:var(--muted)}.gallery-tools{display:flex;gap:8px;align-items:center}.gallery-search{position:relative;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding-left:12px;width:170px}.gallery-search .icon{width:16px;height:16px;color:var(--muted)}.gallery-search input{border:0;background:transparent;padding-left:2px;font-size:12px}.candidateGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}.candidate{display:block;text-align:left;border:1px solid var(--line);border-radius:14px;overflow:hidden;padding:7px;background:var(--panel);color:var(--text);min-width:0;transition:transform .18s,border-color .18s}.candidate:hover:not(:disabled){transform:translateY(-4px);border-color:var(--gold)}.candidate:disabled{opacity:1}.candidate[aria-pressed="true"]{border-color:var(--gold2);box-shadow:0 0 0 1px var(--gold2)}.candidate-art{display:grid;place-items:center;aspect-ratio:1;border-radius:8px;background:var(--panel2);overflow:hidden;color:var(--muted);position:relative;font-size:10px;text-align:center}.candidate-art svg{width:100%;height:100%;shape-rendering:crispEdges}.candidate-art:has(svg:empty):after{content:attr(data-placeholder);position:absolute;inset:0;display:grid;place-items:center;padding:10px}.candidate-meta{padding:10px 6px 5px;display:flex;align-items:center;justify-content:space-between;gap:3px}.candidate-meta b{font-size:12px;font-weight:500}.candidate-meta span{font-size:9px;color:var(--green)}.gallery-empty{grid-column:1/-1;padding:36px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;font-size:13px}.pagination{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:18px;color:var(--muted);font-size:11px}.pagination>div{display:flex;gap:10px;align-items:center}.pagination .btn{min-height:34px;width:34px;padding:6px;font-size:13px}.learn-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-top:40px;padding-top:28px;border-top:1px solid var(--line)}.learn-strip h3{font-size:13px;font-weight:500;margin-bottom:6px}.learn-strip p{font-size:12px;color:var(--muted);line-height:1.8;max-width:310px}.learn-strip .icon{color:var(--gold2);margin-bottom:14px}
+.zecs-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px}.zecs-showcase{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:radial-gradient(ellipse at 50% 30%,#bc9c5520,transparent 63%),var(--panel);padding:32px;min-width:0;overflow:hidden}.zecs-showcase-top{display:flex;align-items:center;justify-content:space-between}.zecs-emblem{height:190px;display:grid;place-items:center;position:relative;margin:12px 0}.zecs-coin{height:140px;width:140px;border-radius:50%;border:1px solid #d3b87880;box-shadow:inset 0 0 0 8px #b9a26e15,0 20px 55px #00000025;background:linear-gradient(140deg,#39392e,#171a13);display:grid;place-items:center;font-size:65px;color:#e5d09e;font-family:Georgia,serif}.zecs-emblem:before,.zecs-emblem:after{content:"";position:absolute;width:235px;height:110px;border:1px solid #b8aa8330;border-radius:50%;transform:rotate(-24deg)}.zecs-emblem:after{transform:rotate(24deg)}.zecs-showcase h2{font-size:42px;font-weight:500;letter-spacing:-.055em}.zecs-showcase>p{font-size:14px;color:var(--muted);max-width:390px;margin-top:9px;line-height:1.8}.zecs-facts{display:flex;gap:28px;padding-top:24px;margin-top:24px;border-top:1px solid var(--line)}.zecs-facts small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.zecs-facts b{font-weight:500;font-size:18px}.zecs-mint{padding:30px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);box-shadow:var(--shadow);min-width:0}.zecs-mint h2{font-size:26px;font-weight:500;letter-spacing:-.04em;margin:8px 0 20px}.eligibility{padding:15px;border:1px solid var(--line);border-radius:12px;margin-bottom:20px;display:flex;gap:12px;align-items:start}.eligibility>.icon{color:var(--gold2);margin-top:3px}.eligibility h3{font-size:13px;font-weight:500;margin:0 0 4px}.eligibility p{font-size:11px;color:var(--muted);line-height:1.7}.zecs-metrics{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:22px 0}.zecs-metrics small{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.zecs-metrics b{font-size:19px;font-weight:500;letter-spacing:-.025em}.zecsProgressTop{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:22px 0 10px}.zecsProgressTop b{font-size:12px}.zecs-progress-caption{font-size:10px;color:var(--muted);margin:8px 0 22px}.zecsActions .btn{width:100%;min-height:52px}.zecs-recovery{margin-top:8px}.zecs-recovery>.btn.gold{min-height:52px;font-size:14px;color:#262219}[data-theme="light"] .zecs-recovery>.btn.gold{color:#f7f5eb}.zecs-recovery>.btn{font-size:12px;width:100%;color:var(--muted);font-weight:400}.zecsMintPayload{padding:15px;border-radius:8px;background:var(--bg);border:1px solid var(--line);font-family:ui-monospace,monospace;font-size:11px;overflow-wrap:anywhere;margin-bottom:10px}.zecs-info{font-size:12px;color:var(--muted);padding-bottom:20px;line-height:1.8}
+.footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:26px 0 10px;margin-top:44px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}.footerlinks{display:flex;gap:24px}.footer a:hover{color:var(--text)}.toast{position:fixed;right:24px;bottom:24px;max-width:min(420px,calc(100vw - 32px));background:var(--panel);color:var(--text);border:1px solid var(--line2);box-shadow:0 15px 55px #00000030;padding:16px 20px;border-radius:12px;font-size:13px;z-index:200;display:none;overflow-wrap:anywhere}.toast.show{display:block}.modal{position:fixed;inset:0;z-index:100;background:#0009;display:none;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.modalCard{width:min(560px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modalHead h3{font-size:20px}.xbtn{border:0;background:none;font-size:24px;color:var(--muted)}.field{margin:14px 0}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}#market,#market+section,#portfolio,#portfolio+section,#protocol,#protocol+section{display:none!important}
+@keyframes scan{to{transform:translateY(110%)}}@keyframes search{0%,100%{transform:translateX(-110%)}50%{transform:translateX(300%)}}
+@media(min-width:1500px){main{padding-top:54px}.intro{margin-bottom:38px}.art-frame{width:370px}.art-stage{min-height:540px}.mining-console{padding:34px}.action-copy{margin:8px 0 24px}.primary-actions .btn{min-height:56px}}
+@media(max-width:1100px){.nav-inner{gap:26px}.nav{gap:20px}.collection-stats{gap:18px}.collection-stat{padding-left:18px}.intro h1{font-size:43px}.network{display:none}.mining-console{padding:24px}.art-stage{padding:22px;min-height:475px}.art-frame{width:300px}.candidateGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.candidate-meta b{font-size:14px}.candidate-meta span{font-size:10px}}
+@media(max-width:800px){.nav-inner{padding:0 22px;gap:22px}.nav{gap:15px}.nav a:last-child{display:none}.brand b{font-size:12px}.intro{flex-direction:column;align-items:flex-start;gap:24px}.collection-stats{gap:34px}.collection-stat:first-child{border:0;padding:0}.collection-stat b{font-size:22px}main{padding:30px 22px 20px}.mining-layout,.zecs-layout{grid-template-columns:1fr 1fr;gap:14px}.art-stage{min-height:430px;padding:18px}.art-frame{width:250px;margin:auto;max-width:100%}.stage-top{align-items:start;gap:8px}.stage-top .badge{font-size:9px;padding:4px 7px}.stage-bottom{margin-top:12px}.stage-bottom h2{font-size:15px}.source-caption{display:none}.mining-console{padding:22px 18px}.mining-steps{margin-bottom:22px}.mining-steps li{gap:4px;font-size:9px}.mining-steps i{width:18px;height:18px;font-size:9px}.mining-steps li:after{margin:0 4px}.action-copy h3{font-size:24px}.action-copy p{font-size:12px}.console-heading{margin-bottom:22px}.console-heading span{display:none}.target-picker label{padding-left:4px;font-size:10px}.target-picker .btn{padding:8px}.details-layout{gap:20px}.zecs-showcase,.zecs-mint{padding:24px}.zecs-facts{gap:22px}.zecs-facts b{font-size:16px}}
+@media(max-width:620px){html{scroll-padding-top:88px}.top{height:72px}.nav-inner{padding:0 18px;gap:10px}.nav{display:none}.brand{gap:8px}.brandmark{width:28px;height:32px}.brand b{font-size:11px;letter-spacing:.065em}.topright{gap:7px}.walletbtn{font-size:11px;max-width:138px;min-height:40px;padding:10px 12px}.icon-btn{width:36px;min-height:38px;padding:9px}.icon-btn .icon{width:17px;height:17px}main{padding:28px 18px 18px}.intro{gap:22px;margin-bottom:24px}.intro h1{font-size:38px;line-height:1.15}.intro .eyebrow{font-size:9px;margin-bottom:10px}.intro p{font-size:12px;line-height:1.75;max-width:340px}.collection-stats{width:100%;justify-content:space-between;gap:12px}.collection-stat{padding-left:18px}.collection-stat small{font-size:10px}.collection-stat b{font-size:22px}.workspace-nav{padding:17px 0 20px;gap:8px}.experience-tab{padding:10px 16px;font-size:12px}.experience-tab .icon{width:16px;height:16px}.workspace-help{font-size:10px;gap:5px}.mining-layout,.zecs-layout{grid-template-columns:1fr;gap:16px}.art-stage{min-height:0;padding:18px 20px;border-radius:18px}.art-frame{width:225px;margin:18px auto;max-width:85%}.stage-bottom h2{font-size:16px}.stage-bottom small{font-size:10px}.source-caption{display:block}.mining-console{padding:24px;border-radius:18px}.mining-steps li{font-size:10px;gap:6px}.mining-steps i{width:22px;height:22px}.console-heading h2{font-size:17px}.console-heading span{display:block}.action-copy{min-height:0;margin-bottom:20px}.action-copy h3{font-size:28px}.action-copy p{font-size:13px}.target-picker label{font-size:11px}.details-shell{padding:0 16px}.details-layout{grid-template-columns:1fr;gap:8px}.row{gap:14px;font-size:11px}.available{margin-top:32px}.availableHead{align-items:start;flex-direction:column;gap:16px;margin-bottom:16px}.availableHead h2{font-size:23px}.availableHead p{font-size:11px}.gallery-tools{width:100%}.gallery-search{width:auto;flex:1}.gallery-tools .btn{font-size:12px}.candidateGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.candidate-meta b{font-size:12px}.candidate-meta span{font-size:9px}.candidate{border-radius:12px}.pagination>span{font-size:10px;max-width:185px}.learn-strip{grid-template-columns:1fr;gap:22px;margin-top:30px;padding-top:24px}.learn-strip>div{display:grid;grid-template-columns:24px 1fr;column-gap:12px}.learn-strip .icon{grid-row:1/3;margin:0}.learn-strip h3{font-size:12px}.learn-strip p{font-size:11px;max-width:none}.zecs-showcase,.zecs-mint{padding:24px;border-radius:18px}.zecs-emblem{height:160px}.zecs-coin{width:125px;height:125px;font-size:58px}.zecs-showcase h2{font-size:38px}.zecs-showcase>p{font-size:13px}.zecs-facts{justify-content:space-between;gap:18px;margin-top:20px;padding-top:20px}.zecs-facts small{font-size:10px}.zecs-facts b{font-size:17px}.zecs-mint h2{font-size:26px}.footer{align-items:flex-start;flex-direction:column;gap:15px;margin-top:32px;padding-top:24px;font-size:10px}.footerlinks{gap:22px}.toast{right:16px;bottom:16px;font-size:12px}.primary-actions .btn{min-height:52px}.fee-note{font-size:10px}}
+@media(max-width:360px){.brand b{font-size:10px}.nav-inner{padding:0 12px}.topright{gap:4px}.walletbtn{max-width:125px;font-size:10px}.workspace-help{display:none}.intro h1{font-size:34px}.mining-console{padding:20px}.mining-steps li:after{margin:0 3px}.collection-stat{padding-left:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}.is-mining .progress>i{width:100%!important;opacity:.5}}
 
 </style>
 
@@ -75,123 +30,54 @@ main{max-width:1320px;padding:30px 28px 60px}.top{background:var(--bg);border-co
 try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark')}catch{document.documentElement.dataset.theme='dark'}
 </script>
 </head>
-<body data-mining-version="16.1.1">
+<body data-mining-version="16.1.1" data-mining-layout="collection">
 <header class="top">
-  <a class="brand" href="https://www.zecblocks.xyz"><span class="brandmark">Z</span><b>ZEC BLOCKS</b></a>
-  <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="#zecs">$ZECS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
-  <div class="topright"><button id="themeBtn" class="btn" aria-label="Switch to light mode">☀ Light</button><span class="pill network"><span class="liveDot"></span>Zcash Mainnet</span><a class="btn secondary" href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a><button id="walletBtn" class="btn gold walletbtn">Connect Noir Wallet</button></div>
+  <div class="nav-inner">
+    <a class="brand" href="https://www.zecblocks.xyz" aria-label="ZEC BLOCKS Marketplace"><svg class="brandmark" viewBox="0 0 36 40" aria-hidden="true"><path fill="currentColor" d="M18 1 34 9 18 17 2 9zm-16 12 14 7v7L2 20zm32 0v7l-14 7v-7zM2 24l14 7v8L2 32zm32 0v8l-14 7v-8z"/></svg><b>ZEC BLOCKS</b></a>
+    <nav class="nav" aria-label="Main navigation"><a href="#mining" data-view="mining" aria-current="page">Mining</a><a href="#zecs" data-view="zecs">$ZECS</a><a href="https://www.zecblocks.xyz">Marketplace ↗</a></nav>
+    <div class="topright"><button id="themeBtn" class="btn icon-btn" aria-label="Switch to light mode"></button><button id="walletBtn" class="btn gold walletbtn">Connect Noir Wallet</button></div>
+  </div>
 </header>
 <main id="home">
-<section class="hero">
-  <div class="heroMain">
-    <div class="kicker">ZB-1 MAINNET · 26-BIT MINING LIVE</div>
-    <h1>Mine the proof.<br>Claim the block.</h1>
-    <p>Mine ZEC BLOCKS directly in your browser with ZB-1 application-level SHA-256 proof-of-work. A valid 26-bit proof can be submitted through Noir Wallet and anchored to Zcash Mainnet.</p>
-    <div class="actions"><a href="#mining" class="btn gold">Start Mining</a><a href="https://www.zecblocks.xyz" class="btn">Open Marketplace ↗</a><a href="https://docs.zecblocks.xyz" class="btn" target="_blank" rel="noreferrer">Read Protocol</a></div>
-    <div class="stats"><div class="stat"><small>Supply</small><b>5,000</b></div><div class="stat"><small>PoW</small><b>SHA-256 / 26-bit</b></div><div class="stat"><small>Genesis</small><b id="genesisStatus">Confirmed</b></div><div class="stat"><small>Claims Seen</small><b id="claimCount">0</b><span id="claimSyncAge" class="tiny muted" style="display:block;margin-top:3px">server syncing…</span><span id="claimIndexProgress" class="tiny muted" style="display:block;margin-top:2px">availability index: waiting</span></div></div>
+  <section class="intro" aria-labelledby="pageTitle">
+    <div><div class="eyebrow"><span class="liveDot"></span>BUILT FROM ZCASH BLOCKS</div><h1 id="pageTitle">Mine your next <em>block.</em></h1><p id="pageIntro">Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.</p></div>
+    <div class="collection-stats" aria-label="Collection statistics"><div class="collection-stat"><small>Total collection</small><b>5,000</b></div><div class="collection-stat"><small>Claims seen</small><b id="claimCount">—</b></div><div class="collection-stat"><small>Verified available</small><b id="clearCount">—</b></div></div>
+  </section>
+  <div class="workspace-nav">
+    <div class="experience-tabs" role="tablist" aria-label="Choose what to mine"><button class="experience-tab" id="nftTab" role="tab" aria-selected="true" aria-controls="mining" tabindex="0" data-tab="mining"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5M12 12v9"/></svg>Mine NFTs</button><button class="experience-tab" id="zecsTab" role="tab" aria-selected="false" aria-controls="zecs" tabindex="-1" data-tab="zecs"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8h8l-8 8h8M12 5v3m0 8v3"/></svg>$ZECS</button></div>
+    <a class="workspace-help" href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3h.01"/></svg>How it works ↗</a>
   </div>
-  <aside class="card heroSide">
-    <div class="heroSideTop"><h2>Next ZEC BLOCK</h2><span class="badge live">LIVE</span></div>
-    <div class="art"><svg id="heroArt" class="blockArt" viewBox="0 0 600 600"></svg></div>
-    <div class="kvgrid"><div class="kv"><small>Token</small><b id="heroToken">#1</b></div><div class="kv"><small>Source Height</small><b id="heroHeight">Resolving…</b></div><div class="kv"><small>Claim Fee</small><b>0 ZEC · network fee only</b></div><div class="kv"><small>Network Fee</small><b>Wallet calculated</b></div></div>
-  </aside>
-</section>
-
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Find a verified unclaimed NFT, reserve it, and mine your proof. Availability is checked again before your claim.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span></div></div>
-<div class="workflow"><div><span>01 / DISCOVER</span><b>Choose a block</b><p>Find a verified candidate.</p></div><div><span>02 / MINE</span><b>Create your proof</b><p>Your browser does the work.</p></div><div><span>03 / CLAIM</span><b>Make it yours</b><p>Approve in Noir Wallet.</p></div></div>
-<section class="card panel" style="margin-top:20px">
-<div class="miningGrid">
-  <div class="terminal">
-    <div class="terminalHead"><span class="termDot"></span>ZB-1 BROWSER MINER</div>
-    <div class="termBody">
-      <div class="row"><span class="key">Genesis TXID</span><span class="val" id="gTx">ecf6fc3a…9379f0f</span></div>
-      <div class="row"><span class="key">Genesis Height</span><span class="val" id="gHeight">Resolving from mainnet…</span></div>
-      <div class="row"><span class="key">Owner Commitment</span><span class="val" id="ownerCommit">Connect wallet</span></div>
-      <div class="row"><span class="key">Source Block</span><span class="val" id="sourceInfo">Select a token</span></div>
-      <div class="row"><span class="key">Claim Status</span><span class="val" id="claimStatus">Select a token</span></div><div class="row"><span class="key">Reservation</span><span class="val" id="leaseStatus">None</span></div>
-      <div class="row"><span class="key">Fee Credit</span><span class="val" id="feeCreditStatus">None</span></div>
-      <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div>
-      <div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div>
-      <div class="row"><span class="key">GPU Status</span><span class="val" id="gpuStatus">Checking WebGPU…</span></div>
-      <div class="row"><span class="key">Hashrate</span><span class="val" id="hashrate">0 H/s</span></div>
-      <div class="inputrow" style="grid-template-columns:1fr auto auto"><input aria-label="Token ID" id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="findUnclaimedBtn" class="btn">Find Unclaimed</button><button id="loadTargetBtn" class="btn">Load Target</button></div>
-      <div class="enginebar"><select aria-label="Mining engine" id="engineSelect" class="select"><option value="auto">Engine: Auto (GPU preferred)</option><option value="gpu">Engine: GPU / WebGPU only</option><option value="cpu">Engine: CPU Web Workers only</option></select><button id="testGpuBtn" class="btn">Detect GPU</button></div>
-      <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
-      <button id="recoverClaimBtn" class="btn" hidden>Recover Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div>
-      <div class="progress"><i id="mineProgress"></i></div>
-      <details><summary>Mining diagnostics</summary><div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div></details>
-      <div class="available"><div class="availableHead"><h3>Explore unclaimed blocks</h3><button id="refreshAvailable" class="btn">Refresh</button></div><p>Choose a candidate below. Each selection is checked live and reserved before mining.</p><div id="availableTokens" class="candidateGrid"></div><div class="pagination"><button id="availablePrev" class="btn" aria-label="Previous candidates">←</button><span id="availablePage">1 / 1</span><button id="availableNext" class="btn" aria-label="Next candidates">→</button></div></div>
-      <div id="mineNotice" class="notice">Choose a verified block, mine a proof, then approve the claim in Noir Wallet. The current claim mode charges only the normal Zcash network fee. Confirmation continues in the background.</div>
+  <section id="mining" role="tabpanel" aria-labelledby="nftTab" tabindex="0">
+    <div class="mining-layout" id="miningExperience">
+      <article class="art-stage" aria-label="NFT artwork preview">
+        <div class="stage-top"><span class="eyebrow" id="artCaption">COLLECTION PREVIEW</span><span class="badge" id="artState"><span class="liveDot"></span>Zcash</span></div>
+        <div class="art-frame"><svg id="heroArt" class="blockArt" viewBox="0 0 600 600" role="img" aria-label="ZEC BLOCKS collection artwork"></svg></div>
+        <div class="stage-bottom"><div><small>ZEC BLOCKS</small><h2 id="artTitle">Born from a block.</h2><span id="heroToken" hidden>#1</span></div><div class="source-caption"><small>Source block</small><div id="heroHeight">—</div></div></div>
+      </article>
+      <section class="mining-console" aria-labelledby="consoleTitle">
+        <div class="console-heading"><h2 id="consoleTitle">Make it yours</h2><span class="network"><span class="liveDot"></span>Zcash Mainnet</span></div>
+        <ol class="mining-steps" aria-label="Mining steps"><li data-step="0" aria-current="step"><i>1</i>Connect</li><li data-step="1"><i>2</i>Choose</li><li data-step="2"><i>3</i>Mine</li><li data-step="3"><i>4</i>Claim</li></ol>
+        <div class="action-copy" aria-live="polite"><h3 id="actionTitle">Your block is waiting.</h3><p id="actionDescription">Connect Noir Wallet to find an available NFT and start mining in your browser.</p></div>
+        <div class="target-picker"><label for="tokenInput">NFT #</label><input id="tokenInput" class="input" aria-label="Token ID" type="number" min="1" max="5000" value="1" placeholder="1–5000"><button id="loadTargetBtn" class="btn" disabled>Check NFT</button></div>
+        <div class="mining-meter" id="miningMeter" hidden><div class="meter-labels"><span id="meterLabel">Mining in your browser</span><b id="hashrate">0 H/s</b></div><div class="progress" role="progressbar" aria-label="Proof search" aria-valuetext="Completion time varies"><i id="mineProgress"></i></div><small id="meterHint">Proof discovery is probabilistic. Completion time varies.</small></div>
+        <div class="primary-actions"><button id="connectMineBtn" class="btn gold">Connect Wallet</button><button id="findUnclaimedBtn" class="btn gold" hidden disabled>Find Unclaimed NFT</button><button id="startMineBtn" class="btn gold" hidden disabled>Start Mining</button><button id="submitClaimBtn" class="btn green" hidden disabled>Claim NFT</button><button id="miningBusyBtn" class="btn gold" hidden disabled>Working…</button></div>
+        <div class="secondary-actions"><button id="surpriseBtn" class="btn subtle" hidden>Surprise me ↗</button><a class="btn subtle" href="#available" id="browseGalleryLink">Browse available NFTs</a><button id="stopMineBtn" class="btn red" disabled hidden>Stop Mining</button></div>
+        <div class="fee-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span id="claimFeeNote">No mint fee. Zcash network fee applies.</span></div>
+        <div class="recovery-area"><button id="recoverClaimBtn" class="btn" hidden>Continue Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
+      </section>
     </div>
-  </div>
-  <div class="sideStack">
-    <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
-    <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
-    <div class="mini"><div class="kicker">Verified availability</div><h3><span id="knownClaimed">0</span> canonical claims</h3><p><b id="knownAvailable">Canonical scan starting…</b> · <span id="availabilityIndexState">auditing all 5,000 Token IDs</span>. <b>CLAIMED</b> requires protocol + Zcash validation. <b>CLEAR</b> requires multi-relay quorum with no valid or unresolved claim. VERIFYING/UNKNOWN IDs are never sent to miners.</p></div>
-    <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
-    <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses redundant public relay events plus connected-wallet recovery for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
-  </div>
-</div>
-</section>
-
-<div class="sectionHead" id="zecs">
-  <div>
-    <h2>$ZECS Mint</h2>
-    <p>ZB-20 token minting on Zcash · exclusively for current ZEC BLOCKS NFT holders.</p>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span class="badge">ZB-20</span>
-    <span class="badge" id="zecsLiveBadge">CHECKING DEPLOY</span>
-  </div>
-</div>
-<section class="card zecsCard">
-  <div class="zecsLayout">
-    <div class="zecsMain">
-      <div class="kicker">ZB-20 · ZCASH MAINNET</div>
-      <div class="zecsTicker">$ZECS</div>
-      <p class="zecsLead">The first ZB-20 token built on top of the ZB-1 protocol. ZECS is not an inscription token and not an ERC-20-style smart-contract token. Each successful mint is one signed ZB-20 event anchored by a Zcash transaction.</p>
-
-      <div class="zecsMetrics">
-        <div class="zecsMetric"><small>Max Supply</small><b>21,000,000</b></div>
-        <div class="zecsMetric"><small>Per Mint</small><b>210 ZECS</b></div>
-        <div class="zecsMetric"><small>Mint Price</small><b>FREE</b></div>
-        <div class="zecsMetric"><small>Your Balance</small><b id="zecsBalance">—</b></div>
-      </div>
-
-      <div class="zecsProgressTop">
-        <div><small>Mint Progress</small><br><b id="zecsMintedSupply">0 / 21,000,000 ZECS</b></div>
-        <b class="gold" id="zecsMintPercent">0%</b>
-      </div>
-      <div class="zecsProgress" id="zecsProgress" aria-label="ZECS mint progress"><i id="zecsProgressBar"></i></div>
-      <div class="tiny muted"><span id="zecsMintEvents">0</span> successful mint events · <span id="zecsPendingEvents">0</span> pending · 100,000 maximum mint events</div>
-
-      <details><summary>Mint transaction details</summary><div class="zecsMintPayload">{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}</div></details>
-      <div class="zecsActions">
-        <button class="btn gold zecsComing" id="zecsMintBtn" disabled>Connect Noir Wallet to Mint</button>
-        <button class="btn" id="zecsRecoverBtn">Recover Mint</button>
-      </div>
-      <div class="zecsStatus" id="zecsStatus" role="status" aria-live="polite">Checking canonical ZECS deployment and holder eligibility…</div>
-    </div>
-
-    <div class="zecsSide">
-      <div class="mini">
-        <div class="kicker">Holder gated</div>
-        <h3 id="zecsEligibility">Connect Noir Wallet</h3>
-        <p id="zecsEligibilityDetail">Current canonical ZEC BLOCKS ownership is checked before every mint.</p>
-      </div>
-      <div class="mini">
-        <div class="kicker">Canonical mint</div>
-        <h3>1 mint = 210 ZECS</h3>
-        <p>Every click creates one mint event. The canonical payload remains fixed; there is no ×5 or ×10 batch amount.</p>
-      </div>
-      <div class="mini">
-        <div class="kicker">Fair launch</div>
-        <h3>0 premine · 0 team allocation</h3>
-        <p>No admin mint. No presale. Only confirmed canonical events count toward the 21,000,000 ZECS maximum supply.</p>
-      </div>
-    </div>
-  </div>
-</section>
+    <details class="details-shell" id="miningDetails"><summary><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Mining settings & details</summary><div class="details-layout"><div>
+      <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div><div class="row"><span class="key">Availability</span><span class="val" id="claimStatus">Choose an NFT</span></div><div class="row"><span class="key">Reservation</span><span class="val" id="leaseStatus">None</span></div><div class="row"><span class="key">Claim fee</span><span class="val" id="feeCreditStatus">No protocol fee</span></div><div class="row"><span class="key">Source block</span><span class="val" id="sourceInfo">Select an NFT</span></div><div class="row"><span class="key">Wallet identity</span><span class="val" id="ownerCommit">Connect wallet</span></div><div class="row"><span class="key">Genesis TXID</span><span class="val" id="gTx">ecf6fc3a…9379f0f</span></div><div class="row"><span class="key">Genesis height</span><span class="val" id="gHeight">Resolving…</span></div><div class="row"><span class="key">Genesis</span><span class="val" id="genesisStatus">Confirmed</span></div>
+      <p class="availability-detail"><b id="knownClaimed">—</b> confirmed claims · <b id="knownAvailable">Checking available NFTs…</b><br><span id="availabilityIndexState">Checking availability…</span><br><span id="claimSyncAge">Syncing…</span> · <span id="claimIndexProgress">Checking index…</span></p>
+    </div><div><h3>Mining engine</h3><div class="enginebar"><select id="engineSelect" class="select" aria-label="Mining engine"><option value="auto">Auto · GPU preferred</option><option value="gpu">GPU · WebGPU</option><option value="cpu">CPU · Web Workers</option></select><button id="testGpuBtn" class="btn">Detect GPU</button></div><div class="row"><span class="key">Engine</span><span class="val" id="mineEngine">Detecting…</span></div><div class="row"><span class="key">GPU</span><span class="val" id="gpuStatus">Checking…</span></div><h3>Activity log</h3><div id="hashLog" class="hashlog">Connect your wallet and choose an NFT to start.</div><div id="mineNotice" class="notice">Mining uses your device to find a proof. Keep this tab open while mining. Approve the claim in Noir Wallet when your proof is ready.</div></div></div></details>
+    <section class="available" id="available" aria-labelledby="availableTitle"><div class="availableHead"><div><div class="eyebrow">FIND YOUR BLOCK</div><h2 id="availableTitle">Still waiting to be discovered.</h2><p>Explore available NFTs. Every selection is checked again before mining.</p></div><div class="gallery-tools"><label class="gallery-search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="candidateSearch" class="input" type="search" inputmode="numeric" aria-label="Search available NFT numbers" placeholder="Search NFT #"></label><button id="refreshAvailable" class="btn">Refresh</button></div></div><div id="availableTokens" class="candidateGrid"><p class="gallery-empty">Checking available NFTs…</p></div><div class="pagination"><span id="candidateHint">Connect your wallet to select an NFT.</span><div><span id="availablePage" aria-live="polite">1 / 1</span><button id="availablePrev" class="btn" aria-label="Previous candidates">←</button><button id="availableNext" class="btn" aria-label="Next candidates">→</button></div></div></section>
+    <section class="learn-strip" aria-label="About mining"><div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5M12 12v9"/></svg><h3>Shaped by Zcash</h3><p>Each artwork is generated from its source block. A collection with an on-chain origin.</p></div><div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4m-3-11-2 2 2 2m6-4 2 2-2 2"/></svg><h3>Mined in your browser</h3><p>Your device searches for a valid proof. No mining software to install.</p></div><div><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><h3>Your wallet. Your approval.</h3><p>Claims are approved in Noir Wallet. Your seed and private keys stay in your wallet.</p></div></section>
+  </section>
+  <section id="zecs" role="tabpanel" aria-labelledby="zecsTab" tabindex="0" hidden>
+    <div class="zecs-layout"><article class="zecs-showcase"><div class="zecs-showcase-top"><span class="eyebrow">THE FIRST ZB-20 TOKEN</span><span class="badge" id="zecsLiveBadge">Checking status</span></div><div class="zecs-emblem" aria-hidden="true"><div class="zecs-coin">Ƶ</div></div><h2>Meet $ZECS.</h2><p>The next chapter for ZEC BLOCKS holders.<br>Mint 210 ZECS at a time, anchored to Zcash.</p><div class="zecs-facts"><div><small>Maximum supply</small><b>21,000,000</b></div><div><small>Premine</small><b>0</b></div><div><small>Team allocation</small><b>0</b></div></div></article>
+    <section class="zecs-mint" aria-labelledby="zecsMintTitle"><div class="eyebrow">EXCLUSIVELY FOR NFT HOLDERS</div><h2 id="zecsMintTitle">Your next 210 ZECS.</h2><div class="eligibility"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><div><h3 id="zecsEligibility">Connect Noir Wallet</h3><p id="zecsEligibilityDetail">Hold a ZEC BLOCKS NFT to participate. Ownership is checked before each mint.</p></div></div><div class="zecs-metrics"><div><small>Your balance</small><b id="zecsBalance">—</b></div><div><small>Per mint</small><b>210 ZECS</b></div></div><div class="zecsProgressTop"><b id="zecsMintedSupply">— / 21,000,000 ZECS</b><span class="gold" id="zecsMintPercent">—</span></div><div class="zecsProgress" id="zecsProgress" aria-label="ZECS mint progress"><i id="zecsProgressBar"></i></div><div class="zecs-progress-caption"><span id="zecsMintEvents">—</span> confirmed mints · <span id="zecsPendingEvents">—</span> pending</div><div class="zecsActions"><button class="btn gold" id="connectZecsBtn">Connect Wallet</button><button class="btn gold" id="zecsMintBtn" disabled hidden>Mint 210 ZECS</button></div><div class="zecs-recovery"><button class="btn subtle" id="zecsRecoverBtn">Recover Pending Mint</button><a href="#mining" data-view="mining" id="zecsGetNft" class="btn subtle" hidden>Get a ZEC BLOCKS NFT ↗</a></div><div class="zecsStatus" id="zecsStatus" role="status" aria-live="polite">Checking mint availability…</div><div class="fee-note">No token mint fee. Zcash network fee applies.</div></section></div>
+    <details class="details-shell"><summary>About $ZECS & mint details</summary><p class="zecs-info">ZECS uses the ZB-20 protocol on Zcash. Each mint creates one signed event for 210 ZECS, anchored by a Zcash transaction. Only confirmed events count toward the 21,000,000 supply cap. No premine, no presale, and no team allocation.</p><div class="zecsMintPayload">{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}</div></details>
+  </section>
 
 <div class="sectionHead" id="market"><div><h2>Marketplace</h2><p>Signed P2P listings and offers. No custody.</p></div><div class="tabs"><button id="refreshMarketBtn" class="btn">Refresh</button><button id="createListingBtn" class="btn gold" disabled>List an NFT</button></div></div>
 <section class="card">
@@ -212,7 +98,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
   <div class="mini"><div class="kicker">Source of truth</div><h3>The chain is the database.</h3><p>The relay/order board is only a convenience layer. Anyone can rebuild or replace it. ZB-1 event validity is anchored to Zcash.</p></div>
 </section>
 
-<footer class="footer"><div>© 2026 ZEC BLOCKS · ZB-1 · Mining</div><div class="footerlinks"><a href="https://www.zecblocks.xyz">Marketplace ↗</a><a href="https://x.com/ZEC_BLOCKS" target="_blank" rel="noreferrer">X / @ZEC_BLOCKS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a></div></footer>
+<footer class="footer"><div>© 2026 ZEC BLOCKS · Built from Zcash.</div><div class="footerlinks"><a href="https://www.zecblocks.xyz">Marketplace ↗</a><a href="https://x.com/ZEC_BLOCKS" target="_blank" rel="noreferrer">X / @ZEC_BLOCKS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Docs</a></div></footer>
 </main>
 
 <div id="listingModal" class="modal"><div class="modalCard"><div class="modalHead"><h3>List ZEC BLOCK</h3><button class="xbtn" data-close="listingModal">×</button></div><div class="field"><label>Token ID</label><select id="listingToken" class="select"></select></div><div class="field"><label>Asking price (ZEC)</label><input id="listingPrice" class="input" value="0.05" inputmode="decimal"></div><div class="field"><label>Expires in days</label><input id="listingDays" class="input" type="number" min="1" max="30" value="7"></div><div class="notice">Listings are signed marketplace intents and published to public relays for discovery. Listing does not transfer the NFT or move ZEC.</div><div class="controls"><button id="publishListingBtn" class="btn gold">Sign & Publish Listing</button></div></div></div>
@@ -2054,7 +1940,7 @@ async function submitClaim(){
     const pub=String(S.pubkey||'').replace(/^0x/,'').toLowerCase();
     if(!/^[0-9a-f]+$/.test(pub)||pub.length%2)throw new Error('Derived Noir public key is invalid.');
     const msg=`ZB1:CLAIM:v1|G=${CFG.genesisTxid}|T=${S.target.token}|N=${S.proof.nonce}|K=${pub}`;
-    $('mineStatus').textContent='Sign free test claim in Noir Wallet…';
+    $('mineStatus').textContent='Sign your claim in Noir Wallet…';
     const sig=await rpc('zcash_signMessage',[msg,{signingMode:'derived'}]);
     const signedPub=String(sig?.pubkey||pub).replace(/^0x/,'').toLowerCase();
     if(signedPub!==pub)throw new Error('Noir signing identity changed. Reconnect the wallet and retry.');
@@ -2072,7 +1958,7 @@ async function submitClaim(){
 
     // Durable lock BEFORE wallet approval. Ambiguous wallet results never allow a duplicate click.
     saveFreeClaimRecovery({status:'wallet_approval',tokenId,nonce:String(S.proof.nonce),memo,event:baseEvent,startedAt:Date.now()});
-    $('mineStatus').textContent='Approve ONE Zcash claim transaction · protocol fee bypassed…';
+    $('mineStatus').textContent='Approve your Zcash claim transaction in Noir Wallet…';
 
     assertActionWallet();
     const txid=await sendClaimTransaction(memo);
@@ -2092,7 +1978,7 @@ async function submitClaim(){
     S.proof=null;
     $('mineStatus').textContent='Claim broadcast · canonical confirmation pending';
     setClaimStatus('CLAIM BROADCAST · waiting for Zcash confirmation','warn');
-    toast(`Free test claim broadcast successfully · TX ${short(txid,8)} · only Zcash network fee was paid.`,11000)
+    toast(`Claim broadcast successfully · TX ${short(txid,8)} · only Zcash network fee was paid.`,11000)
   }catch(e){
     const r=loadFreeClaimRecovery(S.target?.token);
     const definitelyNotBroadcast=walletRejected(e)||insufficientFundsError(e)||/could not fund the claim transaction/i.test(String(e?.message||e||''));
@@ -2573,7 +2459,8 @@ function updateZecsUI(){
     btn.textContent=S.zecsBusy?'Working…':recoveryNeeded?'Recover Pending Mint First':!connected?'Connect Noir Wallet to Mint':events>=ZECS_MAX_EVENTS?'ZECS Mint Sold Out':!eligible?'ZEC BLOCKS Holder Required':!open?'Waiting for Canonical Deploy':'Mint 210 ZECS'
   }
   const rb=$('zecsRecoverBtn');
-  if(rb){rb.disabled=S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsRegistrationBusy||!connected;rb.textContent=recoveryNeeded?'Recover Pending Mint':'Recover Mint'}
+  if(rb){rb.disabled=S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsRegistrationBusy||!connected;rb.textContent=recoveryNeeded?'Continue Pending Mint':'Recover a Previous Mint'}
+  renderZecsExperience();
 }
 
 async function loadZecsState(){
@@ -2793,6 +2680,131 @@ function assertActionWallet(){
   if(S.actionOwner&&(S.actionOwner!==S.ownerCommitment||S.actionEpoch!==S.walletEpoch))
     throw new Error('Wallet changed during this action. Reconnect and recover any pending transaction.');
 }
+// Presentation state is separate from wallet, lease and transaction state.
+const MINING_UI={view:'mining',galleryKey:'',generation:0,artCache:new Map(),preview:null};
+function setMiningView(view,{focus=false}={}){
+  view=view==='zecs'?'zecs':'mining';MINING_UI.view=view;
+  $('pageTitle').innerHTML=view==='zecs'?'Mint your next <em>ZECS.</em>':'Mine your next <em>block.</em>';
+  $('pageIntro').innerHTML=view==='zecs'?'The first ZB-20 token on Zcash.<br>Exclusive minting for ZEC BLOCKS NFT holders.':'Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.';
+  for(const name of ['mining','zecs']){
+    const tab=$(name==='mining'?'nftTab':'zecsTab'),active=name===view;
+    $(name).hidden=!active;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;
+    if(active&&focus)tab.focus();
+  }
+  document.querySelectorAll('.nav [data-view]').forEach(a=>{if(a.dataset.view===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(view==='mining')renderAvailableTokens();
+  renderMiningExperience();renderZecsExperience();
+}
+function renderMiningExperience(){
+  const connected=!!S.ownerCommitment&&!S.noirLocked;
+  const busy=S.targetBusy||S.walletAction||S.zecsRegistrationBusy;
+  const recovery=S.target?loadFreeClaimRecovery(S.target.token):null;
+  const raw=$('mineStatus').textContent;
+  const failed=/failed|error|unavailable|retry needed|quorum|reservation lost/i.test(raw);
+  let title='Your block is waiting.',description='Connect Noir Wallet to find an available NFT and start mining in your browser.',step=0,action='connectMineBtn';
+  if(connected){
+    step=1;action='findUnclaimedBtn';title='Find your next NFT.';description='Let us find an available block, or choose one from the gallery below.';
+    if(S.target){step=2;action='startMineBtn';title='Ready when you are.';description='NFT #'+S.target.token+' is selected. Start mining to find the proof for your claim.';}
+    if(S.proof&&S.target){step=3;action='submitClaimBtn';title='Your proof is ready.';description='Claim NFT #'+S.target.token+' by approving the transaction in Noir Wallet.';}
+    if(failed&&!S.mining){description='The last check could not finish. '+(S.target?'Try again, or choose another NFT.':'Find another NFT or retry your selection. Details are available below.');}
+    if(S.mining){step=2;action='miningBusyBtn';title='Finding your proof.';description='Your device is mining NFT #'+S.target.token+'. Keep this tab open. You can stop at any time.';}
+    if(recovery){step=3;action='findUnclaimedBtn';title=recovery.txid?'Claim sent to Zcash.':'Continue your pending claim.';description='Your claim is saved. Check its status below, or choose another NFT while it is being verified.';}
+    if(busy&&!S.mining){action='miningBusyBtn';title=S.walletAction?'Check Noir Wallet.':'Checking your NFT…';description=S.walletAction?'Complete the request in your wallet. Your transaction will appear here after it is sent.':'Verifying availability and preparing your selection. This may take a moment.';}
+  }
+  for(const id of ['connectMineBtn','findUnclaimedBtn','startMineBtn','submitClaimBtn','miningBusyBtn'])$(id).hidden=id!==action;
+  $('connectMineBtn').disabled=!!S.noirConnectPromise;
+  $('miningBusyBtn').textContent=S.mining?'Mining in progress…':S.walletAction?'Waiting for wallet…':'Checking availability…';
+  $('findUnclaimedBtn').textContent=recovery?'Find Another NFT':'Find Unclaimed NFT';
+  if(!CFG.claimProtocolFeeEnabled&&!$('submitClaimBtn').dataset.busy&&!recovery)$('submitClaimBtn').textContent='Claim NFT';
+  $('actionTitle').textContent=title;$('actionDescription').textContent=description;
+  $('stopMineBtn').hidden=!S.mining;
+  $('surpriseBtn').hidden=!connected||S.mining||!!busy;
+  $('surpriseBtn').disabled=!connected||!!busy||S.mining;
+  $('browseGalleryLink').hidden=S.mining||!!busy;
+  $('miningMeter').hidden=!S.mining&&!S.proof;
+  $('meterLabel').textContent=S.proof?'Proof found':'Mining in your browser';
+  $('meterHint').textContent=S.proof?'Ready for your wallet approval.':'Proof discovery is probabilistic. Completion time varies.';
+  $('miningExperience').classList.toggle('is-mining',!!S.mining);
+  $('miningExperience').classList.toggle('is-proof',!!S.proof&&!recovery);
+  document.querySelectorAll('[data-step]').forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle('complete',n<step);if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
+  $('clearCount').textContent=S.serverStatsReady?Number(S.serverClearCount||0).toLocaleString():'—';
+  $('claimFeeNote').textContent=CFG.claimProtocolFeeEnabled?'Claim fee '+CFG.paidClaimFeeZec+' ZEC. Network fee applies.':'No mint fee. Zcash network fee applies.';
+  $('candidateHint').textContent=connected?'Select an NFT to check and reserve it.':'Connect your wallet to select an NFT.';
+  if(S.target){
+    $('artCaption').textContent='YOUR SELECTED NFT';$('artTitle').textContent='ZEC BLOCK #'+S.target.token;
+    $('heroArt').setAttribute('aria-label','ZEC BLOCK #'+S.target.token+' artwork');
+    $('artState').textContent=recovery?'Pending confirmation':S.proof?'Proof ready':S.mining?'Mining':'Selected';
+    $('heroHeight').textContent=Number(S.target.sourceHeight||0)?Number(S.target.sourceHeight).toLocaleString():'—';
+  }else if(MINING_UI.preview){
+    const p=MINING_UI.preview;$('artCaption').textContent='EXPLORE THE COLLECTION';$('artTitle').textContent='ZEC BLOCK #'+p.id;
+    $('artState').textContent='Preview';$('heroHeight').textContent=p.height.toLocaleString();
+    // Never leave a previous wallet's target artwork under a new preview label.
+    if($('heroArt').dataset.preview!==String(p.id)){artSvg($('heroArt'),p.seed,'ZB #'+p.id);$('heroArt').dataset.preview=String(p.id);}
+    $('heroArt').setAttribute('aria-label','Preview of ZEC BLOCK #'+p.id);
+  }
+  if(S.target)delete $('heroArt').dataset.preview;
+  for(const b of $('availableTokens').querySelectorAll('[data-candidate]'))b.setAttribute('aria-pressed',String(Number(b.dataset.candidate)===S.target?.token));
+}
+function renderZecsExperience(){
+  const connected=!!S.ownerCommitment&&!S.noirLocked;
+  $('connectZecsBtn').hidden=connected;$('connectZecsBtn').disabled=!!S.noirConnectPromise;
+  const recovery=!!loadZecsPendingTxid()||!!loadZecsBroadcastLock();
+  $('zecsMintBtn').hidden=!connected||recovery;
+  $('zecsRecoverBtn').hidden=!connected;
+  $('zecsRecoverBtn').classList.toggle('gold',recovery);
+  $('zecsRecoverBtn').classList.toggle('subtle',!recovery);
+  $('zecsGetNft').hidden=!connected||S.zecsAccount?.eligible!==false;
+}
+async function candidateArtwork(id){
+  if(MINING_UI.artCache.has(id))return MINING_UI.artCache.get(id);
+  const height=(await resolveGenesis())-id,j=await explorerFetch('block',height);
+  const hash=String(deepFind(j,['hash','block_hash','blockHash'])||'').toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(hash))throw new Error('Artwork unavailable');
+  const result={id,height,seed:hash+':'+height};
+  MINING_UI.artCache.set(id,result);
+  if(MINING_UI.artCache.size>72)MINING_UI.artCache.delete(MINING_UI.artCache.keys().next().value);
+  return result;
+}
+async function hydrateCandidateArtwork(generation){
+  MINING_UI.previewQueue=[...$('availableTokens').querySelectorAll('[data-candidate]')].filter(card=>!card.querySelector('svg').childElementCount).map(card=>({card,generation}));
+  if(MINING_UI.hydrating)return;
+  MINING_UI.hydrating=true;
+  // A shared queue bounds all preview work to two concurrent chain reads,
+  // including rapid page changes. Old results cannot update new cards.
+  async function worker(){
+    while(MINING_UI.previewQueue.length&&MINING_UI.view==='mining'){
+      const {card,generation}=MINING_UI.previewQueue.shift(),id=Number(card.dataset.candidate);
+      try{
+        const art=await candidateArtwork(id);
+        if(generation!==MINING_UI.generation||!card.isConnected)continue;
+        artSvg(card.querySelector('svg'),art.seed,'ZB #'+id);
+        if(card===$('availableTokens').querySelector('[data-candidate]')&&!S.target&&!S.targetBusy){MINING_UI.preview=art;renderMiningExperience();}
+      }catch{if(card.isConnected)card.querySelector('.candidate-art').dataset.placeholder='Preview unavailable';}
+    }
+  }
+  try{await Promise.all([worker(),worker()])}finally{MINING_UI.hydrating=false;}
+}
+function setupMiningExperience(){
+  const tabs=[...document.querySelectorAll('[data-tab]')];
+  for(const tab of tabs){
+    tab.onclick=()=>{location.hash=tab.dataset.tab;setMiningView(tab.dataset.tab);};
+    tab.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const next=e.key==='Home'?'mining':e.key==='End'?'zecs':tab.dataset.tab==='mining'?'zecs':'mining';location.hash=next;setMiningView(next,{focus:true});};
+  }
+  for(const a of document.querySelectorAll('[data-view]'))a.addEventListener('click',()=>setMiningView(a.dataset.view));
+  window.addEventListener('hashchange',()=>setMiningView(location.hash==='#zecs'?'zecs':'mining'));
+  $('connectMineBtn').onclick=$('connectZecsBtn').onclick=async()=>{await connectWallet(false);renderMiningExperience();renderZecsExperience();};
+  $('surpriseBtn').onclick=()=>runMiningAction(async()=>{
+    const pending=new Set(claimRecoveries().map(r=>Number(r.tokenId)));
+    const ids=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)&&!pending.has(id)&&id!==S.target?.token);
+    if(!ids.length)return findUnclaimedAction();
+    $('tokenInput').value=String(ids[Math.floor(Math.random()*ids.length)]);await loadTarget();
+  });
+  $('candidateSearch').oninput=()=>{S.availablePage=0;renderAvailableTokens();};
+  // Status updates from hashing workers do not need to redraw the gallery.
+  new MutationObserver(()=>renderMiningExperience()).observe($('mineStatus'),{childList:true,characterData:true,subtree:true});
+  setMiningView(location.hash==='#zecs'?'zecs':'mining');
+}
+
 function updateMiningControls(){
   const connected=!!S.ownerCommitment&&!S.noirLocked,busy=S.targetBusy||S.walletAction;
   const recovery=S.target?loadFreeClaimRecovery(S.target.token):null,queue=claimRecoveries(S.ownerCommitment||'anon');
@@ -2802,10 +2814,11 @@ function updateMiningControls(){
   $('stopMineBtn').disabled=!S.mining;
   $('recoverClaimBtn').disabled=!connected||busy||S.mining||[...CLAIM_RECOVERY_JOBS.keys()].some(k=>k.startsWith((S.ownerCommitment||'anon')+':'));
   $('recoverClaimBtn').hidden=!queue.length;
-  $('recoverClaimBtn').textContent='Recover Pending Claim'+(queue.length>1?' ('+queue.length+')':'');
+  $('recoverClaimBtn').textContent='Continue Pending Claim'+(queue.length>1?' ('+queue.length+')':'');
   if(!busy&&recovery?.txid)showClaimReceipt(recovery.tokenId,recovery.txid);
   if(queue.length&&!$('claimRecoveryStatus').textContent)claimRecoveryNotice('Pending claim '+queue.map(r=>'#'+r.tokenId).join(', ')+'. Recover it here, or choose a different block to continue mining.');
   document.querySelectorAll('[data-candidate]').forEach(b=>b.disabled=!connected||busy||S.mining);
+  renderMiningExperience();
 }
 async function runMiningAction(fn,{wallet=false}={}){
   if(S.targetBusy||S.walletAction||S.zecsRegistrationBusy||S.mining)return;
@@ -2830,13 +2843,23 @@ function showClaimReceipt(token,txid){
   $('claimReceipt').innerHTML='Claim #'+Number(token)+' broadcast · <a target="_blank" rel="noreferrer" href="https://cipherscan.app/tx/'+txid+'">View transaction ↗</a>';
 }
 function renderAvailableTokens(){
-  const ids=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)).sort((a,b)=>a-b);
-  const pages=Math.max(1,Math.ceil(ids.length/12));S.availablePage=Math.min(S.availablePage||0,pages-1);
+  const pending=new Set(claimRecoveries(S.ownerCommitment||'anon').map(r=>Number(r.tokenId)));
+  const query=String($('candidateSearch').value||'').trim().replace(/^#/, '');
+  const ids=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)&&!pending.has(id)&&(!query||String(id).includes(query))).sort((a,b)=>a-b);
+  const size=6,pages=Math.max(1,Math.ceil(ids.length/size));S.availablePage=Math.min(S.availablePage||0,pages-1);
   $('availablePage').textContent=(S.availablePage+1)+' / '+pages;
   $('availablePrev').disabled=!S.availablePage;$('availableNext').disabled=S.availablePage>=pages-1;
-  $('availableTokens').innerHTML=ids.slice(S.availablePage*12,S.availablePage*12+12).map(id=>'<button class="btn candidate" data-candidate="'+id+'">#'+id+'</button>').join('')||'<p class="muted">Waiting for verified availability. Refresh to retry.</p>';
-  for(const b of $('availableTokens').querySelectorAll('button'))b.onclick=()=>runMiningAction(async()=>{$('tokenInput').value=b.dataset.candidate;await loadTarget()});
-  updateMiningControls()
+  const shown=ids.slice(S.availablePage*size,S.availablePage*size+size),key=query+'|'+S.availablePage+'|'+shown.join(',');
+  if(key!==MINING_UI.galleryKey){
+    MINING_UI.galleryKey=key;MINING_UI.generation++;
+    $('availableTokens').innerHTML=shown.map(id=>'<button class="candidate" data-candidate="'+id+'" aria-label="Select ZEC BLOCK #'+id+'" aria-pressed="false"><span class="candidate-art" data-placeholder="Loading artwork…"><svg viewBox="0 0 600 600" aria-hidden="true"></svg></span><span class="candidate-meta"><b>ZEC BLOCK #'+id+'</b><span>Available</span></span></button>').join('')||'<p class="gallery-empty">'+(query?'No available NFT matches this number. Try another search.':'Availability is being checked. Refresh to look for more NFTs.')+'</p>';
+    for(const b of $('availableTokens').querySelectorAll('button'))b.onclick=async()=>{
+      const loaded=await runMiningAction(async()=>{$('tokenInput').value=b.dataset.candidate;return loadTarget()});
+      if(loaded){$('miningExperience').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});$('startMineBtn').focus({preventScroll:true});}
+    };
+  }
+  if(MINING_UI.view==='mining')hydrateCandidateArtwork(MINING_UI.generation).catch(()=>{});
+  updateMiningControls();
 }
 const originalUpdateWalletUI=updateWalletUI;
 updateWalletUI=function(){originalUpdateWalletUI();updateMiningControls()};
@@ -2853,10 +2876,10 @@ $('zecsMintBtn').onclick=()=>runMiningAction(mintZecs,{wallet:true});
 $('zecsRecoverBtn').onclick=()=>runMiningAction(recoverZecsMint,{wallet:true});
 $('availablePrev').onclick=()=>{S.availablePage=Math.max(0,(S.availablePage||0)-1);renderAvailableTokens()};
 $('availableNext').onclick=()=>{S.availablePage=(S.availablePage||0)+1;renderAvailableTokens()};
-$('refreshAvailable').onclick=async()=>{const b=$('refreshAvailable');if(b.disabled)return;b.disabled=true;try{await loadServerMiningSnapshot({force:true})}finally{b.disabled=false}};
+$('refreshAvailable').onclick=async()=>{const b=$('refreshAvailable');if(b.disabled)return;b.disabled=true;try{await loadServerMiningSnapshot({force:true});MINING_UI.galleryKey='';renderAvailableTokens()}finally{b.disabled=false}};
 function updateThemeButton(){
   const light=document.documentElement.dataset.theme==='light';
-  $('themeBtn').textContent=light?'☾ Dark':'☀ Light';$('themeBtn').setAttribute('aria-label','Switch to '+(light?'dark':'light')+' mode')
+  $('themeBtn').innerHTML=light?'<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10Z"/></svg>':'<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>';$('themeBtn').setAttribute('aria-label','Switch to '+(light?'dark':'light')+' mode');$('themeBtn').title=light?'Dark mode':'Light mode'
 }
 $('themeBtn').onclick=()=>{const next=document.documentElement.dataset.theme==='light'?'dark':'light';document.documentElement.dataset.theme=next;try{localStorage.setItem('zb1_theme',next)}catch{}updateThemeButton()};
 updateThemeButton();updateMiningControls();
@@ -2871,7 +2894,8 @@ $('engineSelect').onchange=()=>{
   else{$('mineEngine').textContent='Auto · GPU preferred';detectGpu()}
 };
 $('testGpuBtn').onclick=()=>detectGpu({toastResult:true});
-artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
+artSvg($('heroArt'),CFG.genesisTxid,'COLLECTION PREVIEW');
+setupMiningExperience();
 (async()=>{
   restoreAuthoritativeStatsCache();
   updateAvailabilityCounts();

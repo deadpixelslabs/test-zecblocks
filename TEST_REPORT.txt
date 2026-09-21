@@ -1,3 +1,13 @@
+Mining interface verification
+
+Local regression suite: 26/26 passed. Syntax and DOM ID/reference checks passed.
+Existing CPU proof, single-broadcast, account change, fee gate and recovery fixtures remain active.
+New coverage verifies gallery source artwork, search, pagination and selection; browsing performs no reservation or payment. Tab navigation preserves active mining, disables ZECS mint while mining, and restores #zecs on reload.
+Desktop and mobile screenshots cover both NFT and ZECS panels in dark and light themes. Mobile overflow is checked at 390px.
+Tests use synthetic wallet/API fixtures and reduced proof difficulty. No real-wallet transaction or mainnet payment was executed.
+
+Previous recovery verification
+
 Mining Studio V16.1.1 recovery regression verification
 
 Local verification: 24 Node/Chromium regression tests, using Playwright 1.55.1.
