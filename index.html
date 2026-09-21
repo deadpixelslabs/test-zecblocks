@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.4 · TWO-STEP CLAIM</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.5 · IDEMPOTENT CLAIM</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.4 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.5 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -212,6 +212,13 @@ const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
 function short(v,n=8){v=String(v||'');return v.length>n*2+1?v.slice(0,n)+'…'+v.slice(-n):v}
+function zcashTxidFromResult(v){
+  const raw=typeof v==='string'?v:
+    v?.txid??v?.txId??v?.transactionId??v?.transaction_id??v?.hash??v?.id??
+    v?.result?.txid??v?.result?.txId??v?.data?.txid??v?.data?.txId??'';
+  return String(raw||'').replace(/^0x/,'').trim().toLowerCase()
+}
+function walletRejected(e){return /reject|denied|declined|cancelled|canceled|user rejected|4001/i.test(String(e?.message||e?.reason||e||''))}
 function hexToBytes(hex){hex=hex.replace(/^0x/,'');if(hex.length%2)hex='0'+hex;const a=new Uint8Array(hex.length/2);for(let i=0;i<a.length;i++)a[i]=parseInt(hex.slice(i*2,i*2+2),16);return a}
 function bytesToHex(a){return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
 async function sha256Bytes(bytes){return new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))}
@@ -249,10 +256,16 @@ function updateFeeCreditUI(){
     if(btn&&!btn.dataset.busy)btn.textContent='Pay Fee & Prepare Claim';
     return
   }
-  if(v.status==='pending'){
-    el.textContent=`PENDING · #${v.attempt?.tokenId||'?'} · ${short(v.txid,7)}`;
+  if(v.status==='broadcasting'){
+    el.textContent=`CLAIM RECOVERY LOCK · #${v.attempt?.tokenId||'?'}`;
     el.style.color='#f1cc76';
-    if(btn&&!btn.dataset.busy)btn.textContent='Claim Pending';
+    if(btn&&!btn.dataset.busy){btn.textContent='Claim Recovery Locked';btn.disabled=true}
+    return
+  }
+  if(v.status==='pending'){
+    el.textContent=`PENDING · #${v.attempt?.tokenId||'?'} · ${short(v.attempt?.claimTxid||v.txid,7)}`;
+    el.style.color='#f1cc76';
+    if(btn&&!btn.dataset.busy){btn.textContent='Claim Pending';btn.disabled=true}
     return
   }
   if(v.status==='consumed'){
@@ -520,8 +533,12 @@ async function sendClaimTransaction(memo){
         : 'Bound fee confirmed · approve claim transaction…';
       const req={to:CFG.mailbox,amount:'0.00000001',memo};
       if(source)req.fundingSource=source;
-      const txid=String(await rpc('zcash_sendTransaction',[req])).replace(/^0x/,'').toLowerCase();
-      if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid claim TXID.');
+      const raw=await rpc('zcash_sendTransaction',[req]);
+      const txid=zcashTxidFromResult(raw);
+      if(!/^[0-9a-f]{64}$/.test(txid)){
+        const err=new Error('Noir Wallet approved the claim but returned an unsupported transaction result. Claim recovery lock is active; do NOT confirm again.');
+        err.code='NOIR_TXID_UNRECOGNIZED';err.rawResult=raw;throw err
+      }
       return txid
     }catch(e){
       last=e;
@@ -533,7 +550,7 @@ async function sendClaimTransaction(memo){
   const total=S.balance?.available??S.balance?.total??'unknown';
   throw new Error(`Noir Wallet could not fund the claim transaction from any spendable pool. Wallet available balance: ${total} ZEC. Your bound claim credit remains safe; no second protocol fee is required.`)
 }
-async function ensureTransparentFunding(){await refreshBalance();if(transparentBalanceZat()>=200000n)return true;const addr=String(S.connection?.transparent||'');if(!/^t[13][A-Za-z0-9]{20,}$/.test(addr))throw new Error('Noir Wallet did not expose a mainnet transparent address.');const ok=window.confirm('Your transparent balance is too low for the 0.0013 ZEC paid-claim fee. Move 0.002 ZEC from your shielded balance to your own transparent address now? This creates a public link between this top-up and your transparent address.');if(!ok)throw new Error('Transparent fee funding is required for V12.1 bound claim credits.');toast('Approve the 0.002 ZEC Shielded → Transparent self-transfer in Noir Wallet.',9000);const txid=String(await rpc('zcash_sendTransaction',[{to:addr,amount:'0.002',fundingSource:'shielded'}])).toLowerCase();throw new Error(`Transparent top-up broadcast (${short(txid,8)}). Wait for it to confirm, then click Submit Claim again. No protocol fee has been paid yet.`)}
+async function ensureTransparentFunding(){await refreshBalance();if(transparentBalanceZat()>=200000n)return true;const addr=String(S.connection?.transparent||'');if(!/^t[13][A-Za-z0-9]{20,}$/.test(addr))throw new Error('Noir Wallet did not expose a mainnet transparent address.');const ok=window.confirm('Your transparent balance is too low for the 0.0013 ZEC paid-claim fee. Move 0.002 ZEC from your shielded balance to your own transparent address now? This creates a public link between this top-up and your transparent address.');if(!ok)throw new Error('Transparent fee funding is required for V12.1 bound claim credits.');toast('Approve the 0.002 ZEC Shielded → Transparent self-transfer in Noir Wallet.',9000);const raw=await rpc('zcash_sendTransaction',[{to:addr,amount:'0.002',fundingSource:'shielded'}]),txid=zcashTxidFromResult(raw);if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Transparent top-up may have been broadcast but Noir returned an unsupported TX result. Check Noir history before retrying.');throw new Error(`Transparent top-up broadcast (${short(txid,8)}). Wait for it to confirm, then click Submit Claim again. No protocol fee has been paid yet.`)}
 
 async function acquirePaidClaimFee(){
   let existing=loadFeeVoucher();
@@ -553,7 +570,7 @@ async function acquirePaidClaimFee(){
   await ensureTransparentFunding();
   const currentKey=await rpc('zcash_getPublicKey',[{signingMode:'current'}]),currentAddr=String(currentKey?.address||'');if(currentAddr!==String(S.connection?.transparent||''))throw new Error('Noir current signing key does not match the connected transparent address.');
   $('mineStatus').textContent='Approve bound 0.0013 ZEC protocol fee…';toast(`Approve exactly ${CFG.paidClaimFeeZec} ZEC from TRANSPARENT funds to the ZEC BLOCKS treasury.`,10000);
-  const txid=String(await rpc('zcash_sendTransaction',[{to:CFG.treasury,amount:CFG.paidClaimFeeZec,fundingSource:'transparent'}])).replace(/^0x/,'').toLowerCase();if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid fee TXID.');
+  const feeRaw=await rpc('zcash_sendTransaction',[{to:CFG.treasury,amount:CFG.paidClaimFeeZec,fundingSource:'transparent'}]),txid=zcashTxidFromResult(feeRaw);if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Protocol fee may have been broadcast but Noir returned an unsupported TX result. Check Noir history before paying again.');
   const feeMsg=claimFeeReceiptMessage(S.ownerCommitment,txid),receipt=await rpc('zcash_signMessage',[feeMsg,{signingMode:'current'}]);if(String(receipt?.address||'')!==currentAddr)throw new Error('Noir fee-receipt signer changed unexpectedly.');const recovered=await recoverZcashMessagePubkey(feeMsg,receipt.signature),recoveredAddr=await pubkeyToMainnetTAddress(recovered);if(recoveredAddr!==currentAddr)throw new Error('Fee receipt signature does not recover to the transparent fee-payer address.');
   const v={txid,status:'available',ownerCommitment:S.ownerCommitment,createdAt:Math.floor(Date.now()/1000),amountZat:CFG.paidClaimFeeZat,feeSig:receipt.signature,payerAddress:currentAddr,attempt:null,confirmedAt:null};saveFeeVoucher(v);
   $('mineStatus').textContent='Fee sent · waiting for 1 Zcash confirmation…';
@@ -1585,6 +1602,7 @@ async function submitClaim(){
 
     await reconcileFeeCredit();
     const unresolved=loadFeeVoucher();
+    if(unresolved?.status==='broadcasting')throw new Error(`Claim #${unresolved.attempt?.tokenId||'?'} may already have been broadcast. Recovery lock is active. Do NOT confirm again; check Noir Wallet history for the claim TXID.`);
     if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. No second protocol fee will be charged.`);
 
     // Fast canonical preflight. Do not run a second browser-wide relay scan before
@@ -1639,12 +1657,18 @@ async function submitClaim(){
     const memo=`ZB1|C|3|T=${S.target.token}|N=${S.proof.nonce}|O=${S.ownerCommitment}|S=${sig.signature}|F=${feeTxid}|R=${feeSig}|Z=${CFG.paidClaimFeeZat}`;
     if(enc.encode(memo).length>512)throw new Error(`V3 claim memo is ${enc.encode(memo).length} bytes; maximum is 512.`);
 
+    // Hard lock BEFORE opening the final transaction approval. If Noir broadcasts
+    // but returns an unexpected result, the UI must never offer Confirm Claim again.
+    voucher.status='broadcasting';
+    voucher.attempt={tokenId:S.target.token,claimTxid:null,nonce:String(S.proof.nonce),sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,signature:sig.signature,memo,startedAt:Math.floor(Date.now()/1000)};
+    saveFeeVoucher(voucher);
     $('mineStatus').textContent='Approve final Zcash claim transaction…';
+
     const txid=await sendClaimTransaction(memo);
     const ev=normalizeEvent({protocol:'ZB1',v:3,type:'CLAIM',txid,memo,tokenId:S.target.token,nonce:S.proof.nonce,signature:sig.signature,ownerCommitment:S.ownerCommitment,sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,proofHash:S.proof.hash,feeTxid,feeSig,feeZat:CFG.paidClaimFeeZat,timestamp:Math.floor(Date.now()/1000),status:'pending'});
 
     voucher.status='pending';
-    voucher.attempt={tokenId:S.target.token,claimTxid:txid,nonce:String(S.proof.nonce),sourceHeight:S.target.sourceHeight,sourceHash:S.target.sourceHash,startedAt:Math.floor(Date.now()/1000)};
+    voucher.attempt={...voucher.attempt,claimTxid:txid,broadcastAt:Math.floor(Date.now()/1000)};
     saveFeeVoucher(voucher);saveLocalEvent(ev);
     try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('claim relay publish',e)}
     try{await serverCheckClaims([S.target.token],{deep:true})}catch(e){console.warn('post-claim canonical lock',e)}
@@ -1655,16 +1679,28 @@ async function submitClaim(){
     await refreshAll();
     await reconcileFeeCredit()
   }catch(e){
-    const v=loadFeeVoucher();
-    if(v?.status==='available'&&v.confirmedAt)$('mineStatus').textContent='Confirmed claim credit ready';
+    let v=loadFeeVoucher();
+    if(v?.status==='broadcasting'){
+      const definitelyNotBroadcast=walletRejected(e)||insufficientFundsError(e)||/could not fund the claim transaction/i.test(String(e?.message||e||''));
+      if(definitelyNotBroadcast){
+        v.status='available';v.attempt=null;saveFeeVoucher(v)
+      }else{
+        $('mineStatus').textContent='Claim may already be broadcast · recovery lock active';
+        toast('Claim may already have been broadcast. Do NOT confirm again. Check Noir Wallet history for the claim TXID.',14000)
+      }
+      v=loadFeeVoucher()
+    }
+    if(v?.status==='broadcasting')$('mineStatus').textContent='Claim may already be broadcast · recovery lock active';
+    else if(v?.status==='available'&&v.confirmedAt)$('mineStatus').textContent='Confirmed claim credit ready';
     else if(v?.status==='available')$('mineStatus').textContent='Fee credit awaiting confirmation';
     else if(v?.status==='pending')$('mineStatus').textContent='Paid claim pending canonical result';
     else $('mineStatus').textContent='Claim not submitted';
-    toast(e.message||String(e),12000)
+    if(v?.status!=='broadcasting')toast(e.message||String(e),12000)
   }finally{
     if(btn){
       btn.dataset.busy='';
-      btn.disabled=!S.proof||!S.target;
+      const v=loadFeeVoucher();
+      btn.disabled=!S.proof||!S.target||v?.status==='pending'||v?.status==='broadcasting';
     }
     updateFeeCreditUI()
   }
