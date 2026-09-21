@@ -3,7 +3,7 @@ ZEC BLOCKS — Mining Studio V16.1.1
 This repository serves mine.zecblocks.xyz. The marketplace is a separate deployment.
 
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
-The visible mining version is V16.1.1 · MINING STUDIO.
+Release identifiers are kept internal and are not displayed in the public mining UI.
 
 What changed in V16.1.1
 - Public page loads no longer start the heavy availability scan. Existing server cron owns that job; exact target checks and recovery ingestion remain active.
