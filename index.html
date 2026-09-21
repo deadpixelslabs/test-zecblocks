@@ -2296,7 +2296,7 @@ async function zecsUnregisteredHistoryMints(){
   const have=new Set(registered.map(x=>String(x.txid||'').toLowerCase()));
   return {candidates,registered,missing:candidates.filter(x=>!have.has(x.txid))}
 }
-async function zecsSetStatus(text,kind=''){
+function zecsSetStatus(text,kind=''){
   const el=$('zecsStatus');if(!el)return;
   el.textContent=text;el.className='zecsStatus'+(kind?' '+kind:'')
 }
