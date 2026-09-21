@@ -147,3 +147,27 @@ test('ambiguous ZECS broadcast remains locked when wallet history is temporarily
   assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);assert.equal(await f.page.evaluate(()=>window.walletTest.sends),1);
  }finally{await f.browser.close()}
 });
+
+test('claim gate requires quorum and accepts only this wallet matching intent',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  const result=await f.page.evaluate(()=>{
+   const gate={complete:true,relays_ok:4,status_by_token:{71:'submitting'}};
+   S.proof={nonce:'12'};
+   S.intents.set(71,{ownerCommitment:'ff'.repeat(32),nonce:'12',expires:Date.now()/1000+100});
+   const foreign=claimGateClear(gate,71);
+   S.intents.set(71,{ownerCommitment:S.ownerCommitment,nonce:'12',expires:Date.now()/1000+100});
+   const own=claimGateClear(gate,71),lowQuorum=claimGateClear({...gate,complete:false,relays_ok:3},71);
+   return {foreign,own,lowQuorum};
+  });
+  assert.deepEqual(result,{foreign:false,own:true,lowQuorum:false});
+ }finally{await f.browser.close()}
+});
+test('wallet rejection clears a ZECS no-broadcast lock and permits a later deliberate retry',async()=>{
+ const f=await fixture();try{
+  await f.connect();await f.page.evaluate(()=>window.walletTest.mode='rejected');
+  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
+  assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
+  assert.equal(await f.page.locator('#zecsMintBtn').isDisabled(),false);
+ }finally{await f.browser.close()}
+});

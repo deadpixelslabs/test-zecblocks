@@ -700,13 +700,13 @@ function saveAuthoritativeStatsCache(){
       canonicalVerifying:Number(S.serverPendingCount||0),
       canonicalUnknown:Number(S.serverUnknownCount||0)
     };
-    if(v.claimsSeen>0)localStorage.setItem('zb1_authoritative_stats_v2',JSON.stringify(v))
+    if(S.serverStatsReady)localStorage.setItem('zb1_authoritative_stats_v2',JSON.stringify(v))
   }catch{}
 }
 function restoreAuthoritativeStatsCache(){
   try{
     const v=JSON.parse(localStorage.getItem('zb1_authoritative_stats_v2')||'null');
-    if(!v||!Number.isFinite(Number(v.claimsSeen))||Number(v.claimsSeen)<=0)return false;
+    if(!v||!Number.isFinite(Number(v.claimsSeen))||(Number(v.claimsSeen)<0||Number(v.claimsSeen)>CFG.supply))return false;
     S.serverClaimTotal=Number(v.claimsSeen);S.serverStatsReady=true;
     S.serverVerifiedCount=Math.max(0,Number(v.canonicalClaims||0));
     S.serverClearCount=Math.max(0,Number(v.canonicalClear||0));
@@ -1769,7 +1769,7 @@ async function startGpuMining(base){
       if(start>0xffffffff-batch)throw new Error('GPU nonce range exhausted. Restart with CPU fallback.');
       device.queue.writeBuffer(paramsBuf,0,new Uint32Array([start,batch,targetTop,0]));device.queue.writeBuffer(resultBuf,0,new Uint32Array([0,0]));
       const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(Math.ceil(batch/256));pass.end();encoder.copyBufferToBuffer(resultBuf,0,readBuf,0,8);
-      const t0=performance.now();device.queue.submit([encoder.finish()]);await readBuf.mapAsync(GPUMapMode.READ);const data=new Uint32Array(readBuf.getMappedRange().slice(0));readBuf.unmap();const ms=Math.max(1,performance.now()-t0);
+      const t0=performance.now();device.queue.submit([encoder.finish()]);await readBuf.mapAsync(GPUMapMode.READ);const data=new Uint32Array(readBuf.getMappedRange().slice(0));readBuf.unmap();if(run!==S.runId||!S.mining)return;const ms=Math.max(1,performance.now()-t0);
       S.hashes+=batch;const rate=batch/(ms/1000),avg=S.hashes/Math.max((performance.now()-S.startMs)/1000,.1);$('hashrate').textContent=formatRate(avg);$('mineProgress').style.width=Math.min(99,(S.hashes/expected)*100)+'%';
       lines.push('GPU '+start.toLocaleString()+'–'+(start+batch-1).toLocaleString()+' · '+formatRate(rate));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n');
       if(data[0]===1){const nonce=data[1],hash=await verifyGpuCandidate(base,nonce);if(hash&&S.mining&&run===S.runId){S.proof={nonce:String(nonce),hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nGPU VERIFIED nonce '+nonce+'\n'+hash;$('submitClaimBtn').disabled=false;toast('GPU found and CPU/WebCrypto verified a valid 26-bit proof.');return}}
@@ -1778,7 +1778,7 @@ async function startGpuMining(base){
   }finally{templateBuf.destroy();paramsBuf.destroy();resultBuf.destroy();readBuf.destroy()}
 }
 async function startCpuMining(base,reason=''){
-  const run=S.runId;
+  const run=S.runId;if(!S.mining)return;
   S.miningEngine='CPU';$('mineEngine').textContent='CPU Web Workers';
   if(reason)setGpuStatus(reason,'bad');
   let lines=[],prefix=reason?reason+'\n':'';
@@ -1794,7 +1794,7 @@ async function startMining(){
     if(!S.target||Number(S.target.token)!==wanted)throw new Error('Mining target changed during verification. Use Find Unclaimed again.');
     const gate=await checkTargetAvailability(S.target,{refresh:false});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} is no longer available. Use Find Unclaimed again.`);
     assertActionWallet();S.runId++;S.mining=true;S.proof=null;S.hashes=0;S.startMs=performance.now();S.gpuStop=false;startClaimWatch();$('startMineBtn').disabled=true;$('stopMineBtn').disabled=false;$('submitClaimBtn').disabled=true;$('mineStatus').textContent='Mining…';$('hashrate').textContent='0 H/s';$('mineProgress').style.width='0%';
-    const base=await mineBase();
+    const base=await mineBase();assertActionWallet();if(!S.mining)return;
     const pref=$('engineSelect')?.value||S.enginePreference||'auto';
     S.enginePreference=pref;
     if(pref==='cpu'){
@@ -1873,7 +1873,7 @@ function startClaimWatch(){
   },12000);
 }
 
-function stopMining(mark=true){S.runId++;S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark){$('mineStatus').textContent='Stopped';releaseMiningLease().catch(()=>{})}}
+function stopMining(mark=true){S.runId++;S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark){$('mineStatus').textContent='Stopped';releaseMiningLease().catch(()=>{})}updateMiningControls()}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 
 function freeClaimRecoveryKey(){return 'zb1_free_claim_recovery_v1_'+String(S.actionOwner||S.ownerCommitment||'anon')}
@@ -2685,7 +2685,7 @@ function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d6
 function acceptStats(d){
   const n=Number(d?.claims_seen);
   if(!Number.isInteger(n)||n<0||n>CFG.supply)return false;
-  const raw=d.generated_at,at=Number(raw)||Date.parse(raw)||0;
+  const raw=d.generated_at,numeric=Number(raw),at=Number.isFinite(numeric)&&numeric>0?(numeric<1e12?numeric*1000:numeric):(Date.parse(raw)||0);
   if(at&&S.statsGeneratedAt&&at<S.statsGeneratedAt)return false;
   if(at)S.statsGeneratedAt=at;
   S.serverStatsReady=true;return true
