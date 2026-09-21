@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.7 · NOIR SESSION READY</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.8 · CANONICAL FEE LEDGER</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.7 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.8 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -269,9 +269,13 @@ function updateFeeCreditUI(){
     return
   }
   if(v.status==='consumed'){
-    el.textContent=`CONSUMED · #${v.consumedBy?.tokenId||'?'}`;
+    const used=Number(v.consumedBy?.tokenId||0);
+    el.textContent=used?`USED BY CANONICAL CLAIM #${used}`:'CLAIM CREDIT CONSUMED';
     el.style.color='#777';
-    if(btn&&!btn.dataset.busy)btn.textContent='Pay Fee & Prepare Claim';
+    if(btn&&!btn.dataset.busy){
+      const next=Number(S.target?.token||0);
+      btn.textContent=next?`Pay 0.0013 ZEC for #${next}`:'Pay Fee & Prepare Claim'
+    }
     return
   }
   if(v.confirmedAt){
@@ -1255,26 +1259,52 @@ async function canonicalWinnerForToken(token){
 async function reconcileFeeCredit(){
   if(S.feeReconcileBusy||!S.ownerCommitment)return loadFeeVoucher();
   let v=loadFeeVoucher();if(!v){updateFeeCreditUI();return null}
-  if(v.status!=='pending'){updateFeeCreditUI();return v}
-  const a=v.attempt;
-  if(!a?.tokenId||!/^[0-9a-f]{64}$/i.test(String(a.claimTxid||''))){v.status='available';v.attempt=null;saveFeeVoucher(v);return v}
 
   S.feeReconcileBusy=true;
   try{
+    // Canonical backend ledger is authoritative. This prevents a browser cache,
+    // refresh race, or second tab from reusing a fee that already won a claim.
+    try{
+      const fs=await supabaseRpc('zecblocks_claim_fee_status',{p_fee_txid:String(v.txid||'').toLowerCase()});
+      if(fs?.consumed===true){
+        v.status='consumed';
+        v.consumedAt=Math.floor(Date.now()/1000);
+        v.consumedBy={tokenId:Number(fs.token_id),claimTxid:String(fs.claim_txid||'').toLowerCase()};
+        v.attempt=null;
+        saveFeeVoucher(v);
+        updateFeeCreditUI();
+        return v
+      }
+    }catch(e){console.warn('canonical fee ledger lookup',e)}
+
+    if(v.status!=='pending'){updateFeeCreditUI();return v}
+    const a=v.attempt;
+    if(!a?.tokenId||!/^[0-9a-f]{64}$/i.test(String(a.claimTxid||''))){
+      v.status='available';v.attempt=null;saveFeeVoucher(v);return v
+    }
+
     const r=await canonicalWinnerForToken(a.tokenId);
     if(!r.winner){updateFeeCreditUI();return v}
 
     const winTx=String(r.winner.verify.txid||'').toLowerCase();
     const myTx=String(a.claimTxid||'').toLowerCase();
     if(winTx===myTx){
-      v.status='consumed';v.consumedAt=Math.floor(Date.now()/1000);
-      v.consumedBy={tokenId:Number(a.tokenId),claimTxid:myTx};
+      // The canonical audit will register the fee consumer. Refresh ledger once
+      // so every browser agrees on the same consumedBy token.
+      try{
+        const fs=await supabaseRpc('zecblocks_claim_fee_status',{p_fee_txid:String(v.txid||'').toLowerCase()});
+        v.status='consumed';v.consumedAt=Math.floor(Date.now()/1000);
+        v.consumedBy={tokenId:Number(fs?.token_id||a.tokenId),claimTxid:String(fs?.claim_txid||myTx).toLowerCase()}
+      }catch{
+        v.status='consumed';v.consumedAt=Math.floor(Date.now()/1000);
+        v.consumedBy={tokenId:Number(a.tokenId),claimTxid:myTx}
+      }
       v.attempt=null;saveFeeVoucher(v);
-      toast(`Claim confirmed: ZEC BLOCK #${a.tokenId}. Your 0.0013 ZEC claim credit is now consumed.`,9000);
+      toast(`Claim confirmed: ZEC BLOCK #${v.consumedBy.tokenId}. This claim credit is now consumed.`,9000)
     }else{
       v.status='available';v.releasedAt=Math.floor(Date.now()/1000);
       v.lastLostAttempt={...a,winnerTxid:winTx};v.attempt=null;saveFeeVoucher(v);
-      toast(`ZEC BLOCK #${a.tokenId} was won by an earlier confirmed claim. Your 0.0013 ZEC protocol fee remains as 1 reusable claim credit.`,11000);
+      toast(`ZEC BLOCK #${a.tokenId} was won by an earlier confirmed claim. Your 0.0013 ZEC protocol fee remains reusable.`,11000)
     }
     return v
   }catch(e){console.warn('fee credit reconcile',e);updateFeeCreditUI();return v}
