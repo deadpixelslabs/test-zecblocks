@@ -120,6 +120,20 @@ test('confirmed claims advance independently of historical IDs and ignore stale 
   assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
+test('public snapshot defaults cannot reset live scan progress; a real new pass can',async()=>{
+ const f=await fixture();try{
+  assert.equal(await f.page.locator('#claimIndexProgress').textContent(),'Checking scan progress…');
+  await f.page.evaluate(()=>{
+   const live={claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,scan_cursor:4901,scan_complete:false,generated_at:200};
+   applyServerLiveStats(live);
+   applyServerMiningSnapshot({claims_seen:3505,verified_indexed:2660,clear_indexed:2283,pending_indexed:57,unknown_indexed:0,scan_cursor:1,scan_complete:false,generated_at:201});
+  });
+  assert.match(await f.page.locator('#claimIndexProgress').textContent(),/98%/);
+  await f.page.evaluate(()=>applyServerLiveStats({claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,scan_cursor:1,scan_complete:false,generated_at:202}));
+  assert.match(await f.page.locator('#claimIndexProgress').textContent(),/scan: 0%/);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
 test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',async()=>{
  const f=await fixture();try{
   await f.connect();f.slow(true);

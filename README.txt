@@ -10,6 +10,8 @@ Claim counts and audit queue
 - Confirmed claims is displayed separately below the main statistics and counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.
 - Mining settings & details explains that Claims seen is a historical count including invalid/unconfirmed attempts. A later valid claim for an already observed ID can increase Confirmed claims without increasing Claims seen.
 - The historical counter and ownership validation rules are unchanged. The frontend does not count local mining attempts as successful claims.
+- Statistics refresh every 15 seconds while the page is active, and when the tab becomes visible again. Background availability and claim-audit jobs run independently of open browsers.
+- Scan progress comes only from the live-stats endpoint. The public mining snapshot cannot read private indexer state under RLS and returns a default cursor of 1; that fallback must not overwrite real progress. Until live scanner state arrives, the UI shows Checking scan progress. A genuine new scan pass may restart at 0% without resetting claim totals.
 - supabase/migrations/20260921214901_fair_claim_audit_queue.sql fixes audit starvation: the least recently updated outstanding transaction is selected first. Failed audits update their timestamp and move behind older work. Payload ranking, deduplication, batch limits and existing service-role-only grants are preserved.
 - Relay duplicates of an already finalized transaction are excluded from automatic re-auditing. This protects existing confirmed claims without marking any unverified claim valid.
 

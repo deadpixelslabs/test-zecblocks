@@ -1,4 +1,11 @@
-Community progress display — 2026-09-21
+Scan progress source correction — 2026-09-21
+
+The production scanner cursor was 4,901 (98%) while the user saw 0%. zecblocks_mining_snapshot is an invoker function; its indexer-state read is filtered by RLS (enabled, no anon policies), so it falls back to cursor 1. The live-stats Edge Function can read the real cursor, but the next public snapshot overwrote it in the browser.
+The UI now accepts scan cursor/completion only from live-stats, preserving private indexer RLS. Before that source responds, it shows Checking scan progress instead of an assumed 0%. Genuine scan-cycle restarts still update to 0%. Claim totals and the four-relay availability requirement are unchanged.
+The regression suite covers live 98% followed by a newer public snapshot returning cursor 1, then a genuine live restart. The production check now also validates the live-stats cursor response.
+All 28 local Node/Chromium tests passed, along with inline syntax and whitespace checks.
+
+Previous community progress display — 2026-09-21
 
 Claims seen is restored to the main collection statistics, with a progress bar and percentage of the 5,000 supply. The confirmed count remains separately visible below it. Both follow the existing server refresh, cached data and stale-response protection; no total is hardcoded and no mining attempt increments the UI locally.
 Production statistics at inspection: 3,551 claims seen (71.02%) and 2,787 confirmed. These are different metrics, with the explanation retained in details.

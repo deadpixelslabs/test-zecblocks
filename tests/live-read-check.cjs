@@ -22,9 +22,10 @@ async function json(url, body) {
       assert.match(page, /id="confirmedClaimCount"/);
       assert.match(page, /id="claimProgressTrack"/);
       assert.match(page, /unique NFT IDs in claim history/);
-      const [snapshot, zecs] = await Promise.all([
+      const [snapshot, zecs, live] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
-        json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {})
+        json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {}),
+        json('/api/zb?op=live-stats')
       ]);
       assert.ok(Number.isInteger(Number(snapshot.claims_seen)));
       assert.ok(Number(snapshot.claims_seen) >= 0 && Number(snapshot.claims_seen) <= 5000);
@@ -32,7 +33,9 @@ async function json(url, body) {
       assert.ok(Number(snapshot.verified_indexed) >= 0 && Number(snapshot.verified_indexed) <= 5000);
       assert.ok(Array.isArray(snapshot.clear_ids));
       assert.ok(Number.isFinite(Number(zecs.minted_supply)));
-      console.log(JSON.stringify({ live: base, claimsSeen: snapshot.claims_seen, confirmedClaims: snapshot.verified_indexed, clearCandidates: snapshot.clear_ids.length, zecsMinted: zecs.minted_supply, zecsMintOpen: zecs.mint_open }));
+      assert.equal(live.ok, true);
+      assert.ok(Number.isInteger(live.scan_cursor) && live.scan_cursor >= 1 && live.scan_cursor <= 5001);
+      console.log(JSON.stringify({ live: base, claimsSeen: snapshot.claims_seen, confirmedClaims: snapshot.verified_indexed, clearCandidates: snapshot.clear_ids.length, scanCursor: live.scan_cursor, scanRound: live.scan_round, zecsMinted: zecs.minted_supply, zecsMintOpen: zecs.mint_open }));
       return;
     } catch (e) {
       lastError = e;

@@ -120,7 +120,7 @@ const CFG={
   supabaseUrl:'https://tvwvenyomlwvjtwxasca.supabase.co',
   supabaseAnon:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY'
 };
-const S={walletEpoch:0,runId:0,targetBusy:false,walletAction:false,actionOwner:null,actionEpoch:0,serverStatsReady:false,provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,feeConfirmPoll:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverClearIds:new Set(),serverUnknownCount:5000,serverPendingCount:0,serverVerifiedCount:0,serverClearCount:0,serverMappingComplete:false,serverScanCursor:1,serverScanComplete:false,serverScanCompletedAt:null,lastServerSnapshot:0,lastServerStats:0,serverSyncBusy:false,serverStatsBusy:false,serverTimer:null,tokenCheckTimer:null,serverBackfillBusy:false,lastServerBackfill:0,miningLease:null,leaseRenewTimer:null,leaseCheckBusy:false,zecsStats:null,zecsAccount:null,zecsBusy:false,zecsTimer:null,zecsLastSync:0};
+const S={walletEpoch:0,runId:0,targetBusy:false,walletAction:false,actionOwner:null,actionEpoch:0,serverStatsReady:false,provider:null,connection:null,pubkey:null,ownerCommitment:null,balance:null,genesisHeight:null,target:null,proof:null,workers:[],mining:false,hashes:0,startMs:0,relay:null,nostr:null,events:[],claims:new Map(),transfers:[],listings:new Map(),offers:[],nostrSk:null,nostrPk:null,currentOfferListing:null,gpu:null,gpuStop:false,miningEngine:null,claimWatchTimer:null,claimCheckCache:new Map(),enginePreference:'auto',gpuDiagnostic:'Not tested',gpuAdapterName:null,intents:new Map(),relayReadOk:0,lastDiscoveryScan:0,usedFeeTxids:new Set(),feeReconcileBusy:false,feeTimer:null,feeConfirmPoll:null,relayFetchBusy:false,lastRelayFetch:0,liveDiscoverySub:null,liveDiscoveryEvents:new Map(),liveRenderTimer:null,discoveryTimer:null,indexSweepBusy:false,indexSweepCursor:0,indexSweepFound:0,indexSweepTimer:null,relayRetryTimer:null,serverClaimTotal:0,serverCandidateIds:new Set(),serverVerifiedIds:new Set(),serverClearIds:new Set(),serverUnknownCount:5000,serverPendingCount:0,serverVerifiedCount:0,serverClearCount:0,serverMappingComplete:false,serverScanCursor:null,serverScanComplete:false,lastServerSnapshot:0,lastServerStats:0,serverSyncBusy:false,serverStatsBusy:false,serverTimer:null,tokenCheckTimer:null,serverBackfillBusy:false,lastServerBackfill:0,miningLease:null,leaseRenewTimer:null,leaseCheckBusy:false,zecsStats:null,zecsAccount:null,zecsBusy:false,zecsTimer:null,zecsLastSync:0};
 const $=id=>document.getElementById(id); const enc=new TextEncoder();
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function toast(msg,ms=4200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -629,9 +629,8 @@ function applyServerMiningSnapshot(d){
   S.serverVerifiedCount=Math.max(0,Number(d.verified_indexed??S.serverVerifiedIds.size));
   S.serverClearCount=Math.max(0,Number(d.clear_indexed??S.serverClearIds.size));
   S.serverMappingComplete=!!d.mapping_complete;
-  S.serverScanCursor=Math.max(1,Number(d.scan_cursor||1));
-  S.serverScanComplete=!!d.scan_complete;
-  S.serverScanCompletedAt=d.scan_completed_at||null;
+  // Public snapshots cannot read private scanner state under RLS; their cursor
+  // defaults to 1. Scan progress comes only from the service-backed live stats.
   S.lastServerSnapshot=Date.now();
   const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
   saveAuthoritativeStatsCache();updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
@@ -645,8 +644,11 @@ function applyServerLiveStats(d){
   S.serverClearCount=Math.max(0,Number(d.canonical_clear||0));
   S.serverPendingCount=Math.max(0,Number(d.canonical_verifying||0));
   S.serverUnknownCount=Math.max(0,Number(d.canonical_unknown||0));
-  S.serverScanCursor=Math.max(1,Number(d.scan_cursor||S.serverScanCursor||1));
-  S.serverScanComplete=d.scan_complete===true;
+  const scanCursor=Number(d.scan_cursor);
+  if(Number.isInteger(scanCursor)&&scanCursor>=1&&scanCursor<=CFG.supply+1){
+    S.serverScanCursor=scanCursor;
+    S.serverScanComplete=d.scan_complete===true;
+  }
   S.serverMappingComplete=(S.serverUnknownCount===0&&S.serverPendingCount===0&&(S.serverVerifiedCount+S.serverClearCount===CFG.supply));
   S.lastServerStats=Date.now();
   saveAuthoritativeStatsCache();updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
@@ -2102,6 +2104,7 @@ function updateIndexProgress(){
     el.textContent=`discovery pass complete · ${Number(S.serverPendingCount||0).toLocaleString()} still VERIFYING`;
     return
   }
+  if(S.serverScanCursor==null){el.textContent='Checking scan progress…';return}
   const pct=Math.max(0,Math.min(99,Math.floor(((Number(S.serverScanCursor||1)-1)/CFG.supply)*100)));
   el.textContent=`canonical 5,000 scan: ${pct}% · fail-closed`
 }
