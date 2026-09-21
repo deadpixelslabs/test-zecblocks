@@ -75,7 +75,7 @@
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.8 · CANONICAL FEE LEDGER</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Application-level PoW. Not ZEC network mining. Find Unclaimed now draws from one global verified-clear pool shared by all miners, deep-checks live relays, atomically reserves a Token ID, and keeps re-validating it while you mine.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V15.8.9 · ZECS RECOVERY SAFE</span></div></div>
 <section class="card panel">
 <div class="miningGrid">
   <div class="terminal">
@@ -96,7 +96,7 @@
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Pay Fee & Prepare Claim</button><button id="recoverFeeBtn" class="btn">Recover Fee Credit</button></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div>
-      <div id="mineNotice" class="notice">V15.8.8 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
+      <div id="mineNotice" class="notice">V15.8.9 canonical safe finder + relay-stable reservation + chain-index tolerant claim flow + global submitting/claimed lock active. The exact 0.0013 ZEC fee is paid from your Noir transparent balance so the public fee transaction can be cryptographically bound to your Noir wallet. If your transparent balance is too low, V13 can move 0.002 ZEC from your shielded balance to your own transparent address first. A paid fee remains one reusable protocol claim credit until a canonical ZB-1 claim actually wins.</div>
     </div>
   </div>
   <div class="sideStack">
@@ -2252,8 +2252,51 @@ $('submitTransferBtn').onclick=async()=>{try{const tokenId=Number(S.transferToke
 const ZECS_MINT_MESSAGE='{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}';
 const ZECS_MAX_SUPPLY=21000000;
 const ZECS_MAX_EVENTS=100000;
-function zecsPendingKey(){return 'zb20_zecs_pending_mint_txid'}
-function zecsSetStatus(text,kind=''){
+function zecsPendingKey(){return 'zb20_zecs_pending_mint_txid_'+String(S.ownerCommitment||'anon')}
+function zecsLegacyPendingKey(){return 'zb20_zecs_pending_mint_txid'}
+function loadZecsPendingTxid(){
+  let v=String(localStorage.getItem(zecsPendingKey())||'').trim().replace(/^0x/,'').toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(v)){
+    const old=String(localStorage.getItem(zecsLegacyPendingKey())||'').trim().replace(/^0x/,'').toLowerCase();
+    if(/^[0-9a-f]{64}$/.test(old)){
+      v=old;localStorage.setItem(zecsPendingKey(),v);localStorage.removeItem(zecsLegacyPendingKey())
+    }
+  }
+  return /^[0-9a-f]{64}$/.test(v)?v:''
+}
+function saveZecsPendingTxid(txid){txid=zcashTxidFromResult(txid);if(/^[0-9a-f]{64}$/.test(txid))localStorage.setItem(zecsPendingKey(),txid)}
+function clearZecsPendingTxid(){localStorage.removeItem(zecsPendingKey());localStorage.removeItem(zecsLegacyPendingKey())}
+function zecsBroadcastKey(){return 'zb20_zecs_broadcast_lock_v2_'+String(S.ownerCommitment||'anon')}
+function loadZecsBroadcastLock(){try{return JSON.parse(localStorage.getItem(zecsBroadcastKey())||'null')}catch{return null}}
+function saveZecsBroadcastLock(v){localStorage.setItem(zecsBroadcastKey(),JSON.stringify(v||{}));updateZecsUI()}
+function clearZecsBroadcastLock(){localStorage.removeItem(zecsBroadcastKey());updateZecsUI()}
+async function zecsMintHistoryCandidates({limit=50}={}){
+  if(!S.connection)return [];
+  const hist=await rpc('zcash_getTransactionHistory');
+  const out=[],seen=new Set();
+  for(const h of (Array.isArray(hist)?hist:[])){
+    const memo=String(h?.memo??deepFind(h,['memo','memoText','memo_text'])??'').trim();
+    if(memo!==ZECS_MINT_MESSAGE)continue;
+    const txid=zcashTxidFromResult(h);
+    if(!/^[0-9a-f]{64}$/.test(txid)||seen.has(txid))continue;
+    seen.add(txid);
+    let ts=Number(h?.timestamp||deepFind(h,['timestamp','time','blockTime','block_time'])||0);
+    if(ts>20_000_000_000)ts=Math.floor(ts/1000);
+    out.push({txid,timestamp:ts||0,status:String(h?.status||'')})
+  }
+  return out.sort((a,b)=>b.timestamp-a.timestamp).slice(0,Math.max(1,Math.min(100,limit)))
+}
+async function zecsUnregisteredHistoryMints(){
+  const candidates=await zecsMintHistoryCandidates({limit:60});
+  const pending=loadZecsPendingTxid();
+  if(pending&&!candidates.some(x=>x.txid===pending))candidates.unshift({txid:pending,timestamp:Date.now()/1000,status:'local-pending'});
+  if(!candidates.length)return {candidates:[],missing:[],registered:[]};
+  const look=await zecsFunction('lookup',{txids:candidates.map(x=>x.txid)});
+  const registered=Array.isArray(look?.rows)?look.rows:[];
+  const have=new Set(registered.map(x=>String(x.txid||'').toLowerCase()));
+  return {candidates,registered,missing:candidates.filter(x=>!have.has(x.txid))}
+}
+async function zecsSetStatus(text,kind=''){
   const el=$('zecsStatus');if(!el)return;
   el.textContent=text;el.className='zecsStatus'+(kind?' '+kind:'')
 }
@@ -2287,9 +2330,11 @@ function updateZecsUI(){
 
   const badge=$('zecsLiveBadge');
   const btn=$('zecsMintBtn');
-  const connected=!!S.ownerCommitment;
+  const connected=!!S.ownerCommitment&&!S.noirLocked;
   const eligible=ac.eligible===true;
   const open=st.mint_open===true&&events<ZECS_MAX_EVENTS;
+  const pendingTx=loadZecsPendingTxid(),broadcastLock=loadZecsBroadcastLock();
+  const recoveryNeeded=!!pendingTx||!!broadcastLock;
   if(badge){
     badge.textContent=events>=ZECS_MAX_EVENTS?'SOLD OUT':open?'MINT LIVE':st.deploy_status==='confirmed'?'OPENING':'DEPLOY CONFIRMING';
     badge.className='badge'+(open?' live':'')
@@ -2299,15 +2344,14 @@ function updateZecsUI(){
     $('zecsEligibilityDetail').textContent=!connected?'Current canonical ZEC BLOCKS ownership is checked before every mint.':eligible?'This wallet currently holds canonical ZEC BLOCKS and may mint ZECS.':'This wallet must hold at least one canonically indexed ZEC BLOCK.'
   }
   if(btn){
-    btn.disabled=S.zecsBusy||!connected||!eligible||!open;
-    btn.textContent=S.zecsBusy?'Minting…':!connected?'Connect Noir Wallet to Mint':events>=ZECS_MAX_EVENTS?'ZECS Mint Sold Out':!eligible?'ZEC BLOCKS Holder Required':!open?'Waiting for Canonical Deploy':'Mint 210 ZECS'
+    btn.disabled=S.zecsBusy||recoveryNeeded||!connected||!eligible||!open;
+    btn.textContent=S.zecsBusy?'Working…':recoveryNeeded?'Recover Pending Mint First':!connected?'Connect Noir Wallet to Mint':events>=ZECS_MAX_EVENTS?'ZECS Mint Sold Out':!eligible?'ZEC BLOCKS Holder Required':!open?'Waiting for Canonical Deploy':'Mint 210 ZECS'
   }
+  const rb=$('zecsRecoverBtn');
+  if(rb){rb.disabled=S.zecsBusy||!connected;rb.textContent=recoveryNeeded?'Recover Pending Mint':'Recover Mint'}
 }
-async function loadZecsState({sync=false}={}){
+async function loadZecsState(){
   try{
-    if(sync){
-      try{await zecsFunction('sync',{})}catch(e){console.warn('ZECS sync',e)}
-    }
     S.zecsStats=await supabaseRpc('zecblocks_zb20_stats',{});
     if(S.ownerCommitment){
       try{S.zecsAccount=await supabaseRpc('zecblocks_zb20_account',{p_owner_commitment:S.ownerCommitment})}
@@ -2336,62 +2380,122 @@ async function registerZecsMintTx(txid){
   const owner=await sha256HexBytes(hexToBytes(pub));
   if(owner!==String(S.ownerCommitment||'').toLowerCase())throw new Error('Noir derived identity changed before ZECS registration.');
   const out=await zecsFunction('register',{txid,pubkey:pub,anchorSignature:sig,message:ZECS_MINT_MESSAGE});
-  localStorage.removeItem(zecsPendingKey());
+  clearZecsPendingTxid();clearZecsBroadcastLock();
+  if(out?.stats)S.zecsStats=out.stats;
+  if(out?.account)S.zecsAccount=out.account;
+  updateZecsUI();
   if(out.status==='confirmed')toast('ZECS mint confirmed · +210 ZECS',9000);
-  else toast('ZECS mint anchored · waiting for Zcash confirmation.',9000);
+  else toast('ZECS mint registered · server will finalize it after Zcash confirmation.',8000);
   return out
 }
 async function mintZecs(){
   if(S.zecsBusy)return;
+  let walletSendStarted=false;
   try{
     if(!S.ownerCommitment){await connectWallet(false);if(!S.ownerCommitment)return}
+    if(S.noirLocked)throw new Error('Unlock Noir Wallet first.');
     S.zecsBusy=true;updateZecsUI();
-    const saved=String(localStorage.getItem(zecsPendingKey())||'').toLowerCase();
-    if(/^[0-9a-f]{64}$/.test(saved))throw new Error('A previous ZECS mint needs recovery first. Click Recover Mint; no second mint transaction was sent.');
 
-    zecsSetStatus('Checking canonical holder eligibility and ZECS deployment…','warn');
+    const pending=loadZecsPendingTxid(),lock=loadZecsBroadcastLock();
+    if(pending||lock)throw new Error('A ZECS mint may already be broadcast. Recover it first; no second mint transaction will be sent.');
+
+    zecsSetStatus('Checking Noir history for unregistered ZECS mints…','warn');
+    const history=await zecsUnregisteredHistoryMints();
+    if(history.missing.length){
+      saveZecsBroadcastLock({status:'recovery_required',found:history.missing.map(x=>x.txid),detectedAt:Math.floor(Date.now()/1000)});
+      throw new Error(`Found ${history.missing.length} ZECS mint transaction(s) already broadcast but not registered. Click Recover Pending Mint first.`)
+    }
+
+    zecsSetStatus('Checking canonical holder eligibility…','warn');
     const pre=await zecsFunction('preflight',{ownerCommitment:S.ownerCommitment});
     if(!pre.eligible)throw new Error('ZEC BLOCKS holder required.');
     if(!pre.mint_open)throw new Error('ZECS mint is not open yet.');
 
-    zecsSetStatus('Approve one free ZECS mint anchor in Noir Wallet. Only the normal Zcash network fee applies.','warn');
-    const txid=String(await rpc('zcash_sendTransaction',[{
-      to:CFG.mailbox,
-      amount:'0.00000001',
-      memo:ZECS_MINT_MESSAGE,
-      fundingSource:'shielded'
-    }])).replace(/^0x/,'').toLowerCase();
-    if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid ZECS mint TXID.');
-    localStorage.setItem(zecsPendingKey(),txid);
+    // Hard lock BEFORE wallet approval. Any ambiguous result must recover, never resend.
+    saveZecsBroadcastLock({status:'wallet_approval',startedAt:Math.floor(Date.now()/1000)});
+    zecsSetStatus('Approve ONE free ZECS mint anchor in Noir Wallet. Only the Zcash network fee applies.','warn');
 
-    zecsSetStatus('Mint transaction broadcast. Sign its canonical TXID registration to finish.','warn');
+    let raw;
+    try{
+      walletSendStarted=true;
+      raw=await rpc('zcash_sendTransaction',[{
+        to:CFG.mailbox,
+        amount:'0.00000001',
+        memo:ZECS_MINT_MESSAGE,
+        fundingSource:'shielded'
+      }])
+    }catch(e){
+      if(walletRejected(e))clearZecsBroadcastLock();
+      else saveZecsBroadcastLock({status:'broadcast_unknown',startedAt:Math.floor(Date.now()/1000)});
+      throw e
+    }
+
+    const txid=zcashTxidFromResult(raw);
+    if(!/^[0-9a-f]{64}$/.test(txid)){
+      saveZecsBroadcastLock({status:'broadcast_unknown',startedAt:Math.floor(Date.now()/1000)});
+      throw new Error('Noir approved the mint but returned an unsupported transaction result. Do NOT mint again. Click Recover Pending Mint.')
+    }
+
+    saveZecsPendingTxid(txid);
+    saveZecsBroadcastLock({status:'txid_known',txid,startedAt:Math.floor(Date.now()/1000)});
+    zecsSetStatus('Mint broadcast · sign one registration message to bind this TXID to your ZECS balance.','warn');
+
     const out=await registerZecsMintTx(txid);
-    if(out.status==='confirmed')zecsSetStatus('Mint confirmed on Zcash · 210 ZECS added to your canonical balance.','good');
-    else zecsSetStatus('Mint broadcast successfully. The event is pending Zcash confirmation and will finalize automatically.','good');
-    await loadZecsState({sync:true})
+    zecsSetStatus(out.status==='confirmed'
+      ?'Mint confirmed on Zcash · 210 ZECS added.'
+      :'Mint registered successfully · waiting for Zcash confirmation in the background.','good');
+    loadZecsState().catch(()=>{})
   }catch(e){
-    const pending=String(localStorage.getItem(zecsPendingKey())||'');
-    zecsSetStatus((e.message||String(e))+(pending?' Pending TX: '+short(pending,8)+' — use Recover Mint.':''),'bad');
-    toast(e.message||String(e),10000)
-  }finally{S.zecsBusy=false;updateZecsUI()}
+    const pending=loadZecsPendingTxid(),lock=loadZecsBroadcastLock();
+    const msg=e?.message||String(e);
+    zecsSetStatus(msg+((pending||lock)?' Recovery is locked; do not send another mint.':''),'bad');
+    toast(msg,10000)
+  }finally{
+    S.zecsBusy=false;updateZecsUI()
+  }
 }
 async function recoverZecsMint(){
   if(S.zecsBusy)return;
   try{
     if(!S.ownerCommitment){await connectWallet(false);if(!S.ownerCommitment)return}
-    let txid=String(localStorage.getItem(zecsPendingKey())||'').trim().toLowerCase();
-    if(!/^[0-9a-f]{64}$/.test(txid)){
-      txid=String(window.prompt('Paste the ZECS mint TXID to recover:')||'').trim().replace(/^0x/,'').toLowerCase()
+    if(S.noirLocked)throw new Error('Unlock Noir Wallet first.');
+    S.zecsBusy=true;updateZecsUI();
+    zecsSetStatus('Scanning Noir Wallet history for ZECS mint broadcasts…','warn');
+
+    const scan=await zecsUnregisteredHistoryMints();
+    let missing=[...scan.missing];
+    const local=loadZecsPendingTxid();
+    if(local&&!missing.some(x=>x.txid===local)&&!scan.registered.some(x=>String(x.txid).toLowerCase()===local)){
+      missing.unshift({txid:local,timestamp:0,status:'local-pending'})
     }
-    if(!txid)return;
-    if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Invalid ZECS mint TXID.');
-    S.zecsBusy=true;updateZecsUI();localStorage.setItem(zecsPendingKey(),txid);
-    zecsSetStatus('Recovering ZECS mint registration…','warn');
-    const out=await registerZecsMintTx(txid);
-    zecsSetStatus(out.status==='confirmed'?'Recovered mint is confirmed · 210 ZECS.':'Recovered mint is registered and waiting for Zcash confirmation.','good');
-    await loadZecsState({sync:true})
-  }catch(e){zecsSetStatus(e.message||String(e),'bad');toast(e.message||String(e),10000)}
-  finally{S.zecsBusy=false;updateZecsUI()}
+
+    if(!missing.length){
+      const registeredPending=scan.registered.filter(x=>String(x.owner_commitment||'').toLowerCase()===String(S.ownerCommitment).toLowerCase()&&x.status==='pending');
+      clearZecsPendingTxid();clearZecsBroadcastLock();
+      await loadZecsState();
+      if(registeredPending.length)zecsSetStatus(`${registeredPending.length} ZECS mint(s) are already registered and waiting for Zcash confirmation. No resend needed.`,'good');
+      else zecsSetStatus('No unregistered ZECS mint was found in Noir Wallet history. Mint is ready for a fresh transaction.','good');
+      return
+    }
+
+    const max=Math.min(12,missing.length);
+    let recovered=0;
+    for(let i=0;i<max;i++){
+      const txid=missing[i].txid;
+      saveZecsPendingTxid(txid);
+      saveZecsBroadcastLock({status:'recovering',txid,index:i+1,total:max});
+      zecsSetStatus(`Recovering ZECS mint ${i+1}/${max} · sign registration only (no new ZEC transaction)…`,'warn');
+      await registerZecsMintTx(txid);
+      recovered++
+    }
+
+    clearZecsPendingTxid();clearZecsBroadcastLock();
+    await loadZecsState();
+    zecsSetStatus(`Recovered ${recovered} previously broadcast ZECS mint(s). Server finalization now runs automatically.`,'good');
+    toast(`Recovered ${recovered} ZECS mint transaction(s) without sending new mint payments.`,10000)
+  }catch(e){
+    zecsSetStatus(e?.message||String(e),'bad');toast(e?.message||String(e),10000)
+  }finally{S.zecsBusy=false;updateZecsUI()}
 }
 $('zecsMintBtn').onclick=mintZecs;
 $('zecsRecoverBtn').onclick=recoverZecsMint;
@@ -2414,7 +2518,7 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else await detectGpu();
   await initNostr();
   startLiveDiscovery();
-  await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true}),loadZecsState({sync:true})]);
+  await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true}),loadZecsState()]);
   kickServerClaimIndex().catch(()=>{});
   try{await resolveGenesis()}catch(e){console.warn(e)}
   try{await connectWallet(true)}catch{}
@@ -2447,8 +2551,8 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   setInterval(updateClaimSyncAge,1000);
 
   if(!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000);
-  if(!S.zecsTimer)S.zecsTimer=setInterval(()=>loadZecsState({sync:true}).catch(()=>{}),15000)
+  if(!S.zecsTimer)S.zecsTimer=setInterval(()=>loadZecsState().catch(()=>{}),15000)
 })();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});loadZecsState({sync:true}).catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});loadZecsState().catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
 </script>
 </body></html>
