@@ -102,7 +102,7 @@
   <div class="sideStack">
     <div class="mini"><div class="kicker">1 · CONNECT</div><h3>Noir Wallet</h3><p>The site requests a privacy-preserving <b>derived</b> Zcash signing identity. Your seed and private keys never leave the wallet.</p></div>
     <div class="mini"><div class="kicker">2 · MINE</div><h3>26 leading zero bits</h3><p>Your browser searches nonces locally. The proof binds Genesis, token ID, source block hash and your owner commitment.</p></div>
-    <div class="mini"><div class="kicker">Availability · V15.8.2 canonical map</div><h3><span id="knownClaimed">0</span> canonical claims</h3><p><b id="knownAvailable">Canonical scan starting…</b> · <span id="availabilityIndexState">auditing all 5,000 Token IDs</span>. <b>CLAIMED</b> requires protocol + Zcash validation. <b>CLEAR</b> requires multi-relay quorum with no valid or unresolved claim. VERIFYING/UNKNOWN IDs are never sent to miners.</p></div>
+    <div class="mini"><div class="kicker">Availability · V15.8.5 canonical map</div><h3><span id="knownClaimed">0</span> canonical claims</h3><p><b id="knownAvailable">Canonical scan starting…</b> · <span id="availabilityIndexState">auditing all 5,000 Token IDs</span>. <b>CLAIMED</b> requires protocol + Zcash validation. <b>CLEAR</b> requires multi-relay quorum with no valid or unresolved claim. VERIFYING/UNKNOWN IDs are never sent to miners.</p></div>
     <div class="mini"><div class="kicker">3 · CLAIM</div><h3>Broadcast to Zcash</h3><p>When a proof is found, Noir Wallet asks you to approve the Zcash claim transaction. The transaction ID becomes the durable anchor.</p></div>
     <div class="mini"><div class="kicker">Discovery layer</div><h3>No private ownership database</h3><p>The website uses redundant public relay events plus connected-wallet recovery for discovery/cache. ZB-1 protocol validity remains defined by confirmed Zcash transactions and client validation.</p></div>
   </div>
@@ -888,8 +888,8 @@ function updateWalletUI(){updateFeeCreditUI();
 }
 $('walletBtn').onclick=()=>connectWallet(false);
 async function loadWalletHistory(){
-  if(!S.connection)return {seen:0,claims:0};
-  let seen=0,claims=0;
+  if(!S.connection)return {seen:0,claims:0,claimEvents:[]};
+  let seen=0,claims=0,claimEvents=[];
   try{
     const hist=await rpc('zcash_getTransactionHistory');
     for(const h of (hist||[])){
@@ -942,6 +942,9 @@ async function loadWalletHistory(){
         const ne=normalizeEvent(e);
         saveLocalEvent(ne);
         updateKnownTokenIndex([ne]);
+        claimEvents.push(ne);
+        const ek=ne.txid||ne.eventId;
+        if(ek&&!S.events.some(x=>(x.txid||x.eventId)===ek))S.events.push(ne);
         claims++;
 
         // Self-heal old claims that confirmed on Zcash but were missed by Nostr discovery.
@@ -958,7 +961,20 @@ async function loadWalletHistory(){
       }
     }
   }catch(e){console.warn('history',e)}
-  return {seen,claims};
+  if(claimEvents.length)rebuildState();
+  return {seen,claims,claimEvents};
+}
+async function recoverClaimFromNoirHistory(tokenId){
+  if(!S.connection||!S.ownerCommitment)return null;
+  const h=await loadWalletHistory();
+  const v=loadFeeVoucher();
+  const candidates=(h?.claimEvents||[]).filter(e=>
+    Number(e.tokenId)===Number(tokenId)&&
+    String(e.ownerCommitment||'').toLowerCase()===String(S.ownerCommitment).toLowerCase()&&
+    (!v?.txid||String(e.feeTxid||'').toLowerCase()===String(v.txid||'').toLowerCase())&&
+    /^[0-9a-f]{64}$/i.test(String(e.txid||''))
+  ).sort((a,b)=>(Number(a.timestamp)||0)-(Number(b.timestamp)||0));
+  return candidates[0]||null
 }
 function parseMemo(m){const p=m.split('|');if(p[0]!=='ZB1'||p.length<3)return null;const type={C:'CLAIM',T:'TRANSFER'}[p[1]]||p[1];const e={protocol:'ZB1',type,v:Number(p[2])||1,memo:m};for(const x of p.slice(3)){const i=x.indexOf('=');if(i>0)e[x.slice(0,i)]=x.slice(i+1)}if(type==='CLAIM'){e.tokenId=Number(e.T);e.nonce=e.N;e.pubkey=e.K;e.ownerCommitment=e.O||null;e.signature=e.S;e.feeTxid=String(e.F||'').toLowerCase();e.feeSig=e.R||null;e.feeZat=e.Z?Number(e.Z):null}else if(type==='TRANSFER'){e.tokenId=Number(e.I);e.toCommitment=e.O;e.pubkey=e.K;e.signature=e.S}return e}
 function normalizeEvent(e){return {...e,eventId:e.eventId||e.txid||crypto.randomUUID(),timestamp:Number(e.timestamp)||Math.floor(Date.now()/1000)}}
@@ -1601,9 +1617,39 @@ async function submitClaim(){
     $('mineStatus').textContent='Securing reserved Token ID…';
 
     await reconcileFeeCredit();
-    const unresolved=loadFeeVoucher();
+    let unresolved=loadFeeVoucher();
     if(unresolved?.status==='broadcasting')throw new Error(`Claim #${unresolved.attempt?.tokenId||'?'} may already have been broadcast. Recovery lock is active. Do NOT confirm again; check Noir Wallet history for the claim TXID.`);
     if(unresolved?.status==='pending')throw new Error(`Previous paid claim #${unresolved.attempt?.tokenId||'?'} is still unresolved. No second protocol fee will be charged.`);
+
+    // Before requesting ANY new final approval, inspect Noir's own transaction history.
+    // This recovers claims that were already broadcast by older site versions but whose
+    // TXID return value was not understood by the browser.
+    const priorClaim=await recoverClaimFromNoirHistory(S.target.token).catch(e=>{console.warn('claim history recovery',e);return null});
+    if(priorClaim){
+      const rv=loadFeeVoucher();
+      if(rv&&rv.status!=='consumed'){
+        rv.status='pending';
+        rv.attempt={
+          tokenId:Number(priorClaim.tokenId),
+          claimTxid:String(priorClaim.txid).toLowerCase(),
+          nonce:String(priorClaim.nonce||S.proof?.nonce||''),
+          sourceHeight:Number(priorClaim.sourceHeight||S.target.sourceHeight),
+          sourceHash:String(priorClaim.sourceHash||S.target.sourceHash||'').toLowerCase(),
+          startedAt:Number(priorClaim.timestamp)||Math.floor(Date.now()/1000),
+          recoveredFromWalletHistory:true
+        };
+        saveFeeVoucher(rv);
+        try{await publishRelay(priorClaim,{fallback:true,repair:true})}catch(e){console.warn('recovered claim relay',e)}
+        try{await serverCheckClaims([Number(priorClaim.tokenId)],{deep:true})}catch(e){console.warn('recovered claim canonical check',e)}
+        await releaseMiningLease().catch(()=>{});
+        S.proof=null;
+        $('mineStatus').textContent='Existing claim TX recovered · canonical confirmation pending';
+        toast(`Existing claim transaction recovered from Noir Wallet history: ${short(priorClaim.txid,8)}. Duplicate confirmation blocked.`,12000);
+        await refreshAll();
+        await reconcileFeeCredit();
+        return
+      }
+    }
 
     // Fast canonical preflight. Do not run a second browser-wide relay scan before
     // opening Noir Wallet; the server lease + exact canonical check are authoritative.
