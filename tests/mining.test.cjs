@@ -33,7 +33,7 @@ const stats={tick:'ZECS',mint_open:true,deploy_status:'confirmed',minted_supply:
 async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1360,height:1000},colorScheme:'dark'});
- const errors=[],calls=[];let failure=false,registerFailure=false,slow=false;
+ const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map();
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());
@@ -48,9 +48,9 @@ async function fixture(){
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
     if(op==='mining-lease')data={ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
-    if(op==='check-claims')data={ok:true,complete:true,relays_ok:4,clear_ids:body.tokenIds,claimed_ids:[],events:[],status_by_token:Object.fromEntries((body.tokenIds||[]).map(id=>[id,'clear']))};
+    if(op==='check-claims')data={ok:true,complete:true,relays_ok:4,clear_ids:body.tokenIds,claimed_ids:[],events:[],status_by_token:Object.fromEntries((body.tokenIds||[]).map(id=>[id,claimed?'claimed':'clear']))};
     if(op==='zb20-mint'){
-     if(body.action==='lookup')data={ok:true,rows:[]};
+     if(body.action==='lookup')data={ok:true,rows:body.txids.slice(0,50).map(id=>registered.get(id)).filter(Boolean)};
      if(body.action==='preflight')data={ok:true,eligible:true,mint_open:true};
      if(body.action==='register'){
       if(registerFailure)return route.fulfill({status:503,json:{ok:false,error:'registration unavailable'}});
@@ -66,7 +66,7 @@ async function fixture(){
   window.walletTest={sends:0,signs:0,history:[],handlers:{},mode:'ok'};
   const w=window.walletTest;
   window.noirwallet={isNoirWallet:true,zcash:{
-   connect:async()=>({transparent:'t1'+'x'.repeat(30),shielded:'u1test'}),getAccounts:async()=>[],getPublicKey:async()=>({pubkey:pub}),getBalance:async()=>({shielded:'1'}),getTransactionHistory:async()=>w.history,
+   connect:async()=>({transparent:'t1'+'x'.repeat(30),shielded:'u1test'}),getAccounts:async()=>[],getPublicKey:async()=>({pubkey:pub}),getBalance:async()=>({shielded:'1'}),getTransactionHistory:async()=>{w.historyReads=(w.historyReads||0)+1;if(w.historyHang)return new Promise(()=>{});return w.history},
    signMessage:async()=>{w.signs++;return {pubkey:pub,signature:'1f'+'33'.repeat(64)}},
    sendTransaction:async()=>{w.sends++;if(w.mode==='rejected')throw new Error('User rejected');if(w.mode==='unknown')throw new Error('Connection lost');return {txid}},
    on:(name,fn)=>w.handlers[name]=fn
@@ -74,7 +74,7 @@ async function fixture(){
  },{pub,txid});
  await page.goto('http://localhost:4321/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.getElementById('claimCount').textContent==='3,505');
- return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},async connect(){
+ return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},registered,claimConfirmed(v){claimed=v},async connect(){
   await page.getByRole('button',{name:'Connect Noir Wallet',exact:true}).click();
   await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);
  }};
@@ -169,5 +169,160 @@ test('wallet rejection clears a ZECS no-broadcast lock and permits a later delib
   await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
   assert.equal(await f.page.locator('#zecsMintBtn').isDisabled(),false);
+ }finally{await f.browser.close()}
+});
+
+
+// Regression fixtures reproduce production lookup's 50-TXID limit and durable legacy locks.
+test('52 and 125 historical ZECS mints are checked in complete batches, without a false recovery lock',async()=>{
+ const f=await fixture();try{
+  await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  for(const count of [52,125]){
+   const ids=Array.from({length:count},(_,i)=>(i+1).toString(16).padStart(64,'0'));
+   for(const id of ids)f.registered.set(id,{txid:id,status:'confirmed',owner_commitment:owner});
+   await f.page.evaluate(ids=>{walletTest.history=ids.map((txid,i)=>({txid,memo:ZECS_MINT_MESSAGE,timestamp:i}));},ids);
+   const missing=await f.page.evaluate(async()=> (await zecsUnregisteredHistoryMints()).missing);
+   assert.deepEqual(missing,[]);
+  }
+  assert.ok(f.calls.filter(c=>c.op==='zb20-mint'&&c.body.action==='lookup').every(c=>c.body.txids.length<=50));
+  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('legacy discovery lock for an already confirmed mint self-heals without history, signature or payment',async()=>{
+ const f=await fixture();try{
+  await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  f.registered.set(txid,{txid,status:'confirmed',owner_commitment:owner});
+  await f.page.evaluate(txid=>{saveZecsBroadcastLock({status:'recovery_required',found:[txid]});walletTest.historyHang=true},txid);
+  await f.page.evaluate(()=>resumeZecsRegistration());
+  assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
+  assert.equal(await f.page.locator('#zecsMintBtn').isDisabled(),false);
+  assert.deepEqual(await f.page.evaluate(()=>({sends:walletTest.sends,signs:walletTest.signs})),{sends:0,signs:0});
+ }finally{await f.browser.close()}
+});
+test('manual recovery releases a confirmed discovery lock without asking for another signature',async()=>{
+ const f=await fixture();try{
+  await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  f.registered.set(txid,{txid,status:'confirmed',owner_commitment:owner});
+  await f.page.evaluate(txid=>saveZecsBroadcastLock({status:'recovery_required',found:[txid]}),txid);
+  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
+  assert.equal(await f.page.evaluate(()=>walletTest.signs+walletTest.sends),0);
+ }finally{await f.browser.close()}
+});
+test('registered lookup for another owner cannot clear the current wallet lock',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.registered.set(txid,{txid,status:'confirmed',owner_commitment:'ff'.repeat(32)});
+  await f.page.evaluate(txid=>saveZecsBroadcastLock({status:'recovery_required',found:[txid]}),txid);
+  await f.page.evaluate(()=>resumeZecsRegistration());
+  assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);
+ }finally{await f.browser.close()}
+});
+test('legacy NFT lock protects its own ID while a different block can mine and claim once',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(()=>localStorage.setItem(freeClaimRecoveryKey(),JSON.stringify({tokenId:3874,status:'wallet_approval',memo:'old-pending'})));
+  await f.page.locator('#findUnclaimedBtn').click();await f.page.waitForFunction(()=>S.target&&!S.targetBusy);
+  assert.ok(f.calls.some(c=>c.op==='mining-lease'&&c.body.excludeTokens?.includes(3874)));
+  assert.equal(await f.page.locator('#startMineBtn').isDisabled(),false);
+  await f.page.locator('#engineSelect').selectOption('cpu');await f.page.evaluate(()=>CFG.powBits=8);
+  await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>S.proof);
+  await f.page.locator('#submitClaimBtn').click();await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.deepEqual(await f.page.evaluate(()=>claimRecoveries().map(x=>x.tokenId).sort((a,b)=>a-b)),[71,3874]);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(3874).memo),'old-pending');
+  assert.equal(await f.page.locator('#submitClaimBtn').isDisabled(),true);
+  await f.page.evaluate(()=>{S.target={token:3874};updateMiningControls()});
+  assert.equal(await f.page.locator('#startMineBtn').isDisabled(),true);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('NFT recovery backfills only its saved event and unlocks controls after canonical settlement',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimConfirmed(true);
+  await f.page.evaluate(txid=>{
+   S.target={token:71};saveFreeClaimRecovery({tokenId:71,status:'pending',txid,event:{tokenId:71,type:'CLAIM',protocol:'ZB1',txid,nonce:'1'}});
+   S.serverBackfillBusy=true;
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!loadFreeClaimRecovery(71));
+  assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.length===1&&c.body.claims[0].txid===txid));
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(71)),null);
+  // Settled IDs are never mined again even after the local journal is resolved.
+  assert.equal(await f.page.locator('#recoverClaimBtn').isHidden(),true);
+  assert.equal(await f.page.locator('#startMineBtn').isDisabled(),true);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),0);
+  assert.match(await f.page.locator('#claimRecoveryStatus').textContent(),/canonical result/);
+ }finally{await f.browser.close()}
+});
+test('targeted NFT history recovery skips unrelated claims before chain lookups',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  const count=await f.page.evaluate(async()=>{
+   walletTest.history=Array.from({length:52},(_,i)=>({txid:(i+1).toString(16).padStart(64,'0'),memo:'ZB1|C|1|T='+(i+1)+'|N=1|K='+S.pubkey+'|S='+'1f'+'33'.repeat(64)}));
+   let calls=0;const old=explorerFetch;explorerFetch=async()=>{calls++;throw new Error('unrelated chain read')};
+   try{await recoverClaimFromNoirHistory(3874);return calls}finally{explorerFetch=old}
+  });assert.equal(count,0);
+ }finally{await f.browser.close()}
+});
+test('hung wallet history releases the action and preserves pending recovery',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(()=>{
+   walletTest.historyHang=true;saveZecsBroadcastLock({status:'broadcast_unknown'});
+   const old=setTimeout;window.setTimeout=(fn,ms,...args)=>old(fn,ms===WALLET_READ_TIMEOUT?40:ms,...args);
+  });
+  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy);
+  assert.match(await f.page.locator('#zecsStatus').textContent(),/timed out/);
+  assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);
+  assert.equal(await f.page.locator('#zecsRecoverBtn').isDisabled(),false);
+ }finally{await f.browser.close()}
+});
+test('late wallet broadcast after timeout is saved for its original wallet',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  const result=await f.page.evaluate(async txid=>{
+   const owner=S.ownerCommitment;
+   saveZecsBroadcastLock({status:'wallet_approval'});
+   let finish;provider().sendTransaction=()=>new Promise(resolve=>finish=resolve);
+   const old=setTimeout;window.setTimeout=(fn,ms,...args)=>old(fn,ms===WALLET_APPROVAL_TIMEOUT?20:ms,...args);
+   const pending=rpc('zcash_sendTransaction',[{memo:ZECS_MINT_MESSAGE}]);
+   let timedOut=false;try{await pending}catch{timedOut=true}
+   S.ownerCommitment='ff'.repeat(32);S.walletEpoch++;
+   finish({txid});await new Promise(resolve=>old(resolve,10));
+   return {timedOut,original:localStorage.getItem('zb20_zecs_pending_mint_txid_'+owner),current:loadZecsPendingTxid()};
+  },txid);
+  assert.deepEqual(result,{timedOut:true,original:txid,current:''});
+ }finally{await f.browser.close()}
+});
+test('recovering one mint preserves other queued TXIDs across a registration failure',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  const ids=['cd'.repeat(32),'ef'.repeat(32)];
+  await f.page.evaluate(ids=>saveZecsBroadcastLock({status:'recovery_required',found:ids}),ids);
+  f.registerFail(true);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  assert.deepEqual(new Set(await f.page.evaluate(()=>loadZecsBroadcastLock().found)),new Set(ids));
+  f.registerFail(false);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),0);
+ }finally{await f.browser.close()}
+});
+test('transport cancellation is ambiguous and cannot clear a broadcast lock',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  assert.equal(await f.page.evaluate(()=>walletRejected(new Error('Request cancelled by transport'))),false);
+  assert.equal(await f.page.evaluate(()=>walletRejected({code:4001})),true);
+ }finally{await f.browser.close()}
+});
+
+test('slow NFT indexer recovery does not hold the wallet action gate',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:3874,status:'pending',txid,event:{tokenId:3874,txid}});
+   const original=backendJson;backendJson=(op,args)=>op==='backfill-client-claims'?new Promise(()=>{}):original(op,args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();
+  assert.equal(await f.page.evaluate(()=>S.walletAction),false);
+  assert.equal(await f.page.locator('#findUnclaimedBtn').isDisabled(),false);
+  assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),true);
+  assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(3874)),true);
  }finally{await f.browser.close()}
 });

@@ -7,6 +7,7 @@
 <meta name="description" content="ZEC BLOCKS — open-source ZB-1 mining, marketplace and private portfolio on Zcash.">
 <title>ZEC BLOCKS — Mining Studio</title>
 <style>
+[hidden]{display:none!important}
 :root{--bg:#070707;--panel:#0d0d0d;--panel2:#111;--line:#232323;--line2:#313131;--text:#f4f4f4;--muted:#8b8b8b;--gold:#d3a84f;--gold2:#f1cc76;--green:#78d594;--red:#ff8989;--blue:#86b7ff;--r:14px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.top{height:68px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:24px;padding:0 24px;background:rgba(7,7,7,.92);border-bottom:1px solid #1d1d1d;backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:10px;min-width:max-content}.brandmark{width:34px;height:34px;border:1px solid #3c3322;border-radius:8px;display:grid;place-items:center;background:#0d0b08;color:var(--gold2);font-family:ui-monospace,monospace;font-weight:900}.brand b{font-size:13px;letter-spacing:.12em}.nav{display:flex;gap:4px}.nav a{padding:9px 11px;border-radius:9px;color:#8d8d8d;font-size:13px;font-weight:700}.nav a:hover{background:#131313;color:#fff}.topright{margin-left:auto;display:flex;align-items:center;gap:8px}.pill{border:1px solid #292929;background:#0d0d0d;padding:8px 10px;border-radius:999px;font-size:11px;color:#aaa}.liveDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(120,213,148,.7);margin-right:7px}.btn{min-height:39px;padding:0 14px;border:1px solid #2b2b2b;background:#111;color:#ddd;border-radius:10px;font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn:hover{border-color:#494949;color:#fff}.btn.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#17120a;border-color:transparent}.btn.green{border-color:rgba(120,213,148,.3);color:#b8f0c6;background:rgba(120,213,148,.08)}.btn.red{border-color:rgba(255,137,137,.3);color:#ffb2b2;background:rgba(255,137,137,.06)}.btn:disabled{opacity:.45;cursor:not-allowed}.walletbtn{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}main{max-width:1420px;margin:0 auto;padding:28px 24px 70px}.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:18px}.card,.heroMain{border:1px solid #202020;background:linear-gradient(180deg,#0e0e0e,#0a0a0a);border-radius:var(--r)}.heroMain{padding:38px;min-height:420px;position:relative;overflow:hidden}.heroMain:after{content:"";position:absolute;width:500px;height:500px;right:-180px;top:-160px;border-radius:50%;background:radial-gradient(circle,rgba(211,168,79,.14),transparent 68%);pointer-events:none}.kicker{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold2);font-weight:900;margin-bottom:17px}.hero h1{font-size:clamp(50px,7vw,88px);line-height:.92;letter-spacing:-.055em;margin:0;max-width:900px}.hero p{max-width:720px;color:#969696;font-size:15px;line-height:1.72;margin:24px 0 28px}.actions{display:flex;gap:9px;flex-wrap:wrap}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;border:1px solid #222;border-radius:11px;overflow:hidden;margin-top:34px;max-width:760px}.stat{background:#0a0a0a;padding:14px 15px}.stat small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.stat b{font-size:14px}.heroSide{padding:22px;display:flex;flex-direction:column}.heroSideTop{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.heroSideTop h2{font-size:16px;margin:0}.badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-radius:999px;border:1px solid #333;color:#aaa}.badge.live{color:#aee9bd;border-color:rgba(120,213,148,.25);background:rgba(120,213,148,.05)}.art{aspect-ratio:1;border:1px solid #222;border-radius:11px;background:#070707;overflow:hidden}.blockArt{display:block;width:100%;height:100%;shape-rendering:crispEdges;image-rendering:pixelated}.heroSide .kvgrid{margin-top:14px}.kvgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border:1px solid #222;border-radius:10px;overflow:hidden}.kv{background:#0a0a0a;padding:12px}.kv small{display:block;color:#636363;font-size:9px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}.kv b{font-size:12px;word-break:break-all}.sectionHead{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:36px 0 14px}.sectionHead h2{margin:0;font-size:21px}.sectionHead p{margin:0;color:#6e6e6e;font-size:11px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.panel{padding:22px}.miningGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.terminal{border:1px solid #252525;background:#090909;border-radius:12px;overflow:hidden}.terminalHead{padding:12px 14px;border-bottom:1px solid #1e1e1e;background:#101010;font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;gap:9px}.termDot{width:9px;height:9px;border-radius:50%;background:var(--gold2);box-shadow:0 0 14px rgba(240,202,114,.55)}.termBody{padding:14px}.row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #171717;font-size:12px}.row:last-child{border-bottom:0}.key{font-size:9px;color:#696969;text-transform:uppercase;letter-spacing:.09em;font-weight:900;min-width:120px}.val{text-align:right;color:#d8d8d8;word-break:break-all}.inputrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}.input,.select{width:100%;height:42px;border:1px solid #2a2a2a;border-radius:9px;background:#080808;color:#eee;padding:0 12px;outline:none}.input:focus,.select:focus{border-color:#5a492d}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.progress{height:10px;border:1px solid #222;background:#121212;border-radius:999px;overflow:hidden;margin-top:14px}.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .2s}.hashlog{height:150px;overflow:auto;margin-top:12px;border:1px solid #1d1d1d;border-radius:9px;background:#070707;padding:10px;color:#83c99a;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.sideStack{display:grid;gap:12px}.mini{border:1px solid #242424;border-radius:11px;background:#0a0a0a;padding:16px}.mini h3{margin:0 0 7px;font-size:15px}.mini p{margin:0;color:#7d7d7d;font-size:11px;line-height:1.65}.notice{border:1px solid rgba(240,202,114,.22);background:rgba(240,202,114,.05);color:#cdbb91;padding:11px 12px;border-radius:9px;font-size:11px;line-height:1.55;margin-top:12px}.notice.good{border-color:rgba(120,213,148,.22);background:rgba(120,213,148,.05);color:#aee7bc}.notice.bad{border-color:rgba(255,137,137,.22);background:rgba(255,137,137,.05);color:#ffb0b0}.marketToolbar{display:flex;gap:9px;align-items:center;padding:13px;border-bottom:1px solid #1e1e1e}.marketToolbar .input{max-width:440px}.marketBody{padding:15px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.nft{border:1px solid #202020;border-radius:11px;background:#0c0c0c;overflow:hidden;transition:.16s}.nft:hover{transform:translateY(-2px);border-color:#3a342b}.nftart{aspect-ratio:1;border-bottom:1px solid #1d1d1d}.nftinfo{padding:11px}.nftline{display:flex;justify-content:space-between;align-items:center;gap:8px}.nfttitle{font-size:12px;font-weight:900}.meta{font-size:9px;color:#646464;margin-top:6px;display:flex;justify-content:space-between;gap:8px}.price{font-size:12px;color:#d8bd78;font-weight:900}.empty{padding:42px 20px;text-align:center;color:#666;font-size:12px;border:1px dashed #292929;border-radius:11px}.portfolioTop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.metric{border:1px solid #222;background:#0a0a0a;border-radius:10px;padding:14px}.metric small{display:block;font-size:9px;color:#626262;text-transform:uppercase;letter-spacing:.08em}.metric b{display:block;font-size:17px;margin-top:6px}.walletbox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.copyline{border:1px solid #242424;border-radius:10px;background:#0a0a0a;padding:12px}.copyline small{display:block;color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.copyline code{font-size:10px;color:#bbb;word-break:break-all}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}.modal.show{display:flex}.modalCard{width:min(560px,100%);max-height:88vh;overflow:auto;border:1px solid #303030;border-radius:14px;background:#0c0c0c;padding:20px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modalHead h3{margin:0;font-size:17px}.xbtn{border:0;background:transparent;color:#888;font-size:20px}.field{margin-bottom:12px}.field label{display:block;font-size:9px;color:#717171;text-transform:uppercase;letter-spacing:.09em;font-weight:900;margin-bottom:6px}.field textarea{width:100%;min-height:100px;border:1px solid #292929;background:#080808;color:#ddd;border-radius:9px;padding:10px;resize:vertical}.protocolGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.protocolGrid .mini{min-height:160px}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #191919;margin-top:34px;padding-top:24px;color:#595959;font-size:10px}.footerlinks{display:flex;gap:16px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;z-index:200;max-width:380px;border:1px solid #333;background:#101010;color:#ddd;border-radius:10px;padding:12px 14px;font-size:11px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:none}.toast.show{display:block}.muted{color:#777}.gold{color:var(--gold2)}.green{color:var(--green)}.red{color:var(--red)}
 @media(max-width:1050px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{grid-template-columns:1fr 360px}}
@@ -74,7 +75,7 @@ main{max-width:1320px;padding:30px 28px 60px}.top{background:var(--bg);border-co
 try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark')}catch{document.documentElement.dataset.theme='dark'}
 </script>
 </head>
-<body>
+<body data-mining-version="16.1">
 <header class="top">
   <a class="brand" href="https://www.zecblocks.xyz"><span class="brandmark">Z</span><b>ZEC BLOCKS</b></a>
   <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="#zecs">$ZECS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
@@ -96,7 +97,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Find a verified unclaimed NFT, reserve it, and mine your proof. Availability is checked again before your claim.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V16 · MINING STUDIO</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Find a verified unclaimed NFT, reserve it, and mine your proof. Availability is checked again before your claim.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V16.1 · MINING STUDIO</span></div></div>
 <div class="workflow"><div><span>01 / DISCOVER</span><b>Choose a block</b><p>Find a verified candidate.</p></div><div><span>02 / MINE</span><b>Create your proof</b><p>Your browser does the work.</p></div><div><span>03 / CLAIM</span><b>Make it yours</b><p>Approve in Noir Wallet.</p></div></div>
 <section class="card panel" style="margin-top:20px">
 <div class="miningGrid">
@@ -116,7 +117,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
       <div class="inputrow" style="grid-template-columns:1fr auto auto"><input aria-label="Token ID" id="tokenInput" class="input" type="number" min="1" max="5000" value="1" placeholder="Token ID 1–5000"><button id="findUnclaimedBtn" class="btn">Find Unclaimed</button><button id="loadTargetBtn" class="btn">Load Target</button></div>
       <div class="enginebar"><select aria-label="Mining engine" id="engineSelect" class="select"><option value="auto">Engine: Auto (GPU preferred)</option><option value="gpu">Engine: GPU / WebGPU only</option><option value="cpu">Engine: CPU Web Workers only</option></select><button id="testGpuBtn" class="btn">Detect GPU</button></div>
       <div class="controls"><button id="startMineBtn" class="btn gold" disabled>Start Mining</button><button id="stopMineBtn" class="btn red" disabled>Stop</button><button id="submitClaimBtn" class="btn green" disabled>Submit Claim</button><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
-      <button id="recoverClaimBtn" class="btn" hidden>Recover Pending Claim</button><div id="claimReceipt" class="receipt" role="status" hidden></div>
+      <button id="recoverClaimBtn" class="btn" hidden>Recover Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div>
       <div class="progress"><i id="mineProgress"></i></div>
       <details><summary>Mining diagnostics</summary><div id="hashLog" class="hashlog">Connect Noir Wallet, load a token target, then start mining.</div></details>
       <div class="available"><div class="availableHead"><h3>Explore unclaimed blocks</h3><button id="refreshAvailable" class="btn">Refresh</button></div><p>Choose a candidate below. Each selection is checked live and reserved before mining.</p><div id="availableTokens" class="candidateGrid"></div><div class="pagination"><button id="availablePrev" class="btn" aria-label="Previous candidates">←</button><span id="availablePage">1 / 1</span><button id="availableNext" class="btn" aria-label="Next candidates">→</button></div></div>
@@ -248,8 +249,8 @@ async function zcashTxidOrHistory(raw,{memo='',label='Zcash transaction'}={}){
   if(/^[0-9a-f]{64}$/.test(txid))return txid;
   if(memo){
     try{
-      const hist=await rpc('zcash_getTransactionHistory');
-      const rows=(Array.isArray(hist)?hist:[]).filter(h=>String(h?.memo||'').trim()===String(memo).trim());
+      const hist=historyRows(await rpc('zcash_getTransactionHistory'));
+      const rows=hist.filter(h=>historyMemo(h)===String(memo).trim());
       const hit=rows.sort((a,b)=>Number(b?.timestamp||0)-Number(a?.timestamp||0))[0];
       txid=zcashTxidFromResult(hit);
       if(/^[0-9a-f]{64}$/.test(txid))return txid
@@ -257,7 +258,19 @@ async function zcashTxidOrHistory(raw,{memo='',label='Zcash transaction'}={}){
   }
   throw new Error(label+' may already have been broadcast, but Noir did not return a recognizable TXID. Do not submit it again until wallet history is checked.')
 }
-function walletRejected(e){return /reject|denied|declined|cancelled|canceled|user rejected|4001/i.test(String(e?.message||e?.reason||e||''))}
+function walletRejected(e){return e?.code===4001||e?.code==='ACTION_REJECTED'||/user (rejected|denied|declined|cancelled|canceled)|rejected by (the )?user/i.test(String(e?.message||e?.reason||e||''))}
+const WALLET_READ_TIMEOUT=10000,WALLET_APPROVAL_TIMEOUT=120000;
+function withDeadline(promise,ms,message){
+  let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),ms)})]).finally(()=>clearTimeout(timer))
+}
+function durableSet(key,value){localStorage.setItem(key,value);if(localStorage.getItem(key)!==value)throw new Error('Cannot save transaction recovery. Free browser storage before trying again.')}
+function historyRows(value){
+  const rows=Array.isArray(value)?value:value?.transactions??value?.history??value?.data?.transactions??value?.result;
+  if(!Array.isArray(rows))throw new Error('Noir transaction history is unavailable. Reopen the wallet and retry recovery.');
+  return rows
+}
+function historyMemo(h){return String(h?.memo??deepFind(h,['memo','memoText','memo_text'])??'').trim()}
+
 function hexToBytes(hex){hex=hex.replace(/^0x/,'');if(hex.length%2)hex='0'+hex;const a=new Uint8Array(hex.length/2);for(let i=0;i<a.length;i++)a[i]=parseInt(hex.slice(i*2,i*2+2),16);return a}
 function bytesToHex(a){return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
 async function sha256Bytes(bytes){return new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))}
@@ -291,13 +304,13 @@ function updateFeeCreditUI(){
   const el=$('feeCreditStatus');if(!el)return;
   const btn=$('submitClaimBtn');
   if(CFG.claimProtocolFeeEnabled===false){
-    const r=typeof loadFreeClaimRecovery==='function'?loadFreeClaimRecovery():null;
+    const r=typeof loadFreeClaimRecovery==='function'?loadFreeClaimRecovery(S.target?.token):null;
     if(r){
       el.textContent=`CLAIM RECOVERY LOCK · #${r.tokenId||'?'}`;
       el.style.color='#f1cc76';
       if(btn&&!btn.dataset.busy){btn.textContent='Claim Recovery Locked';btn.disabled=true}
     }else{
-      el.textContent='BYPASSED · TEST MODE';
+      el.textContent='No protocol fee';
       el.style.color='#78d594';
       if(btn&&!btn.dataset.busy){btn.textContent='Submit Claim';btn.disabled=!S.proof||!S.target}
     }
@@ -882,7 +895,7 @@ async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeToken
     startToken:Number(startToken)||1,
     forceNew:!!forceNew,
     excludeToken:Number(excludeToken)||0,
-    excludeTokens:[...new Set((excludeTokens||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,120)
+    excludeTokens:[...new Set([...(excludeTokens||[]),...claimRecoveries().map(r=>r.tokenId)].map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,120)
   });
   if(!j?.ok){
     if(previous&&!forceNew)S.miningLease=previous;
@@ -1002,17 +1015,22 @@ async function walletRpc(p,method,params,{timeoutMs=0}={}){
     return v
   }).catch(e=>{markNoirLocked(e);throw e});
   if(!timeoutMs)return req;
-  return Promise.race([
-    req,
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error(method+' timed out. Unlock Noir Wallet and retry.')),timeoutMs))
-  ])
+  return withDeadline(req,timeoutMs,method+' timed out. Unlock Noir Wallet and retry.')
 }
 async function rpc(method,params){
   if(method==='zcash_signMessage'||method==='zcash_sendTransaction')assertActionWallet();
   const p=provider();
   if(!p)throw new Error('Noir Wallet is not installed or not ready. Unlock the extension and retry.');
   try{
-    const v=await noirCall(p,method,params);
+    const owner=S.actionOwner||S.ownerCommitment;
+    const approval=method==='zcash_sendTransaction'||method==='zcash_signMessage';
+    const request=noirCall(p,method,params).then(v=>{
+      // A late wallet response still belongs to its original journal, even after timeout/account change.
+      if(method==='zcash_sendTransaction')rememberWalletBroadcast(owner,params?.[0]?.memo,v);
+      return v
+    });
+    const v=await withDeadline(request,approval?WALLET_APPROVAL_TIMEOUT:WALLET_READ_TIMEOUT,
+      approval?'Noir has not responded yet. Check the wallet; any pending transaction remains saved for recovery.':'Noir read timed out. Reopen the wallet and retry.');
     if(method==='zcash_signMessage')assertActionWallet();
     if(method!=='zcash_getAccounts')S.noirLocked=false;
     return v
@@ -1024,6 +1042,7 @@ async function rpc(method,params){
 function clearNoirSession(){
   S.walletEpoch++;stopMining(false);releaseMiningLease().catch(()=>{});S.target=null;S.proof=null;S.zecsAccount=null;
   S.provider=null;S.connection=null;S.pubkey=null;S.ownerCommitment=null;S.balance=null;
+  $('claimRecoveryStatus').textContent='';$('claimRecoveryStatus').hidden=true;$('claimReceipt').hidden=true;
   updateWalletUI()
 }
 function bindNoirProviderEvents(p){
@@ -1039,6 +1058,7 @@ function bindNoirProviderEvents(p){
   S.noirEventsProvider=p
 }
 function backgroundWalletSync(owner){
+  loadZecsState().catch(()=>{});reconcileFreeClaimRecovery().catch(()=>{});
   (async()=>{
     try{
       const bal=await walletRpc(S.provider,'zcash_getBalance',null,{timeoutMs:6000});
@@ -1077,11 +1097,11 @@ async function connectWallet(silent=false){
       try{conn=await walletRpc(p,'zcash_getAccounts',null,{timeoutMs:3500})}
       catch(e){console.warn('silent Noir reconnect',e);return false}
     }else{
-      conn=await walletRpc(p,'zcash_requestAccounts')
+      conn=await walletRpc(p,'zcash_requestAccounts',null,{timeoutMs:120000})
     }
     if(!conn||(Array.isArray(conn)&&conn.length===0))return false;
 
-    const k=await walletRpc(p,'zcash_getPublicKey',[{signingMode:'derived'}],{timeoutMs:silent?5000:0});
+    const k=await walletRpc(p,'zcash_getPublicKey',[{signingMode:'derived'}],{timeoutMs:silent?5000:10000});
     if(!k?.pubkey)throw new Error('Noir Wallet did not return a derived public key.');
     const nextOwner=await sha256HexBytes(hexToBytes(k.pubkey));
 
@@ -1121,20 +1141,21 @@ function updateWalletUI(){updateFeeCreditUI();
   $('portfolioShielded').textContent=connected?(S.connection.shielded||'—'):'Private until you connect.';
   $('zecBalance').textContent=S.balance?.available!=null?String(S.balance.available)+' ZEC':'—';
   $('loadTargetBtn').disabled=!connected;$('findUnclaimedBtn').disabled=!connected;$('startMineBtn').disabled=!connected||S.mining;$('syncPortfolioBtn').disabled=!connected;$('createListingBtn').disabled=!connected||ownedTokens().length===0;
-  updateZecsUI();
+  updateMiningControls();updateZecsUI();
 }
 $('walletBtn').onclick=()=>connectWallet(false);
-async function loadWalletHistory(){
+async function loadWalletHistory({tokenId=null,repair=true}={}){
   if(!S.connection)return {seen:0,claims:0,claimEvents:[]};
   let seen=0,claims=0,claimEvents=[];
   try{
-    const hist=await rpc('zcash_getTransactionHistory');
-    for(const h of (hist||[])){
-      const memo=String(h.memo||'').trim();
+    const hist=historyRows(await rpc('zcash_getTransactionHistory'));
+    for(const h of hist){
+      const memo=historyMemo(h);
       if(!memo.startsWith('ZB1|'))continue;
       const e=parseMemo(memo); if(!e)continue;
+      if(tokenId!=null&&(e.type!=='CLAIM'||Number(e.tokenId)!==Number(tokenId)))continue;
       seen++;
-      e.txid=String(h.txid||'').toLowerCase();
+      e.txid=zcashTxidFromResult(h);
       e.status=h.status;
       let ts=Number(h.timestamp)||Math.floor(Date.now()/1000);
       if(ts>20_000_000_000)ts=Math.floor(ts/1000);
@@ -1187,7 +1208,7 @@ async function loadWalletHistory(){
         // Self-heal old claims that confirmed on Zcash but were missed by Nostr discovery.
         const repairKey='zb1_claim_repair_'+(ne.txid||token);
         const last=Number(localStorage.getItem(repairKey)||0);
-        if(S.nostr&&S.relay&&Date.now()-last>6*60*60*1000){
+        if(repair&&S.nostr&&S.relay&&Date.now()-last>6*60*60*1000){
           try{
             await publishRelay(ne,{fallback:false,repair:true});
             localStorage.setItem(repairKey,String(Date.now()));
@@ -1203,7 +1224,7 @@ async function loadWalletHistory(){
 }
 async function recoverClaimFromNoirHistory(tokenId){
   if(!S.connection||!S.ownerCommitment)return null;
-  const h=await loadWalletHistory();
+  const h=await loadWalletHistory({tokenId,repair:false});
   const v=loadFeeVoucher();
   const candidates=(h?.claimEvents||[]).filter(e=>
     Number(e.tokenId)===Number(tokenId)&&
@@ -1225,8 +1246,10 @@ async function chainProxyJson(url,key,kind){
   if(CHAIN_REQ_INFLIGHT.has(key))return CHAIN_REQ_INFLIGHT.get(key);
   const job=(async()=>{
     let r;
-    try{r=await fetch(url,{headers:{accept:'application/json'}})}
-    catch(e){throw new Error('Chain-data proxy unreachable. Upload the api/zcash.js file together with index.html.')}
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    try{r=await fetch(url,{headers:{accept:'application/json'},signal:controller.signal})}
+    catch(e){throw new Error('Chain lookup timed out or is unavailable. Recovery can be retried safely.')}
+    finally{clearTimeout(timer)}
     let j=null;try{j=await r.json()}catch{}
     if(!r.ok){
       const retry=r.status===429?' Chain provider is rate-limited; retry shortly.':'';
@@ -1532,7 +1555,7 @@ async function loadTarget({silent=false}={}){
 }
 $('loadTargetBtn').onclick=()=>loadTarget();
 $('findUnclaimedBtn').onclick=async()=>{
-  const rejected=new Set();
+  const rejected=new Set(claimRecoveries().map(r=>Number(r.tokenId)));
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     $('findUnclaimedBtn').disabled=true;
@@ -1691,7 +1714,7 @@ async function detectGpu({toastResult=false}={}){
     if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / a secure context.');
     if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
     setGpuStatus('Requesting high-performance adapter…','warn');
-    const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+    const adapter=await withDeadline(navigator.gpu.requestAdapter({powerPreference:'high-performance'}),10000,'GPU adapter did not respond');
     if(!adapter)throw new Error('Browser returned no WebGPU adapter.');
     let name='WebGPU adapter';
     try{
@@ -1720,7 +1743,7 @@ async function initGpuMiner(){
   if(!window.isSecureContext)throw new Error('WebGPU requires HTTPS / secure context.');
   if(!navigator.gpu)throw new Error('navigator.gpu is unavailable in this browser.');
   setGpuStatus('Initializing WebGPU…','warn');
-  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+  const adapter=await withDeadline(navigator.gpu.requestAdapter({powerPreference:'high-performance'}),10000,'GPU adapter did not respond');
   if(!adapter)throw new Error('No WebGPU adapter found. Check browser GPU/WebGPU settings and graphics driver.');
   let name='WebGPU adapter';
   try{
@@ -1731,9 +1754,9 @@ async function initGpuMiner(){
     }
   }catch{}
   S.gpuAdapterName=name;
-  const device=await adapter.requestDevice();
+  const device=await withDeadline(adapter.requestDevice(),10000,'GPU device did not respond');
   const module=device.createShaderModule({code:GPU_SHA256_WGSL});
-  const info=await module.getCompilationInfo();
+  const info=await withDeadline(module.getCompilationInfo(),10000,'GPU shader compilation timed out');
   const errs=info.messages.filter(x=>x.type==='error');
   if(errs.length)throw new Error('WebGPU SHA-256 shader compile error: '+errs.map(x=>x.message).join(' | '));
   let pipeline;
@@ -1769,7 +1792,7 @@ async function startGpuMining(base){
       if(start>0xffffffff-batch)throw new Error('GPU nonce range exhausted. Restart with CPU fallback.');
       device.queue.writeBuffer(paramsBuf,0,new Uint32Array([start,batch,targetTop,0]));device.queue.writeBuffer(resultBuf,0,new Uint32Array([0,0]));
       const encoder=device.createCommandEncoder(),pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(Math.ceil(batch/256));pass.end();encoder.copyBufferToBuffer(resultBuf,0,readBuf,0,8);
-      const t0=performance.now();device.queue.submit([encoder.finish()]);await readBuf.mapAsync(GPUMapMode.READ);const data=new Uint32Array(readBuf.getMappedRange().slice(0));readBuf.unmap();if(run!==S.runId||!S.mining)return;const ms=Math.max(1,performance.now()-t0);
+      const t0=performance.now();device.queue.submit([encoder.finish()]);await withDeadline(readBuf.mapAsync(GPUMapMode.READ),15000,'GPU stopped responding; CPU fallback is available');const data=new Uint32Array(readBuf.getMappedRange().slice(0));readBuf.unmap();if(run!==S.runId||!S.mining)return;const ms=Math.max(1,performance.now()-t0);
       S.hashes+=batch;const rate=batch/(ms/1000),avg=S.hashes/Math.max((performance.now()-S.startMs)/1000,.1);$('hashrate').textContent=formatRate(avg);$('mineProgress').style.width=Math.min(99,(S.hashes/expected)*100)+'%';
       lines.push('GPU '+start.toLocaleString()+'–'+(start+batch-1).toLocaleString()+' · '+formatRate(rate));if(lines.length>8)lines=lines.slice(-8);$('hashLog').textContent=lines.join('\n');
       if(data[0]===1){const nonce=data[1],hash=await verifyGpuCandidate(base,nonce);if(hash&&S.mining&&run===S.runId){S.proof={nonce:String(nonce),hash};stopMining(false);$('mineStatus').textContent='VALID PROOF FOUND';$('mineProgress').style.width='100%';$('hashLog').textContent+='\n\nGPU VERIFIED nonce '+nonce+'\n'+hash;$('submitClaimBtn').disabled=false;toast('GPU found and CPU/WebCrypto verified a valid 26-bit proof.');return}}
@@ -1790,6 +1813,7 @@ async function startCpuMining(base,reason=''){
 async function startMining(){
   try{
     if(S.mining)return;if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');const wanted=Number($('tokenInput').value);if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return}
+    if(loadFreeClaimRecovery(wanted))throw new Error('This block has a pending claim. Recover it or choose another block.');
     await ensureMiningLease(wanted,{force:true});
     if(!S.target||Number(S.target.token)!==wanted)throw new Error('Mining target changed during verification. Use Find Unclaimed again.');
     const gate=await checkTargetAvailability(S.target,{refresh:false});if(!gate.available)throw new Error(`ZEC BLOCK #${wanted} is no longer available. Use Find Unclaimed again.`);
@@ -1876,54 +1900,97 @@ function startClaimWatch(){
 function stopMining(mark=true){S.runId++;S.mining=false;S.gpuStop=true;if(S.claimWatchTimer){clearInterval(S.claimWatchTimer);S.claimWatchTimer=null}for(const w of S.workers)w.terminate();S.workers=[];$('stopMineBtn').disabled=true;$('startMineBtn').disabled=!S.target;if(mark){$('mineStatus').textContent='Stopped';releaseMiningLease().catch(()=>{})}updateMiningControls()}
 $('startMineBtn').onclick=startMining;$('stopMineBtn').onclick=()=>stopMining(true);
 
-function freeClaimRecoveryKey(){return 'zb1_free_claim_recovery_v1_'+String(S.actionOwner||S.ownerCommitment||'anon')}
-function loadFreeClaimRecovery(){
-  if(!S.ownerCommitment)return null;
-  try{
-    const r=JSON.parse(localStorage.getItem(freeClaimRecoveryKey())||'null');
-    return r&&Number.isInteger(Number(r.tokenId))?r:null
-  }catch{return null}
+function recoveryOwner(){return S.actionOwner||S.ownerCommitment||'anon'}
+function freeClaimRecoveryKey(owner=recoveryOwner()){return 'zb1_free_claim_recovery_v1_'+owner}
+function claimRecoveryQueueKey(owner=recoveryOwner()){return 'zb1_claim_recoveries_v2_'+owner}
+function claimRecoveries(owner=recoveryOwner()){
+  if(owner==='anon')return [];
+  const rows=JSON.parse(localStorage.getItem(claimRecoveryQueueKey(owner))||'[]');
+  if(!Array.isArray(rows))throw new Error('Claim recovery storage is unreadable. Keep browser data and contact support.');
+  const old=JSON.parse(localStorage.getItem(freeClaimRecoveryKey(owner))||'null');
+  if(old&&!rows.some(r=>Number(r.tokenId)===Number(old.tokenId)))rows.push(old);
+  return rows.filter(r=>Number.isInteger(Number(r.tokenId))&&Number(r.tokenId)>=1&&Number(r.tokenId)<=CFG.supply)
 }
-function saveFreeClaimRecovery(r){
-  if(!S.ownerCommitment||!r)return;
-  localStorage.setItem(freeClaimRecoveryKey(),JSON.stringify({...r,updatedAt:Date.now()}));
-  updateFeeCreditUI()
+function loadFreeClaimRecovery(tokenId=null,owner=recoveryOwner()){
+  const rows=claimRecoveries(owner);
+  return (tokenId==null?rows[0]:rows.find(r=>Number(r.tokenId)===Number(tokenId)))||null
 }
-function clearFreeClaimRecovery(){
-  if(S.ownerCommitment)localStorage.removeItem(freeClaimRecoveryKey());
-  updateFeeCreditUI()
+function saveFreeClaimRecovery(r,owner=recoveryOwner()){
+  if(owner==='anon'||!r)return;
+  const rows=claimRecoveries(owner),at=rows.findIndex(x=>Number(x.tokenId)===Number(r.tokenId));
+  const item={...r,owner,updatedAt:Date.now()};
+  if(at<0)rows.push(item);else rows[at]=item;
+  durableSet(claimRecoveryQueueKey(owner),JSON.stringify(rows));
+  localStorage.removeItem(freeClaimRecoveryKey(owner));
+  if(owner===S.ownerCommitment){updateFeeCreditUI();updateMiningControls()}
 }
-async function reconcileFreeClaimRecovery(){
+function clearFreeClaimRecovery(tokenId,owner=recoveryOwner()){
+  if(tokenId==null)return;
+  durableSet(claimRecoveryQueueKey(owner),JSON.stringify(claimRecoveries(owner).filter(r=>Number(r.tokenId)!==Number(tokenId))));
+  localStorage.removeItem(freeClaimRecoveryKey(owner));
+  if(owner===S.ownerCommitment){updateFeeCreditUI();updateMiningControls()}
+}
+function rememberWalletBroadcast(owner,memo,raw){
+  const txid=zcashTxidFromResult(raw);if(!owner||!/^[0-9a-f]{64}$/.test(txid))return;
+  if(memo===ZECS_MINT_MESSAGE){
+    durableSet('zb20_zecs_pending_mint_txid_'+owner,txid);
+    durableSet('zb20_zecs_broadcast_lock_v2_'+owner,JSON.stringify({status:'txid_known',txid}));
+  }else{
+    const r=claimRecoveries(owner).find(r=>(r.memo||r.event?.memo)===memo);
+    if(r)saveFreeClaimRecovery({...r,status:'pending',txid,event:{...r.event,txid,eventId:txid}},owner)
+  }
+}
+function claimRecoveryNotice(text){const el=$('claimRecoveryStatus');el.hidden=false;el.textContent=text}
+const CLAIM_RECOVERY_JOBS=new Map();
+async function reconcileFreeClaimRecovery(tokenId=null){
   if(CFG.claimProtocolFeeEnabled!==false||!S.ownerCommitment)return null;
-  const recoveryOwner=S.ownerCommitment,recoveryEpoch=S.walletEpoch;
-  let r=loadFreeClaimRecovery();if(!r)return null;
-  try{
-    if(!r.txid){
-      const recovered=await recoverClaimFromNoirHistory(Number(r.tokenId));
-      if(recoveryOwner!==S.ownerCommitment||recoveryEpoch!==S.walletEpoch)return r;
-      if(recovered&&/^[0-9a-f]{64}$/i.test(String(recovered.txid||''))){
+  const owner=S.ownerCommitment,epoch=S.walletEpoch;
+  const rows=claimRecoveries(owner);
+  let r=tokenId!=null?rows.find(x=>Number(x.tokenId)===Number(tokenId)):rows[(S.claimRecoveryCursor||0)%Math.max(1,rows.length)];
+  if(!r)return null;
+  const key=owner+':'+r.tokenId;if(CLAIM_RECOVERY_JOBS.has(key))return CLAIM_RECOVERY_JOBS.get(key);
+  const current=()=>owner===S.ownerCommitment&&epoch===S.walletEpoch;
+  const job=(async()=>{
+    try{
+      if(current())claimRecoveryNotice('Checking claim #'+r.tokenId+'… Other block IDs remain available.');
+      if(!r.txid){
+        const recovered=await recoverClaimFromNoirHistory(Number(r.tokenId));
+        if(!current())return r;
+        if(!recovered){claimRecoveryNotice('Claim #'+r.tokenId+' has no TXID in Noir history yet. It remains protected from duplicate submission. You can choose another block and continue mining.');return r}
         const ev=normalizeEvent({...recovered,v:Number(recovered.v)||1,type:'CLAIM',protocol:'ZB1'});
-        r={...r,status:'pending',txid:String(ev.txid).toLowerCase(),event:ev,recoveredFromWalletHistory:true};
-        saveFreeClaimRecovery(r);
+        r={...r,status:'pending',txid:ev.txid,event:ev,recoveredFromWalletHistory:true};
+        saveFreeClaimRecovery(r,owner);
+      }
+      // Persist and backfill this exact event; a busy/large historical scan must not starve it.
+      if(r.event){
+        const ev=normalizeEvent({...r.event,txid:r.txid,eventId:r.txid});
         saveLocalEvent(ev);updateKnownTokenIndex([ev]);
-        try{await publishRelay(ev,{fallback:true,repair:true})}catch(e){console.warn('free claim recovery relay',e)}
-        S.lastServerBackfill=0;
-        backfillServerClaimsFromBrowser({limit:40}).catch(()=>{});
-        auditClaimToken(Number(r.tokenId)).catch(()=>{})
-      }else return r
-    }
-    await auditClaimToken(Number(r.tokenId));
-    const q=await serverCheckClaims([Number(r.tokenId)],{deep:false}).catch(()=>null);
-    const st=q?.status_by_token?.[String(r.tokenId)]||q?.status_by_token?.[Number(r.tokenId)]||'';
-    if(recoveryOwner!==S.ownerCommitment||recoveryEpoch!==S.walletEpoch)return r;
-    if(st==='claimed'){
-      clearFreeClaimRecovery();
-      loadServerLiveStats({force:true}).catch(()=>{});
-      loadServerMiningSnapshot({force:true}).catch(()=>{});
-      return null
-    }
-    return r
-  }catch(e){console.warn('free claim recovery',e);return r}
+        if(!S.events.some(x=>x.txid===r.txid))S.events.push(ev);
+        const ack=await backendJson('backfill-client-claims',{body:{claims:[ev]}});
+        if(!ack?.ok)throw new Error(ack?.error||'Claim registration is temporarily unavailable.');
+      }
+      await auditClaimToken(Number(r.tokenId));
+      const q=await serverCheckClaims([Number(r.tokenId)],{deep:false});
+      if(!current())return r;
+      const st=q?.status_by_token?.[String(r.tokenId)];
+      if(st==='claimed'){
+        clearFreeClaimRecovery(r.tokenId,owner);
+        if(Number(S.target?.token)===Number(r.tokenId)){
+          S.target=null;S.proof=null;
+          $('mineStatus').textContent='Claim resolved · choose another block';
+          updateMiningControls();
+        }
+        // A canonical winner resolves this token; it is not proof this wallet won.
+        claimRecoveryNotice('Claim #'+r.tokenId+' has a canonical result. Recovery is complete; check Portfolio for ownership.');
+        loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});
+        return null
+      }
+      claimRecoveryNotice('Claim #'+r.tokenId+' is saved and awaiting chain/indexer verification. Recovery will retry automatically. You can mine a different block.');
+      return r
+    }catch(e){if(current())claimRecoveryNotice('Claim #'+r.tokenId+': '+(e.message||e)+' Your saved transaction is retained; recovery can be retried.');return r}
+    finally{S.claimRecoveryCursor=(S.claimRecoveryCursor||0)+1;if(current())updateMiningControls()}
+  })();
+  CLAIM_RECOVERY_JOBS.set(key,job);updateMiningControls();try{return await job}finally{CLAIM_RECOVERY_JOBS.delete(key);if(current())updateMiningControls()}
 }
 
 async function submitClaim(){
@@ -1936,10 +2003,10 @@ async function submitClaim(){
     if(btn){btn.dataset.busy='1';btn.disabled=true;btn.textContent='Preparing claim…'}
     $('mineStatus').textContent='Securing reserved Token ID…';
 
-    recovery=loadFreeClaimRecovery();
+    recovery=loadFreeClaimRecovery(S.target?.token);
     if(recovery){
-      await reconcileFreeClaimRecovery();
-      recovery=loadFreeClaimRecovery();
+      await reconcileFreeClaimRecovery(S.target.token);
+      recovery=loadFreeClaimRecovery(S.target?.token);
       if(recovery)throw new Error(`Claim #${recovery.tokenId} may already have been broadcast. Recovery lock is active; do not submit another claim.`)
     }
 
@@ -2023,24 +2090,18 @@ async function submitClaim(){
     
     updateAvailabilityCounts();
 
-    try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('free claim relay publish',e)}
-    S.lastServerBackfill=0;
-    await backfillServerClaimsFromBrowser({limit:40}).catch(e=>console.warn('free claim server backfill',e));
-    await auditClaimToken(tokenId);
-    await serverCheckClaims([tokenId],{deep:true}).catch(e=>console.warn('free claim canonical lock',e));
-    loadServerLiveStats({force:true}).catch(()=>{});
-    loadServerMiningSnapshot({force:true}).catch(()=>{});
-
-    await releaseMiningLease().catch(()=>{});
+    publishRelay(ev,{fallback:true}).catch(e=>console.warn('free claim relay publish',e));
+    reconcileFreeClaimRecovery(tokenId).catch(()=>{});
+    releaseMiningLease().catch(()=>{});
     S.proof=null;
     $('mineStatus').textContent='Claim broadcast · canonical confirmation pending';
     setClaimStatus('CLAIM BROADCAST · waiting for Zcash confirmation','warn');
     toast(`Free test claim broadcast successfully · TX ${short(txid,8)} · only Zcash network fee was paid.`,11000)
   }catch(e){
-    const r=loadFreeClaimRecovery();
+    const r=loadFreeClaimRecovery(S.target?.token);
     const definitelyNotBroadcast=walletRejected(e)||insufficientFundsError(e)||/could not fund the claim transaction/i.test(String(e?.message||e||''));
-    if(r?.status==='wallet_approval'&&definitelyNotBroadcast)clearFreeClaimRecovery();
-    if(loadFreeClaimRecovery()){
+    if(r?.status==='wallet_approval'&&definitelyNotBroadcast)clearFreeClaimRecovery(S.target?.token);
+    if(loadFreeClaimRecovery(S.target?.token)){
       $('mineStatus').textContent='Claim may already be broadcast · recovery lock active';
       toast('Claim may already have been broadcast. Do NOT submit again; automatic recovery is active.',13000)
     }else{
@@ -2050,7 +2111,7 @@ async function submitClaim(){
   }finally{
     if(btn){
       btn.dataset.busy='';
-      btn.disabled=!S.proof||!S.target||!!loadFreeClaimRecovery();
+      btn.disabled=!S.proof||!S.target||!!loadFreeClaimRecovery(S.target?.token);
     }
     updateFeeCreditUI()
   }
@@ -2424,37 +2485,51 @@ function loadZecsPendingTxid(){
   const v=String(localStorage.getItem(zecsPendingKey())||'').replace(/^0x/,'').trim().toLowerCase();
   return /^[0-9a-f]{64}$/.test(v)?v:''
 }
-function saveZecsPendingTxid(txid){txid=zcashTxidFromResult(txid);if(/^[0-9a-f]{64}$/.test(txid))localStorage.setItem(zecsPendingKey(),txid)}
+function saveZecsPendingTxid(txid){txid=zcashTxidFromResult(txid);if(/^[0-9a-f]{64}$/.test(txid))durableSet(zecsPendingKey(),txid)}
 function clearZecsPendingTxid(){localStorage.removeItem(zecsPendingKey());localStorage.removeItem(zecsLegacyPendingKey())}
 function zecsBroadcastKey(){return 'zb20_zecs_broadcast_lock_v2_'+String(S.actionOwner||S.ownerCommitment||'anon')}
 function loadZecsBroadcastLock(){try{return JSON.parse(localStorage.getItem(zecsBroadcastKey())||'null')}catch{return null}}
-function saveZecsBroadcastLock(v){localStorage.setItem(zecsBroadcastKey(),JSON.stringify(v||{}));updateZecsUI()}
+function saveZecsBroadcastLock(v){durableSet(zecsBroadcastKey(),JSON.stringify(v||{}));updateZecsUI()}
 function clearZecsBroadcastLock(){localStorage.removeItem(zecsBroadcastKey());updateZecsUI()}
-async function zecsMintHistoryCandidates({limit=50}={}){
+async function zecsMintHistoryCandidates(){
   if(!S.connection)return [];
-  const hist=await rpc('zcash_getTransactionHistory');
+  const hist=historyRows(await rpc('zcash_getTransactionHistory'));
   const out=[],seen=new Set();
-  for(const h of (Array.isArray(hist)?hist:[])){
-    const memo=String(h?.memo??deepFind(h,['memo','memoText','memo_text'])??'').trim();
-    if(memo!==ZECS_MINT_MESSAGE)continue;
+  for(const h of hist){
+    if(historyMemo(h)!==ZECS_MINT_MESSAGE)continue;
     const txid=zcashTxidFromResult(h);
     if(!/^[0-9a-f]{64}$/.test(txid)||seen.has(txid))continue;
     seen.add(txid);
-    let ts=Number(h?.timestamp||deepFind(h,['timestamp','time','blockTime','block_time'])||0);
-    if(ts>20_000_000_000)ts=Math.floor(ts/1000);
-    out.push({txid,timestamp:ts||0,status:String(h?.status||'')})
+    let ts=Number(h?.timestamp||0);if(ts>20_000_000_000)ts=Math.floor(ts/1000);
+    out.push({txid,timestamp:ts,status:String(h?.status||'')})
   }
-  return out.sort((a,b)=>b.timestamp-a.timestamp).slice(0,Math.max(1,Math.min(100,limit)))
+  return out.sort((a,b)=>b.timestamp-a.timestamp)
+}
+async function lookupZecsMints(txids){
+  const ids=[...new Set(txids.filter(x=>/^[0-9a-f]{64}$/.test(x)))],rows=[];
+  for(let i=0;i<ids.length;i+=50){
+    const out=await zecsFunction('lookup',{txids:ids.slice(i,i+50)});
+    if(!Array.isArray(out?.rows))throw new Error('Mint lookup returned an incomplete response. Retry recovery.');
+    rows.push(...out.rows)
+  }
+  return rows
 }
 async function zecsUnregisteredHistoryMints(){
-  const candidates=await zecsMintHistoryCandidates({limit:60});
-  const pending=loadZecsPendingTxid();
-  if(pending&&!candidates.some(x=>x.txid===pending))candidates.unshift({txid:pending,timestamp:Date.now()/1000,status:'local-pending'});
+  const candidates=await zecsMintHistoryCandidates(),lock=loadZecsBroadcastLock();
+  for(const txid of [loadZecsPendingTxid(),lock?.txid,...(lock?.found||[]),loadZecsRegistration()?.txid]){
+    if(/^[0-9a-f]{64}$/.test(txid||'')&&!candidates.some(x=>x.txid===txid))candidates.unshift({txid,timestamp:0,status:'local-pending'})
+  }
   if(!candidates.length)return {candidates:[],missing:[],registered:[]};
-  const look=await zecsFunction('lookup',{txids:candidates.map(x=>x.txid)});
-  const registered=Array.isArray(look?.rows)?look.rows:[];
+  const registered=await lookupZecsMints(candidates.map(x=>x.txid));
   const have=new Set(registered.map(x=>String(x.txid||'').toLowerCase()));
   return {candidates,registered,missing:candidates.filter(x=>!have.has(x.txid))}
+}
+function zecsLockResolved(scan,lock,pending){
+  const owner=S.actionOwner||S.ownerCommitment;
+  const own=new Set(scan.registered.filter(x=>x.owner_commitment===owner&&['pending','confirmed'].includes(x.status)).map(x=>x.txid));
+  const ids=[pending,lock?.txid,...(lock?.found||[])].filter(x=>/^[0-9a-f]{64}$/.test(x||''));
+  // Only concrete TXIDs or a discovery-only lock can be resolved. Empty history never proves failure.
+  return ids.length>0&&ids.every(x=>own.has(x))
 }
 function zecsSetStatus(text,kind=''){
   const el=$('zecsStatus');if(!el)return;
@@ -2498,7 +2573,7 @@ function updateZecsUI(){
     $('zecsEligibilityDetail').textContent=!connected?'Current canonical ZEC BLOCKS ownership is checked before every mint.':eligible?'This wallet currently holds canonical ZEC BLOCKS and may mint ZECS.':'This wallet must hold at least one canonically indexed ZEC BLOCK.'
   }
   if(btn){
-    btn.disabled=S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsStateError||recoveryNeeded||!connected||!eligible||!open;
+    btn.disabled=S.zecsRegistrationBusy||S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsStateError||recoveryNeeded||!connected||!eligible||!open;
     btn.textContent=S.zecsBusy?'Working…':recoveryNeeded?'Recover Pending Mint First':!connected?'Connect Noir Wallet to Mint':events>=ZECS_MAX_EVENTS?'ZECS Mint Sold Out':!eligible?'ZEC BLOCKS Holder Required':!open?'Waiting for Canonical Deploy':'Mint 210 ZECS'
   }
   const rb=$('zecsRecoverBtn');
@@ -2529,12 +2604,22 @@ async function loadZecsState(){
 }
 function zecsRegistrationKey(){return 'zb20_zecs_registration_v1_'+String(S.actionOwner||S.ownerCommitment||'anon')}
 function loadZecsRegistration(){try{const r=JSON.parse(localStorage.getItem(zecsRegistrationKey())||'null');return r?.owner===(S.actionOwner||S.ownerCommitment)?r:null}catch{return null}}
+function completeZecsRecord(txid,owner){
+  const pendingKey='zb20_zecs_pending_mint_txid_'+owner,lockKey='zb20_zecs_broadcast_lock_v2_'+owner,registrationKey='zb20_zecs_registration_v1_'+owner;
+  if(localStorage.getItem(pendingKey)===txid)localStorage.removeItem(pendingKey);
+  const lock=JSON.parse(localStorage.getItem(lockKey)||'null');
+  if(lock){
+    const remaining=[...new Set([lock.txid,...(lock.found||[])].filter(x=>x&&x!==txid))];
+    if(remaining.length)durableSet(lockKey,JSON.stringify({status:'recovery_required',found:remaining}));
+    else if(lock.txid===txid||(lock.found||[]).includes(txid))localStorage.removeItem(lockKey)
+  }
+  const registration=JSON.parse(localStorage.getItem(registrationKey)||'null');
+  if(registration?.txid===txid)localStorage.removeItem(registrationKey);
+}
 async function finishZecsRegistration(record){
   const out=await zecsFunction('register',record.body);
   if(!out.ok||!['pending','confirmed'].includes(out.status))throw new Error('Mint registration is not yet acknowledged. Recover again without resending.');
-  localStorage.removeItem('zb20_zecs_pending_mint_txid_'+record.owner);
-  localStorage.removeItem('zb20_zecs_broadcast_lock_v2_'+record.owner);
-  localStorage.removeItem('zb20_zecs_registration_v1_'+record.owner);
+  completeZecsRecord(record.txid,record.owner);
   if(record.owner===S.ownerCommitment){
     if(out.stats)S.zecsStats=out.stats;if(out.account)S.zecsAccount=out.account;
     updateZecsUI()
@@ -2543,15 +2628,32 @@ async function finishZecsRegistration(record){
 }
 async function resumeZecsRegistration(){
   if(S.zecsRegistrationBusy||S.walletAction||S.zecsBusy)return;
-  const record=loadZecsRegistration();if(!record)return;
+  const owner=S.ownerCommitment,epoch=S.walletEpoch,record=loadZecsRegistration();
+  const lock=loadZecsBroadcastLock(),pending=loadZecsPendingTxid();
+  const ids=[pending,lock?.txid,...(lock?.found||[])].filter(x=>/^[0-9a-f]{64}$/.test(x||''));
+  if(!record&&!ids.length)return;
   S.zecsRegistrationBusy=true;
-  try{const out=await finishZecsRegistration(record);zecsSetStatus(out.status==='confirmed'?'Mint confirmed · +210 ZECS':'Mint registered · waiting for Zcash confirmation.','good');return out}
-  finally{S.zecsRegistrationBusy=false;updateZecsUI()}
+  try{
+    const registered=await lookupZecsMints(ids);
+    if(owner!==S.ownerCommitment||epoch!==S.walletEpoch)return;
+    if(zecsLockResolved({registered},lock,pending)){
+      clearZecsPendingTxid();clearZecsBroadcastLock();localStorage.removeItem(zecsRegistrationKey());
+      zecsSetStatus('Previous mint is already registered. You can mint again.','good');return
+    }
+    if(record){const out=await finishZecsRegistration(record);if(owner===S.ownerCommitment)zecsSetStatus(out.status==='confirmed'?'Mint confirmed · +210 ZECS':'Mint registered · waiting for Zcash confirmation.','good');return out}
+  }finally{S.zecsRegistrationBusy=false;updateZecsUI()}
 }
 async function registerZecsMintTx(txid){
   txid=String(txid||'').replace(/^0x/,'').toLowerCase();
   if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Invalid ZECS mint TXID.');
   assertActionWallet();
+  const existing=await lookupZecsMints([txid]);assertActionWallet();
+  const match=existing.find(x=>x.txid===txid);
+  if(match){
+    if(match.owner_commitment!==S.ownerCommitment)throw new Error('This mint is registered to another wallet.');
+    if(!['pending','confirmed'].includes(match.status))throw new Error('Mint '+match.status+': '+(match.reject_reason||'check transaction details'));
+    completeZecsRecord(txid,S.actionOwner||S.ownerCommitment);return {ok:true,...match}
+  }
   const saved=loadZecsRegistration();if(saved?.txid===txid)return finishZecsRegistration(saved);
   const anchorMessage='ZB20:MINT_ANCHOR:v1|T=ZECS|X='+txid+'|M='+ZECS_MINT_MESSAGE;
   const signed=await rpc('zcash_signMessage',[anchorMessage,{signingMode:'derived'}]);
@@ -2560,7 +2662,7 @@ async function registerZecsMintTx(txid){
   const owner=await sha256HexBytes(hexToBytes(pub));assertActionWallet();
   if(owner!==S.ownerCommitment)throw new Error('Noir identity changed before registration.');
   const record={txid,owner,body:{txid,pubkey:pub,anchorSignature:sig,message:ZECS_MINT_MESSAGE}};
-  localStorage.setItem(zecsRegistrationKey(),JSON.stringify(record));
+  durableSet(zecsRegistrationKey(),JSON.stringify(record));
   return finishZecsRegistration(record)
 }
 
@@ -2576,7 +2678,7 @@ async function mintZecs(){
     if(pending||lock)throw new Error('A ZECS mint may already be broadcast. Recover it first; no second mint transaction will be sent.');
 
     zecsSetStatus('Checking Noir history for unregistered ZECS mints…','warn');
-    const history=await zecsUnregisteredHistoryMints();
+    const history=await zecsUnregisteredHistoryMints();assertActionWallet();
     if(history.missing.length){
       saveZecsBroadcastLock({status:'recovery_required',found:history.missing.map(x=>x.txid),detectedAt:Math.floor(Date.now()/1000)});
       throw new Error(`Found ${history.missing.length} ZECS mint transaction(s) already broadcast but not registered. Click Recover Pending Mint first.`)
@@ -2638,7 +2740,7 @@ async function recoverZecsMint(){
     S.zecsBusy=true;updateZecsUI();
     zecsSetStatus('Scanning Noir Wallet history for ZECS mint broadcasts…','warn');
 
-    const scan=await zecsUnregisteredHistoryMints();
+    const scan=await zecsUnregisteredHistoryMints();assertActionWallet();
     let missing=[...scan.missing];
     const local=loadZecsPendingTxid();
     if(local&&!missing.some(x=>x.txid===local)&&!scan.registered.some(x=>String(x.txid).toLowerCase()===local)){
@@ -2646,7 +2748,7 @@ async function recoverZecsMint(){
     }
 
     if(!missing.length){
-      if(loadZecsBroadcastLock()&&!loadZecsPendingTxid()){
+      if((loadZecsBroadcastLock()||local)&&!zecsLockResolved(scan,loadZecsBroadcastLock(),local)){
         zecsSetStatus('The wallet has not returned a TXID yet. An empty history does not prove the broadcast failed. Keep the recovery lock and check Noir history before retrying.','warn');return
       }
       const registeredPending=scan.registered.filter(x=>String(x.owner_commitment||'').toLowerCase()===String(S.ownerCommitment).toLowerCase()&&x.status==='pending');
@@ -2662,15 +2764,16 @@ async function recoverZecsMint(){
     for(let i=0;i<max;i++){
       const txid=missing[i].txid;
       saveZecsPendingTxid(txid);
-      saveZecsBroadcastLock({status:'recovering',txid,index:i+1,total:max});
+      saveZecsBroadcastLock({status:'recovering',txid,found:missing.slice(i).map(x=>x.txid),index:i+1,total:max});
       zecsSetStatus(`Recovering ZECS mint ${i+1}/${max} · sign registration only (no new ZEC transaction)…`,'warn');
       await registerZecsMintTx(txid);
       recovered++
     }
 
     clearZecsPendingTxid();clearZecsBroadcastLock();
+    if(missing.length>max)saveZecsBroadcastLock({status:'recovery_required',found:missing.slice(max).map(x=>x.txid)});
     await loadZecsState();
-    zecsSetStatus(`Recovered ${recovered} previously broadcast ZECS mint(s). Server finalization now runs automatically.`,'good');
+    zecsSetStatus(`Recovered ${recovered} previously broadcast ZECS mint(s). ${missing.length>max?(missing.length-max)+' more can be recovered.':'Server finalization now runs automatically.'}`,'good');
     toast(`Recovered ${recovered} ZECS mint transaction(s) without sending new mint payments.`,10000)
   }catch(e){
     zecsSetStatus(e?.message||String(e),'bad');toast(e?.message||String(e),10000)
@@ -2696,20 +2799,22 @@ function assertActionWallet(){
 }
 function updateMiningControls(){
   const connected=!!S.ownerCommitment&&!S.noirLocked,busy=S.targetBusy||S.walletAction;
-  const recovery=loadFreeClaimRecovery();
+  const recovery=S.target?loadFreeClaimRecovery(S.target.token):null,queue=claimRecoveries(S.ownerCommitment||'anon');
   for(const id of ['loadTargetBtn','findUnclaimedBtn','tokenInput','engineSelect','testGpuBtn'])$(id).disabled=!connected||busy||S.mining;
   $('startMineBtn').disabled=!connected||busy||S.mining||!S.target||recovery;
   $('submitClaimBtn').disabled=!connected||busy||S.mining||!S.target||!S.proof||recovery;
   $('stopMineBtn').disabled=!S.mining;
-  $('recoverClaimBtn').disabled=!connected||busy||S.mining;
-  $('recoverClaimBtn').hidden=!recovery;
+  $('recoverClaimBtn').disabled=!connected||busy||S.mining||[...CLAIM_RECOVERY_JOBS.keys()].some(k=>k.startsWith((S.ownerCommitment||'anon')+':'));
+  $('recoverClaimBtn').hidden=!queue.length;
+  $('recoverClaimBtn').textContent='Recover Pending Claim'+(queue.length>1?' ('+queue.length+')':'');
   if(!busy&&recovery?.txid)showClaimReceipt(recovery.tokenId,recovery.txid);
+  if(queue.length&&!$('claimRecoveryStatus').textContent)claimRecoveryNotice('Pending claim '+queue.map(r=>'#'+r.tokenId).join(', ')+'. Recover it here, or choose a different block to continue mining.');
   document.querySelectorAll('[data-candidate]').forEach(b=>b.disabled=!connected||busy||S.mining);
 }
 async function runMiningAction(fn,{wallet=false}={}){
-  if(S.targetBusy||S.walletAction||S.mining)return;
+  if(S.targetBusy||S.walletAction||S.zecsRegistrationBusy||S.mining)return;
   if(!S.ownerCommitment){await connectWallet(false);if(!S.ownerCommitment)return}
-  if(S.targetBusy||S.walletAction||S.mining)return;
+  if(S.targetBusy||S.walletAction||S.zecsRegistrationBusy||S.mining)return;
   if(wallet)S.walletAction=true;else S.targetBusy=true;
   S.actionOwner=S.ownerCommitment;S.actionEpoch=S.walletEpoch;
   updateMiningControls();updateZecsUI();
@@ -2747,7 +2852,7 @@ $('loadTargetBtn').onclick=()=>runMiningAction(()=>loadTarget());
 $('startMineBtn').onclick=()=>runMiningAction(startMining);
 $('stopMineBtn').onclick=()=>{stopMining(true);updateMiningControls()};
 $('submitClaimBtn').onclick=()=>runMiningAction(submitClaim,{wallet:true});
-$('recoverClaimBtn').onclick=()=>runMiningAction(reconcileFreeClaimRecovery,{wallet:true});
+$('recoverClaimBtn').onclick=()=>reconcileFreeClaimRecovery().catch(e=>claimRecoveryNotice(e.message||String(e)));
 $('zecsMintBtn').onclick=()=>runMiningAction(mintZecs,{wallet:true});
 $('zecsRecoverBtn').onclick=()=>runMiningAction(recoverZecsMint,{wallet:true});
 $('availablePrev').onclick=()=>{S.availablePage=Math.max(0,(S.availablePage||0)-1);renderAvailableTokens()};

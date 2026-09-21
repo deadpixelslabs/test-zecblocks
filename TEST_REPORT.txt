@@ -1,23 +1,27 @@
-Mining Studio V16 regression verification
+Mining Studio V16.1 recovery regression verification
 
-GitHub Actions run: https://github.com/deadpixelslabs/test-zecblocks/actions/runs/35627928037
-Result: 12 passed, 0 failed (Node 22, Chromium / Playwright 1.55.1).
+Local verification: 24 Node/Chromium regression tests, using Playwright 1.55.1.
+The current GitHub Actions run is the authoritative CI result for its commit.
 
-Coverage:
-1. Correct public API credential and authorization forwarding.
-2. Unsupported operations/methods and malformed JSON rejected.
-3. Temporary verification failures preserve reservation details.
-4. Every current inline script compiles.
-5. Startup survives relay CDN failure; canonical totals, theme persistence, mobile overflow.
-6. Stale responses and local events cannot overwrite the canonical total.
-7. Repeated finder clicks serialize; a real CPU proof permits only one mocked NFT broadcast.
-8. Account changes stop mining workers and invalidate the target.
-9. Signed ZECS registration retries without a second send or signature.
-10. Ambiguous ZECS broadcasts remain locked when wallet history is empty.
-11. Claim gate requires relay quorum and the same owner/nonce for an active intent.
-12. A rejected wallet approval clears the ZECS no-broadcast lock.
+Coverage includes the original 12 tests plus:
+- 52 and 125 historical ZECS transactions under the real 50-TXID lookup limit.
+- Automatic and manual cleanup of already registered discovery locks, with zero sends/signatures.
+- A foreign owner registration cannot clear this wallet's lock.
+- Legacy NFT lock migration preserves #3874 while a different ID can mine and claim once.
+- Exact-event NFT backfill bypasses historical backlog, and canonical settlement releases the lock.
+- Targeted claim history skips unrelated NFT chain lookups.
+- Hung wallet reads release action gates without losing pending transactions.
+- A late broadcast after timeout/account change is saved for the original owner.
+- Partial ZECS registration failures preserve all queued TXIDs.
+- Transport cancellation is not classified as explicit wallet rejection.
+- Slow NFT indexing does not hold the wallet action gate.
 
-Screenshots: mining-ui artifact attached to workflow runs.
-Real Noir transaction approvals, actual Zcash settlement and hardware GPU performance are not exercised by fixtures.
-Production proof difficulty, supply, fee flag and holder/relay checks are unchanged.
-The workflow runs these checks for every main update; consult its current run for the latest commit result.
+Read-only production evidence on 2026-09-21:
+The screenshot wallet had 52 confirmed ZECS mints. The deployed lookup function accepts
+only 50 TXIDs per call; the old frontend sent up to 60 and falsely treated omitted rows as missing.
+NFT IDs 3874 and 1900 were canonically clear at inspection. The user's browser-local
+pending transaction data cannot be inspected from this environment.
+
+No real Noir transaction approval/payment was performed. Fixtures do not prove real
+Zcash settlement or hardware GPU performance. Production proof difficulty, supply,
+fee mode, holder eligibility and relay checks are unchanged. No database rows were edited.
