@@ -1,11 +1,12 @@
-ZEC BLOCKS — Mining Studio V16.1
+ZEC BLOCKS — Mining Studio V16.1.1
 
 This repository serves mine.zecblocks.xyz. The marketplace is a separate deployment.
 
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
-The visible mining version is V16.1 · MINING STUDIO.
+The visible mining version is V16.1.1 · MINING STUDIO.
 
-What changed in V16.1
+What changed in V16.1.1
+- Public page loads no longer start the heavy availability scan. Existing server cron owns that job; exact target checks and recovery ingestion remain active.
 - Fixed false ZECS recovery for wallets with more than 50 mint transactions: every lookup is batched to the backend limit, with no history truncation.
 - Existing confirmed/pending registrations resolve known-TXID locks without another wallet signature or payment.
 - NFT recovery is now scoped to each Token ID. Older pending claims are migrated into a durable queue; a different block can still be mined and claimed.

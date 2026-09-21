@@ -90,6 +90,7 @@ test('startup survives missing relay CDN; canonical counters, saved theme and mo
   await p.screenshot({path:path.join(root,'test-artifacts/light-mobile.png'),fullPage:true});
   await p.setViewportSize({width:1360,height:1000});await p.getByRole('button',{name:'Switch to dark mode'}).click();
   await p.screenshot({path:path.join(root,'test-artifacts/dark-desktop.png'),fullPage:true});assert.deepEqual(f.errors,[]);
+  assert.equal(f.calls.filter(c=>c.op==='availability-scan').length,0,'public visits must not start the full server scan');
  }finally{await f.browser.close()}
 });
 test('stale responses, local events and failed reads cannot overwrite canonical total',async()=>{

@@ -1,4 +1,4 @@
-Mining Studio V16.1 recovery regression verification
+Mining Studio V16.1.1 recovery regression verification
 
 Local verification: 24 Node/Chromium regression tests, using Playwright 1.55.1.
 The current GitHub Actions run is the authoritative CI result for its commit.
@@ -25,3 +25,6 @@ pending transaction data cannot be inspected from this environment.
 No real Noir transaction approval/payment was performed. Fixtures do not prove real
 Zcash settlement or hardware GPU performance. Production proof difficulty, supply,
 fee mode, holder eligibility and relay checks are unchanged. No database rows were edited.
+Live verification also found a resource-limit failure from browser-triggered full scans.
+The existing active once-per-minute availability cron was verified, and redundant public-page
+scan triggers were removed. The startup fixture now asserts zero full-scan requests.

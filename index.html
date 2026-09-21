@@ -75,7 +75,7 @@ main{max-width:1320px;padding:30px 28px 60px}.top{background:var(--bg);border-co
 try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark')}catch{document.documentElement.dataset.theme='dark'}
 </script>
 </head>
-<body data-mining-version="16.1">
+<body data-mining-version="16.1.1">
 <header class="top">
   <a class="brand" href="https://www.zecblocks.xyz"><span class="brandmark">Z</span><b>ZEC BLOCKS</b></a>
   <nav class="nav"><a href="https://www.zecblocks.xyz">← Marketplace</a><a href="#mining">Mining</a><a href="#zecs">$ZECS</a><a href="https://docs.zecblocks.xyz" target="_blank" rel="noreferrer">Protocol ↗</a></nav>
@@ -97,7 +97,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
   </aside>
 </section>
 
-<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Find a verified unclaimed NFT, reserve it, and mine your proof. Availability is checked again before your claim.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V16.1 · MINING STUDIO</span></div></div>
+<div class="sectionHead" id="mining"><div><h2>Mining</h2><p>Find a verified unclaimed NFT, reserve it, and mine your proof. Availability is checked again before your claim.</p></div><div style="display:flex;gap:8px;align-items:center"><span class="badge live">26-BIT LIVE</span><span class="badge">V16.1.1 · MINING STUDIO</span></div></div>
 <div class="workflow"><div><span>01 / DISCOVER</span><b>Choose a block</b><p>Find a verified candidate.</p></div><div><span>02 / MINE</span><b>Create your proof</b><p>Your browser does the work.</p></div><div><span>03 / CLAIM</span><b>Make it yours</b><p>Approve in Noir Wallet.</p></div></div>
 <section class="card panel" style="margin-top:20px">
 <div class="miningGrid">
@@ -905,9 +905,6 @@ async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeToken
   const l=setMiningLease(j);if(!l)throw new Error('Reservation server returned an invalid lease.');return l
 }
 
-async function kickServerClaimIndex(){
-  try{await backendJson('availability-scan',{method:'POST',body:{}})}catch(e){console.warn('server claim shard trigger',e)}
-}
 async function backfillServerClaimsFromBrowser({limit=250}={}){
   if(S.serverBackfillBusy)return {accepted:0};
   if(S.lastServerBackfill&&Date.now()-S.lastServerBackfill<45000)return {accepted:0,throttled:true};
@@ -933,7 +930,6 @@ async function backfillServerClaimsFromBrowser({limit=250}={}){
       if(i+40<arr.length)await new Promise(res=>setTimeout(res,180))
     }
     S.lastServerBackfill=Date.now();
-    if(accepted)kickServerClaimIndex().catch(()=>{});
     return {accepted,rejected}
   }catch(e){console.warn('client claim backfill',e);return {accepted:0,error:e}}
   finally{S.serverBackfillBusy=false}
@@ -2885,7 +2881,6 @@ artSvg($('heroArt'),CFG.genesisTxid,'ZB #1');
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else detectGpu().catch(()=>{});
   initNostr().then(()=>{startLiveDiscovery();fetchRelay(null,true).catch(()=>{})}).catch(()=>{});
   await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true}),loadZecsState()]);
-  kickServerClaimIndex().catch(()=>{});
   resolveGenesis().catch(e=>console.warn(e));
   connectWallet(true).catch(()=>{});
   fetchRelay(null,true).catch(()=>{});
