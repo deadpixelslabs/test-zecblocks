@@ -281,6 +281,7 @@ function updateFeeCreditUI(){
     return
   }
 
+  {
   const el=$('feeCreditStatus');if(!el)return;
   const btn=$('submitClaimBtn'),v=loadFeeVoucher();
   if(!v){
@@ -318,6 +319,7 @@ function updateFeeCreditUI(){
     el.textContent=`1 BOUND CLAIM CREDIT · VERIFYING · ${short(v.txid,7)}`;
     el.style.color='#f1cc76';
     if(btn&&!btn.dataset.busy)btn.textContent='Check Fee Confirmation'
+  }
   }
 }
 
