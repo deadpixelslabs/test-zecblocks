@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZECS Fee Lab · ZEC BLOCKS</title>
+<style>
+:root{--bg:#080808;--panel:#0e0e0e;--line:#242424;--text:#f1f1f1;--muted:#8c8c8c;--gold:#d4a84f;--good:#8bd5a2;--bad:#ff9b9b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+main{max-width:920px;margin:0 auto;padding:28px 18px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:28px}
+.brand{font-weight:800;letter-spacing:.06em}.tag{font-size:12px;color:var(--muted)}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:22px;margin-bottom:16px}
+h1{font-size:34px;margin:0 0 10px}h2{font-size:18px;margin:0 0 10px}p{color:#b9b9b9;line-height:1.6}
+.btn{border:1px solid #383838;background:#151515;color:white;border-radius:10px;padding:12px 16px;cursor:pointer;font-weight:700}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#111}.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:grid;grid-template-columns:190px 1fr;gap:14px;padding:9px 0;border-bottom:1px solid #191919}.row:last-child{border-bottom:0}
+.key{color:var(--muted);font-size:12px}.val{font-family:ui-monospace,Consolas,monospace;overflow-wrap:anywhere;font-size:12px}
+.notice{border:1px solid #30291b;background:#0c0a07;color:#d7c38f;padding:13px;border-radius:10px;font-size:12px;line-height:1.55}
+.good{border-color:#24402d;color:var(--good);background:#0a110c}.bad{border-color:#492929;color:var(--bad);background:#120a0a}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+code{font-family:ui-monospace,Consolas,monospace}
+a{color:#d5b96f;text-decoration:none}
+@media(max-width:650px){.row{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><div class="brand">ZEC BLOCKS · ZECS FEE LAB</div><div class="tag">Experimental routing test · does not mint ZECS</div></div>
+    <a href="/">← Back to Mining</a>
+  </div>
+
+  <section class="card">
+    <h1>Can we cut ZECS mint fees?</h1>
+    <p>This test sends <b>1 zatoshi</b> from your shielded balance back to your own Noir shielded address with a non-mint test memo. It does <b>not</b> register a ZECS mint and cannot create ZECS.</p>
+    <div class="notice">Current ZECS mint transactions typically use both Ironwood and Sapling and pay about <b>20,000 zatoshi</b>. We are testing whether a same-pool shielded route can reduce that to about <b>10,000 zatoshi</b>.</div>
+    <div class="actions">
+      <button id="connectBtn" class="btn gold">Connect Noir Wallet</button>
+      <button id="testBtn" class="btn" disabled>Run 1-zat Fee Test</button>
+      <button id="checkBtn" class="btn" disabled>Check Test TX</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Connected route</h2>
+    <div class="row"><div class="key">Shielded destination</div><div id="address" class="val">Not connected</div></div>
+    <div class="row"><div class="key">Funding source</div><div class="val">shielded</div></div>
+    <div class="row"><div class="key">Test memo</div><div class="val">ZB20:FEE_PROBE:v2|T=ZECS</div></div>
+    <div class="row"><div class="key">Test amount</div><div class="val">0.00000001 ZEC</div></div>
+    <div class="row"><div class="key">TXID</div><div id="txid" class="val">—</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Measured transaction</h2>
+    <div class="row"><div class="key">Status</div><div id="status" class="val">Waiting for test</div></div>
+    <div class="row"><div class="key">Network fee</div><div id="fee" class="val">—</div></div>
+    <div class="row"><div class="key">Transaction size</div><div id="size" class="val">—</div></div>
+    <div class="row"><div class="key">Ironwood actions</div><div id="ironwood" class="val">—</div></div>
+    <div class="row"><div class="key">Sapling outputs</div><div id="sapling" class="val">—</div></div>
+    <div class="row"><div class="key">Classification</div><div id="classification" class="val">—</div></div>
+    <div id="result" class="notice" style="margin-top:16px">No production settings are changed by this page.</div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const INDEX_URL='https://tvwvenyomlwvjtwxasca.supabase.co';
+const INDEX_KEY='sb_publishable_LoJpIG8DU4ulRJtQOTY8QA_4AWXNeVN';
+const PENDING_KEY='zb20_fee_probe_txid_v2';
+let connection=null,busy=false;
+
+function provider(){const w=window.noirwallet;return w&&w.isNoirWallet&&w.zcash?w.zcash:null}
+async function rpc(method,params){const p=provider();if(!p)throw new Error('Noir Wallet is not installed.');return p.request({method,...(params?{params}: {})})}
+function setBusy(v){busy=v;document.getElementById('testBtn').disabled=v||!connection?.shielded;document.getElementById('checkBtn').disabled=v||!/^[0-9a-f]{64}$/.test(String(localStorage.getItem(PENDING_KEY)||''))}
+function short(v,n=10){v=String(v||'');return v.length>n*2+1?v.slice(0,n)+'…'+v.slice(-n):v}
+function show(msg,cls=''){const el=document.getElementById('result');el.className='notice'+(cls?' '+cls:'');el.textContent=msg}
+async function connect(){
+  try{
+    connection=await rpc('zcash_requestAccounts');
+    if(!connection?.shielded)throw new Error('No shielded address returned by Noir Wallet.');
+    document.getElementById('address').textContent=connection.shielded;
+    document.getElementById('connectBtn').textContent='Noir Connected';
+    setBusy(false)
+  }catch(e){show(e.message||String(e),'bad')}
+}
+async function runTest(){
+  if(busy)return;
+  try{
+    if(!connection?.shielded)await connect();
+    if(!connection?.shielded)return;
+    setBusy(true);
+    show('Approve the test transaction in Noir Wallet. This is NOT a ZECS mint.');
+    const txid=String(await rpc('zcash_sendTransaction',[{
+      to:connection.shielded,
+      amount:'0.00000001',
+      memo:'ZB20:FEE_PROBE:v2|T=ZECS',
+      fundingSource:'shielded'
+    }])).replace(/^0x/,'').toLowerCase();
+    if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('Noir Wallet did not return a valid TXID.');
+    localStorage.setItem(PENDING_KEY,txid);
+    document.getElementById('txid').textContent=txid;
+    document.getElementById('status').textContent='Broadcast · waiting for confirmation';
+    show('Test broadcast. Wait for a Zcash confirmation, then click Check Test TX.','good');
+  }catch(e){show(e.message||String(e),'bad')}
+  finally{setBusy(false)}
+}
+async function checkTest(){
+  if(busy)return;
+  try{
+    setBusy(true);
+    const txid=String(localStorage.getItem(PENDING_KEY)||'').toLowerCase();
+    if(!/^[0-9a-f]{64}$/.test(txid))throw new Error('No test TXID found.');
+    document.getElementById('txid').textContent=txid;
+    const r=await fetch(INDEX_URL+'/functions/v1/zecblocks-zb20-fee-probe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':INDEX_KEY},
+      body:JSON.stringify({txid})
+    });
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j?.ok)throw new Error(j?.error||('Probe HTTP '+r.status));
+    document.getElementById('status').textContent=j.confirmed?'Confirmed · block '+j.block_height:'Not confirmed yet';
+    document.getElementById('fee').textContent=j.fee_zat==null?'—':Number(j.fee_zat).toLocaleString()+' zatoshi · '+Number(j.fee_zec||0).toFixed(8)+' ZEC';
+    document.getElementById('size').textContent=(j.size||0).toLocaleString()+' bytes';
+    document.getElementById('ironwood').textContent=String(j.ironwood_actions??'—');
+    document.getElementById('sapling').textContent=String(j.sapling_outputs??'—');
+    document.getElementById('classification').textContent=j.classification||'—';
+    if(!j.confirmed)show('Transaction is not mined yet. Check again after the next Zcash block.');
+    else if(j.suitable_for_v2_mailbox)show('SUCCESS: same-pool routing is a valid low-fee candidate. This transaction used '+Number(j.fee_zat).toLocaleString()+' zatoshi, saving '+Number(j.estimated_savings_zat||0).toLocaleString()+' zatoshi versus current ZECS mint routing.','good');
+    else if(j.classification==='cross_pool')show('This address still produced a cross-pool transaction. Do NOT activate it as the ZECS V2 route.','bad');
+    else show('Confirmed, but this route did not meet the low-fee V2 criteria. No production change should be made.','bad');
+  }catch(e){show(e.message||String(e),'bad')}
+  finally{setBusy(false)}
+}
+
+document.getElementById('connectBtn').onclick=connect;
+document.getElementById('testBtn').onclick=runTest;
+document.getElementById('checkBtn').onclick=checkTest;
+const saved=String(localStorage.getItem(PENDING_KEY)||'').toLowerCase();
+if(/^[0-9a-f]{64}$/.test(saved)){document.getElementById('txid').textContent=saved;document.getElementById('checkBtn').disabled=false}
+(async()=>{try{connection=await rpc('zcash_getAccounts');if(connection?.shielded){document.getElementById('address').textContent=connection.shielded;document.getElementById('connectBtn').textContent='Noir Connected';setBusy(false)}}catch{}})();
+</script>
+</body>
+</html>
