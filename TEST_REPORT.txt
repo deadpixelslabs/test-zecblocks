@@ -1,4 +1,10 @@
-Claim counter and audit queue investigation — 2026-09-21
+Community progress display — 2026-09-21
+
+Claims seen is restored to the main collection statistics, with a progress bar and percentage of the 5,000 supply. The confirmed count remains separately visible below it. Both follow the existing server refresh, cached data and stale-response protection; no total is hardcoded and no mining attempt increments the UI locally.
+Production statistics at inspection: 3,551 claims seen (71.02%) and 2,787 confirmed. These are different metrics, with the explanation retained in details.
+All 27 existing regression tests passed. Desktop dark and mobile light screenshots were reviewed; the fixture correctly shows 3,505 claims seen / 70.10% and 2,660 confirmed. Existing mobile overflow and stale-response tests passed. Production read check now also requires the restored progress-bar markup.
+
+Previous claim counter and audit queue investigation — 2026-09-21
 
 Production evidence:
 - At 21:38–21:39 UTC, claims_seen stayed 3,551 while canonical availability rose from 2,738 to 2,740.

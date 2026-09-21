@@ -20,6 +20,7 @@ async function json(url, body) {
       const page = await fetch(base + '/?release-check=' + Date.now(), { signal: AbortSignal.timeout(15000) }).then(r => r.text());
       assert.match(page, /data-mining-layout="collection"/);
       assert.match(page, /id="confirmedClaimCount"/);
+      assert.match(page, /id="claimProgressTrack"/);
       assert.match(page, /unique NFT IDs in claim history/);
       const [snapshot, zecs] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),

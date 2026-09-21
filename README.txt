@@ -6,8 +6,9 @@ Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
 
 Claim counts and audit queue
-- The headline Confirmed claims counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.
-- Claims seen remains in Mining settings & details as a historical count of distinct NFT IDs encountered, including invalid/unconfirmed attempts. A later valid claim for an already observed ID can increase Confirmed claims without increasing Claims seen.
+- Claims seen is displayed in the main collection statistics with a progress bar and percentage of the 5,000 NFT IDs encountered. It refreshes from server statistics, including when the user is not connected to a wallet; the count is never hardcoded.
+- Confirmed claims is displayed separately below the main statistics and counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.
+- Mining settings & details explains that Claims seen is a historical count including invalid/unconfirmed attempts. A later valid claim for an already observed ID can increase Confirmed claims without increasing Claims seen.
 - The historical counter and ownership validation rules are unchanged. The frontend does not count local mining attempts as successful claims.
 - supabase/migrations/20260921214901_fair_claim_audit_queue.sql fixes audit starvation: the least recently updated outstanding transaction is selected first. Failed audits update their timestamp and move behind older work. Payload ranking, deduplication, batch limits and existing service-role-only grants are preserved.
 - Relay duplicates of an already finalized transaction are excluded from automatic re-auditing. This protects existing confirmed claims without marking any unverified claim valid.
