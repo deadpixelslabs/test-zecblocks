@@ -712,6 +712,25 @@ async function loadServerMiningSnapshot({force=false}={}){
   catch(e){console.warn('production mining snapshot',e);return null}
   finally{S.serverSyncBusy=false}
 }
+async function auditClaimToken(tokenId){
+  tokenId=Number(tokenId);
+  if(!Number.isInteger(tokenId)||tokenId<1||tokenId>CFG.supply)return null;
+  try{
+    const r=await fetch(CFG.supabaseUrl+'/functions/v1/zecblocks-claim-audit',{
+      method:'POST',
+      headers:{'content-type':'application/json','apikey':CFG.supabaseAnon},
+      body:JSON.stringify({tokenId}),
+      cache:'no-store'
+    });
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j?.ok)throw new Error(j?.error||('Claim audit HTTP '+r.status));
+    return j
+  }catch(e){
+    console.warn('exact claim audit',tokenId,e);
+    return null
+  }
+}
+
 async function serverCheckClaims(tokenIds,{deep=false}={}){
   const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
   if(!ids.length)throw new Error('No valid Token IDs to check.');
@@ -1828,9 +1847,11 @@ async function reconcileFreeClaimRecovery(){
         saveLocalEvent(ev);updateKnownTokenIndex([ev]);
         try{await publishRelay(ev,{fallback:true,repair:true})}catch(e){console.warn('free claim recovery relay',e)}
         S.lastServerBackfill=0;
-        backfillServerClaimsFromBrowser({limit:40}).catch(()=>{})
+        backfillServerClaimsFromBrowser({limit:40}).catch(()=>{});
+        auditClaimToken(Number(r.tokenId)).catch(()=>{})
       }else return r
     }
+    await auditClaimToken(Number(r.tokenId));
     const q=await serverCheckClaims([Number(r.tokenId)],{deep:false}).catch(()=>null);
     const st=q?.status_by_token?.[String(r.tokenId)]||q?.status_by_token?.[Number(r.tokenId)]||'';
     if(st==='claimed'){
@@ -1869,6 +1890,7 @@ async function submitClaim(){
       try{await publishRelay(ev,{fallback:true,repair:true})}catch(e){console.warn('recovered free claim relay',e)}
       S.lastServerBackfill=0;
       await backfillServerClaimsFromBrowser({limit:40}).catch(()=>{});
+      await auditClaimToken(Number(ev.tokenId));
       await serverCheckClaims([Number(ev.tokenId)],{deep:true}).catch(()=>{});
       S.proof=null;
       await releaseMiningLease().catch(()=>{});
@@ -1938,6 +1960,7 @@ async function submitClaim(){
     try{await publishRelay(ev,{fallback:true})}catch(e){console.warn('free claim relay publish',e)}
     S.lastServerBackfill=0;
     await backfillServerClaimsFromBrowser({limit:40}).catch(e=>console.warn('free claim server backfill',e));
+    await auditClaimToken(tokenId);
     await serverCheckClaims([tokenId],{deep:true}).catch(e=>console.warn('free claim canonical lock',e));
     loadServerLiveStats({force:true}).catch(()=>{});
     loadServerMiningSnapshot({force:true}).catch(()=>{});
