@@ -1,5 +1,5 @@
-const SUPABASE_URL='https://tvwvenyomlwvjtwxasca.supabase.co';
-const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY';
+const SUPABASE_URL=process.env.SUPABASE_URL||'https://tvwvenyomlwvjtwxasca.supabase.co';
+const SUPABASE_ANON=process.env.SUPABASE_ANON_KEY||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY';
 
 const EDGE = new Set([
   'zecblocks-live-stats',
@@ -12,6 +12,7 @@ const EDGE = new Set([
 ]);
 const RPC = new Set([
   'zecblocks_mining_snapshot',
+  'zecblocks_claim_stats',
   'zecblocks_claim_fee_status',
   'zecblocks_zb20_stats',
   'zecblocks_zb20_account'
@@ -25,17 +26,17 @@ function noStore(res){
 function jsonBody(req){
   if(req.body==null)return {};
   if(typeof req.body==='object')return req.body;
-  try{return JSON.parse(String(req.body||'{}'))}catch{return {}}
+  try{return JSON.parse(String(req.body||'{}'))}catch{throw new Error('INVALID_JSON')}
 }
-async function upstream(url,{method='POST',body=null,rpc=false}={}){
+async function upstream(url,{method='POST',body=null,rpc=false,timeoutMs=12000}={}){
   const headers={
     'accept':'application/json',
     'content-type':'application/json',
     'apikey':SUPABASE_ANON
   };
-  if(rpc)headers.authorization='Bearer '+SUPABASE_ANON;
+  headers.authorization='Bearer '+SUPABASE_ANON;
   const ac=new AbortController();
-  const timer=setTimeout(()=>ac.abort(),9000);
+  const timer=setTimeout(()=>ac.abort(),timeoutMs);
   try{
     const r=await fetch(url,{
       method,
@@ -77,16 +78,17 @@ module.exports=async function handler(req,res){
     if(req.method!==method)return res.status(405).json({ok:false,error:method+' only'});
 
     const u=await upstream(SUPABASE_URL+'/functions/v1/'+slug,{
-      method,body:method==='GET'?null:jsonBody(req)
+      method,body:method==='GET'?null:jsonBody(req),
+      timeoutMs:['zecblocks-mining-lease','zecblocks-check-claims','zecblocks-claim-audit','zecblocks-availability-scan'].includes(slug)?50000:20000
     });
     if(!u.ok)return res.status(u.status).json(u.data||{ok:false,error:'Edge upstream failed'});
     return res.status(200).json({ok:true,data:u.data});
   }catch(e){
     const timeout=e&&e.name==='AbortError';
-    return res.status(timeout?504:502).json({
+    return res.status(e?.message==='INVALID_JSON'?400:timeout?504:502).json({
       ok:false,
       error:timeout?'Backend upstream timeout':String(e?.message||e),
-      retryable:true
+      retryable:e?.message!=='INVALID_JSON'
     });
   }
 };
