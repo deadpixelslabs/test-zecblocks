@@ -64,7 +64,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
         <div class="primary-actions"><button id="connectMineBtn" class="btn gold">Connect Wallet</button><button id="findUnclaimedBtn" class="btn gold" hidden disabled>Find Unclaimed NFT</button><button id="startMineBtn" class="btn gold" hidden disabled>Start Mining</button><button id="submitClaimBtn" class="btn green" hidden disabled>Claim NFT</button><button id="miningBusyBtn" class="btn gold" hidden disabled>Working…</button></div>
         <div class="secondary-actions"><button id="surpriseBtn" class="btn subtle" hidden>Surprise me ↗</button><a class="btn subtle" href="#available" id="browseGalleryLink">Browse available NFTs</a><button id="stopMineBtn" class="btn red" disabled hidden>Stop Mining</button></div>
         <div class="fee-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span id="claimFeeNote">No mint fee. Zcash network fee applies.</span></div>
-        <div class="recovery-area"><button id="recoverClaimBtn" class="btn" hidden>Continue Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
+        <div class="recovery-area"><button id="recoverClaimBtn" class="btn" hidden>Continue Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimRecoveryList" aria-label="Pending claim details" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
       </section>
     </div>
     <details class="details-shell" id="miningDetails"><summary><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Mining settings & details</summary><div class="details-layout"><div>
@@ -576,17 +576,19 @@ function updateKnownTokenIndex(events){
   return set
 }
 
-async function backendJson(op,{method='POST',body=null,query={}}={}){
+async function backendJson(op,{method='POST',body=null,query={},signal=null}={}){
   const qs=new URLSearchParams({op:String(op||'')});
   for(const [k,v] of Object.entries(query||{}))if(v!=null)qs.set(k,String(v));
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),55000);
+  const abort=()=>controller.abort();
+  if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
   try{
     const r=await fetch('/api/zb?'+qs,{method,headers:{'content-type':'application/json','accept':'application/json'},...(method==='GET'?{}:{body:JSON.stringify(body||{})}),cache:'no-store',signal:controller.signal});
     const j=await r.json().catch(()=>null);
     if(!r.ok||!j?.ok){const e=new Error(j?.error||j?.message||('Canonical backend HTTP '+r.status));e.status=r.status;e.retryable=r.status>=500||r.status===429;e.details=j;throw e}
     return j.data
   }catch(e){if(e.name==='AbortError'){const error=new Error('Service request timed out. Pending transactions remain recoverable; use recovery before submitting again.');error.retryable=true;throw error}throw e}
-  finally{clearTimeout(timer)}
+  finally{clearTimeout(timer);signal?.removeEventListener('abort',abort)}
 }
 async function supabaseRpc(name,body={}){
   return backendJson('rpc',{method:'POST',body:body||{},query:{name}})
@@ -685,11 +687,12 @@ async function auditClaimToken(tokenId){
   }
 }
 
-async function serverCheckClaims(tokenIds,{deep=false}={}){
+async function serverCheckClaims(tokenIds,{deep=false,signal=null,isCurrent=()=>true}={}){
   const ids=[...new Set((tokenIds||[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply))].slice(0,50);
   if(!ids.length)throw new Error('No valid Token IDs to check.');
-  const j=await backendJson('check-claims',{method:'POST',body:{tokenIds:ids,deep:!!deep}});
+  const j=await backendJson('check-claims',{method:'POST',body:{tokenIds:ids,deep:!!deep},signal});
   if(!j?.ok)throw new Error(j?.error||'Availability server unavailable');
+  if(!isCurrent())return j;
   for(const id0 of (j.claimed_ids||[])){
     const id=Number(id0);if(!Number.isInteger(id))continue;
     S.serverCandidateIds.add(id);S.serverClearIds.delete(id)
@@ -929,6 +932,7 @@ function clearNoirSession(){
   S.walletEpoch++;stopMining(false);releaseMiningLease().catch(()=>{});S.target=null;S.proof=null;S.zecsAccount=null;
   S.provider=null;S.connection=null;S.pubkey=null;S.ownerCommitment=null;S.balance=null;
   $('claimRecoveryStatus').textContent='';$('claimRecoveryStatus').hidden=true;$('claimReceipt').hidden=true;
+  $('claimRecoveryList').replaceChildren();$('claimRecoveryList').hidden=true;
   updateWalletUI()
 }
 function bindNoirProviderEvents(p){
@@ -1030,12 +1034,15 @@ function updateWalletUI(){updateFeeCreditUI();
   updateMiningControls();updateZecsUI();
 }
 $('walletBtn').onclick=()=>connectWallet(false);
-async function loadWalletHistory({tokenId=null,repair=true}={}){
+async function loadWalletHistory({tokenId=null,repair=true,strict=false,isCurrent=null}={}){
   if(!S.connection)return {seen:0,claims:0,claimEvents:[]};
+  const owner=S.ownerCommitment,epoch=S.walletEpoch;
+  const current=()=>owner===S.ownerCommitment&&epoch===S.walletEpoch&&(!isCurrent||isCurrent());
   let seen=0,claims=0,claimEvents=[];
   try{
     const hist=historyRows(await rpc('zcash_getTransactionHistory'));
     for(const h of hist){
+      if(!current())break;
       const memo=historyMemo(h);
       if(!memo.startsWith('ZB1|'))continue;
       const e=parseMemo(memo); if(!e)continue;
@@ -1080,9 +1087,11 @@ async function loadWalletHistory({tokenId=null,repair=true}={}){
           if(e.proofBits<CFG.powBits)continue;
         }catch(err){
           console.warn('wallet claim rebuild',err);
+          if(strict)throw err;
           continue;
         }
 
+        if(!current())break;
         const ne=normalizeEvent(e);
         saveLocalEvent(ne);
         updateKnownTokenIndex([ne]);
@@ -1104,13 +1113,15 @@ async function loadWalletHistory({tokenId=null,repair=true}={}){
         saveLocalEvent(normalizeEvent(e));
       }
     }
-  }catch(e){console.warn('history',e);if(S.walletAction)throw e}
-  if(claimEvents.length)rebuildState();
+  }catch(e){console.warn('history',e);if(strict||S.walletAction)throw e}
+  if(claimEvents.length&&current())rebuildState();
   return {seen,claims,claimEvents};
 }
-async function recoverClaimFromNoirHistory(tokenId){
+async function recoverClaimFromNoirHistory(tokenId,{isCurrent=()=>true}={}){
   if(!S.connection||!S.ownerCommitment)return null;
-  const h=await loadWalletHistory({tokenId,repair:false});
+  const owner=S.ownerCommitment,epoch=S.walletEpoch;
+  const h=await loadWalletHistory({tokenId,repair:false,strict:true,isCurrent});
+  if(!isCurrent()||owner!==S.ownerCommitment||epoch!==S.walletEpoch)return null;
   const v=loadFeeVoucher();
   const candidates=(h?.claimEvents||[]).filter(e=>
     Number(e.tokenId)===Number(tokenId)&&
@@ -1834,56 +1845,138 @@ function rememberWalletBroadcast(owner,memo,raw){
   }
 }
 function claimRecoveryNotice(text){const el=$('claimRecoveryStatus');el.hidden=false;el.textContent=text}
-const CLAIM_RECOVERY_JOBS=new Map();
+const CLAIM_RECOVERY_JOBS=new Map(),CLAIM_RECOVERY_BATCHES=new Map(),CLAIM_RECOVERY_STATES=new Map();
+const CLAIM_RECOVERY_TIMEOUT=60000,CLAIM_RECOVERY_RETRY=60000;
+function activeClaimRecoveryBatch(){const b=CLAIM_RECOVERY_BATCHES.get(S.ownerCommitment);return b?.epoch===S.walletEpoch?b:null}
+function renderClaimRecoveries(){
+  const owner=S.ownerCommitment,queue=claimRecoveries(owner||'anon'),batch=activeClaimRecoveryBatch();
+  const states=[...CLAIM_RECOVERY_STATES.values()].filter(s=>s.owner===owner);
+  const resolved=states.filter(s=>s.kind==='complete'&&!queue.some(r=>Number(r.tokenId)===s.tokenId)).slice(-5);
+  const items=[...queue.map(r=>({tokenId:Number(r.tokenId),txid:r.txid,...CLAIM_RECOVERY_STATES.get(owner+':'+r.tokenId)})),...resolved];
+  const list=$('claimRecoveryList');list.hidden=!items.length;
+  list.innerHTML=items.map(s=>{
+    const txid=String(s.txid||'');
+    return '<div class="notice '+(s.kind==='complete'?'good':s.kind==='error'?'bad':'')+'" data-recovery-token="'+s.tokenId+'" aria-busy="'+(s.kind==='checking')+'">'+
+      '<strong>Claim #'+s.tokenId+' · '+esc(s.label||'Ready to check')+'</strong><p>'+esc(s.detail||'Your saved claim will be checked without sending another transaction.')+'</p>'+
+      (s.checkedAt?'<small>Checked '+esc(new Date(s.checkedAt).toLocaleTimeString())+'</small>':'')+
+      (/^[0-9a-f]{64}$/i.test(txid)?'<p><a href="https://cipherscan.app/tx/'+txid+'" target="_blank" rel="noreferrer" style="text-decoration:underline">View transaction ↗</a></p>':'')+'</div>'
+  }).join('');
+  if(batch)claimRecoveryNotice('Checking pending claims: '+batch.done+' of '+batch.total+' checked. No new transaction will be sent.');
+  else if(queue.length)claimRecoveryNotice(queue.length+' pending claim'+(queue.length===1?'':'s')+'. See each result below. Automatic checks continue; you can mine a different NFT.');
+  else if(resolved.length)claimRecoveryNotice('Recovery complete. These NFTs have a canonical result; check Portfolio for ownership.');
+}
+async function recoverPendingClaims(){
+  const owner=S.ownerCommitment,epoch=S.walletEpoch;
+  if(!owner||S.walletAction||S.targetBusy||S.mining)return;
+  if(activeClaimRecoveryBatch())return activeClaimRecoveryBatch().promise;
+  const rows=claimRecoveries(owner).sort((a,b)=>Number(!!b.txid)-Number(!!a.txid));
+  if(!rows.length)return;
+  const batch={epoch,done:0,total:rows.length,promise:null};
+  CLAIM_RECOVERY_BATCHES.set(owner,batch);updateMiningControls();
+  let next=0;
+  // Two independent checks keep an unavailable wallet/history from blocking another claim.
+  const worker=async()=>{
+    while(next<rows.length&&owner===S.ownerCommitment&&epoch===S.walletEpoch){
+      const r=rows[next++];
+      try{await reconcileFreeClaimRecovery(r.tokenId)}
+      finally{batch.done++;if(owner===S.ownerCommitment&&epoch===S.walletEpoch)updateMiningControls()}
+    }
+  };
+  batch.promise=Promise.allSettled([worker(),worker()]);
+  try{await batch.promise}
+  finally{
+    if(CLAIM_RECOVERY_BATCHES.get(owner)===batch)CLAIM_RECOVERY_BATCHES.delete(owner);
+    if(owner===S.ownerCommitment&&epoch===S.walletEpoch)updateMiningControls();
+  }
+}
 async function reconcileFreeClaimRecovery(tokenId=null){
   if(CFG.claimProtocolFeeEnabled!==false||!S.ownerCommitment)return null;
   const owner=S.ownerCommitment,epoch=S.walletEpoch;
-  const rows=claimRecoveries(owner);
+  if(tokenId==null&&activeClaimRecoveryBatch())return null;
+  const rows=claimRecoveries(owner).filter(r=>tokenId!=null||Date.now()>=(CLAIM_RECOVERY_STATES.get(owner+':'+r.tokenId)?.retryAt||0));
   let r=tokenId!=null?rows.find(x=>Number(x.tokenId)===Number(tokenId)):rows[(S.claimRecoveryCursor||0)%Math.max(1,rows.length)];
   if(!r)return null;
-  const key=owner+':'+r.tokenId;if(CLAIM_RECOVERY_JOBS.has(key))return CLAIM_RECOVERY_JOBS.get(key);
-  const current=()=>owner===S.ownerCommitment&&epoch===S.walletEpoch;
-  const job=(async()=>{
-    try{
-      if(current())claimRecoveryNotice('Checking claim #'+r.tokenId+'… Other block IDs remain available.');
-      if(!r.txid){
-        const recovered=await recoverClaimFromNoirHistory(Number(r.tokenId));
-        if(!current())return r;
-        if(!recovered){claimRecoveryNotice('Claim #'+r.tokenId+' has no TXID in Noir history yet. It remains protected from duplicate submission. You can choose another block and continue mining.');return r}
+  const key=owner+':'+r.tokenId,jobKey=key+':'+epoch;
+  if(CLAIM_RECOVERY_JOBS.has(jobKey))return CLAIM_RECOVERY_JOBS.get(jobKey);
+  const controller=new AbortController();
+  let active=true;
+  const sameWallet=()=>owner===S.ownerCommitment&&epoch===S.walletEpoch;
+  const current=()=>active&&sameWallet();
+  const status=(kind,label,detail)=>{
+    if(!current())return;
+    CLAIM_RECOVERY_STATES.set(key,{owner,tokenId:Number(r.tokenId),txid:r.txid,kind,label,detail,
+      checkedAt:kind==='checking'?null:Date.now(),retryAt:Date.now()+CLAIM_RECOVERY_RETRY});
+    renderClaimRecoveries();
+  };
+  const settled=q=>{
+    if(!current()||q?.status_by_token?.[String(r.tokenId)]!=='claimed')return false;
+    // Canonical settlement resolves the ID, even if another wallet won the NFT.
+    status('complete','Confirmed on Zcash','This NFT has a canonical claim. Check Portfolio for ownership. No additional transaction is needed.');
+    clearFreeClaimRecovery(r.tokenId,owner);
+    if(Number(S.target?.token)===Number(r.tokenId)){
+      S.target=null;S.proof=null;$('mineStatus').textContent='Claim resolved · choose another block';
+    }
+    loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});
+    return true;
+  };
+  const check=()=>serverCheckClaims([Number(r.tokenId)],{deep:false,signal:controller.signal,isCurrent:current});
+  const run=async()=>{
+    status('checking','Checking confirmation…','Looking for a completed claim before contacting your wallet.');
+    const first=await check();
+    if(!current())return r;
+    if(settled(first))return null;
+    // A late wallet response may have filled the journal while the server was checked.
+    r=loadFreeClaimRecovery(r.tokenId,owner)||r;
+    if(!r.txid){
+      status('checking','Reading Noir history…','Looking for the transaction associated with this NFT.');
+      const recovered=await recoverClaimFromNoirHistory(Number(r.tokenId),{isCurrent:current});
+      if(!current())return r;
+      r=loadFreeClaimRecovery(r.tokenId,owner)||r;
+      if(recovered&&!r.txid){
         const ev=normalizeEvent({...recovered,v:Number(recovered.v)||1,type:'CLAIM',protocol:'ZB1'});
         r={...r,status:'pending',txid:ev.txid,event:ev,recoveredFromWalletHistory:true};
         saveFreeClaimRecovery(r,owner);
       }
-      // Persist and backfill this exact event; a busy/large historical scan must not starve it.
-      if(r.event){
-        const ev=normalizeEvent({...r.event,txid:r.txid,eventId:r.txid});
-        saveLocalEvent(ev);updateKnownTokenIndex([ev]);
-        if(!S.events.some(x=>x.txid===r.txid))S.events.push(ev);
-        const ack=await backendJson('backfill-client-claims',{body:{claims:[ev]}});
-        if(!ack?.ok)throw new Error(ack?.error||'Claim registration is temporarily unavailable.');
+      if(!r.txid){
+        status('wallet','Check Noir Wallet','No matching TXID was returned. Open Noir → transaction history and check this claim. Your saved proof is retained and this NFT stays protected from a duplicate payment. Other NFTs remain available.');
+        return r;
       }
-      await auditClaimToken(Number(r.tokenId));
-      const q=await serverCheckClaims([Number(r.tokenId)],{deep:false});
+    }
+    if(r.event){
+      status('checking','Registering saved claim…','Submitting your existing transaction to the indexer. No wallet approval or payment is requested.');
+      const ev=normalizeEvent({...r.event,txid:r.txid,eventId:r.txid});
+      saveLocalEvent(ev);updateKnownTokenIndex([ev]);
+      if(!S.events.some(x=>x.txid===r.txid))S.events.push(ev);
+      const ack=await backendJson('backfill-client-claims',{body:{claims:[ev]},signal:controller.signal});
       if(!current())return r;
-      const st=q?.status_by_token?.[String(r.tokenId)];
-      if(st==='claimed'){
-        clearFreeClaimRecovery(r.tokenId,owner);
-        if(Number(S.target?.token)===Number(r.tokenId)){
-          S.target=null;S.proof=null;
-          $('mineStatus').textContent='Claim resolved · choose another block';
-          updateMiningControls();
-        }
-        // A canonical winner resolves this token; it is not proof this wallet won.
-        claimRecoveryNotice('Claim #'+r.tokenId+' has a canonical result. Recovery is complete; check Portfolio for ownership.');
-        loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});
-        return null
-      }
-      claimRecoveryNotice('Claim #'+r.tokenId+' is saved and awaiting chain/indexer verification. Recovery will retry automatically. You can mine a different block.');
-      return r
-    }catch(e){if(current())claimRecoveryNotice('Claim #'+r.tokenId+': '+(e.message||e)+' Your saved transaction is retained; recovery can be retried.');return r}
-    finally{S.claimRecoveryCursor=(S.claimRecoveryCursor||0)+1;if(current())updateMiningControls()}
-  })();
-  CLAIM_RECOVERY_JOBS.set(key,job);updateMiningControls();try{return await job}finally{CLAIM_RECOVERY_JOBS.delete(key);if(current())updateMiningControls()}
+      if(!ack?.ok)throw new Error(ack?.error||'Claim registration is temporarily unavailable.');
+    }
+    status('checking','Verifying transaction…','Checking the saved claim against Zcash and the protocol rules.');
+    const audit=await backendJson('claim-audit',{body:{tokenId:Number(r.tokenId)},signal:controller.signal});
+    if(!current())return r;
+    if(!audit?.ok)throw new Error(audit?.error||'Claim verification is temporarily unavailable.');
+    status('checking','Refreshing confirmation…','Checking whether verification has completed.');
+    const final=await check();
+    if(!current())return r;
+    if(settled(final))return null;
+    const result=audit.results?.find(x=>Number(x.token)===Number(r.tokenId)&&String(x.txid).toLowerCase()===String(r.txid).toLowerCase());
+    if(result?.ok===false){
+      status(result.deferred?'pending':'error',result.deferred?'Waiting for verification':'Claim needs attention',
+        (result.error||'The verifier could not accept this claim.')+(result.deferred?' We will check again automatically.':' Check this transaction in Noir or contact support with its TXID. Your saved proof is retained.'));
+      return r;
+    }
+    status('pending','Awaiting verification','The transaction is saved, but no canonical claim is confirmed yet. We will check again automatically. You can mine another NFT.');
+    return r;
+  };
+  // The entire check is bounded; guards prevent late responses from changing a new session.
+  const job=withDeadline(Promise.resolve().then(run),CLAIM_RECOVERY_TIMEOUT,'Claim check timed out. Please retry.').catch(e=>{
+    status('error','Could not finish checking',(e.message||String(e))+' Your saved claim is retained. Use Continue Pending Claim to retry.');return r;
+  }).finally(()=>{
+    active=false;controller.abort();CLAIM_RECOVERY_JOBS.delete(jobKey);
+    S.claimRecoveryCursor=(S.claimRecoveryCursor||0)+1;
+    if(sameWallet())updateMiningControls();
+  });
+  CLAIM_RECOVERY_JOBS.set(jobKey,job);updateMiningControls();return job;
 }
 
 async function submitClaim(){
@@ -2824,11 +2917,13 @@ function updateMiningControls(){
   $('startMineBtn').disabled=!connected||busy||S.mining||!S.target||recovery;
   $('submitClaimBtn').disabled=!connected||busy||S.mining||!S.target||!S.proof||recovery;
   $('stopMineBtn').disabled=!S.mining;
-  $('recoverClaimBtn').disabled=!connected||busy||S.mining||[...CLAIM_RECOVERY_JOBS.keys()].some(k=>k.startsWith((S.ownerCommitment||'anon')+':'));
-  $('recoverClaimBtn').hidden=!queue.length;
-  $('recoverClaimBtn').textContent='Continue Pending Claim'+(queue.length>1?' ('+queue.length+')':'');
+  const recoveryBatch=activeClaimRecoveryBatch();
+  $('recoverClaimBtn').disabled=!connected||busy||S.mining||!!recoveryBatch;
+  $('recoverClaimBtn').hidden=!queue.length&&!recoveryBatch;
+  $('recoverClaimBtn').textContent=recoveryBatch?'Checking claims… '+recoveryBatch.done+' / '+recoveryBatch.total:'Continue Pending Claim'+(queue.length>1?' ('+queue.length+')':'');
+  $('recoverClaimBtn').setAttribute('aria-busy',String(!!recoveryBatch));
   if(!busy&&recovery?.txid)showClaimReceipt(recovery.tokenId,recovery.txid);
-  if(queue.length&&!$('claimRecoveryStatus').textContent)claimRecoveryNotice('Pending claim '+queue.map(r=>'#'+r.tokenId).join(', ')+'. Recover it here, or choose a different block to continue mining.');
+  renderClaimRecoveries();
   document.querySelectorAll('[data-candidate]').forEach(b=>b.disabled=!connected||busy||S.mining);
   renderMiningExperience();
 }
@@ -2883,7 +2978,7 @@ $('loadTargetBtn').onclick=()=>runMiningAction(()=>loadTarget());
 $('startMineBtn').onclick=()=>runMiningAction(startMining);
 $('stopMineBtn').onclick=()=>{stopMining(true);updateMiningControls()};
 $('submitClaimBtn').onclick=()=>runMiningAction(submitClaim,{wallet:true});
-$('recoverClaimBtn').onclick=()=>reconcileFreeClaimRecovery().catch(e=>claimRecoveryNotice(e.message||String(e)));
+$('recoverClaimBtn').onclick=()=>recoverPendingClaims().catch(e=>claimRecoveryNotice(e.message||String(e)));
 $('zecsMintBtn').onclick=()=>runMiningAction(mintZecs,{wallet:true});
 $('zecsRecoverBtn').onclick=()=>runMiningAction(recoverZecsMint,{wallet:true});
 $('availablePrev').onclick=()=>{S.availablePage=Math.max(0,(S.availablePage||0)-1);renderAvailableTokens()};

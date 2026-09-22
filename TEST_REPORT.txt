@@ -1,4 +1,18 @@
-Scan progress source correction — 2026-09-21
+Pending NFT claim recovery — 2026-09-22
+
+Production records checked at 10:42–10:45 UTC:
+- Screenshot claim #774 has a protocol-audited, chain-confirmed claim for the screenshot wallet. Its transaction is 607a28eefce5b4e48f8e48718dd147c0b8e4f5f14ee4df81a0ce877ca36c34dc.
+- #3874 was canonically clear with no indexed CLAIM event. This does not establish whether the wallet attempted a broadcast; its browser journal and Noir transaction history are not accessible here.
+- Runtime-log access through Vercel was unavailable (403). Diagnosis uses the checked-in recovery code and read-only production indexer records. No database rows were manually changed.
+
+Previously, one click checked only one queued NFT, the single notice obscured other results, missing-TXID recovery returned before checking canonical settlement, and wallet-history/audit errors could appear as indefinite waiting.
+Recovery now checks every queued claim with two workers, checks canonical settlement first, shows each stage/result separately, reports wallet/verifier errors, and releases controls after a 60-second check deadline. Guards prevent late results from changing another session. Ambiguous journals are retained; no repeat payment/signature is initiated.
+
+The suite contains 35 Node/Chromium tests. New regression coverage includes the two-claim screenshot scenario, confirmed claims without a local TXID, exact-event registration, history timeouts, a hung indexer with late completion, account changes and explicit audit errors. Existing mining, minting, canonical-counter and mobile-layout coverage is retained. Added recovery screenshots for desktop and mobile.
+Local syntax, whitespace and four non-browser checks passed. Local Chromium download failed, so the full browser suite runs in the repository's GitHub Actions workflow before production promotion; that commit's CI result is authoritative. The production check also requires the new recovery markup and queue handler.
+Tests use synthetic wallet/API fixtures. No real Noir transaction approval or mainnet payment was executed.
+
+Previous scan progress source correction — 2026-09-21
 
 The production scanner cursor was 4,901 (98%) while the user saw 0%. zecblocks_mining_snapshot is an invoker function; its indexer-state read is filtered by RLS (enabled, no anon policies), so it falls back to cursor 1. The live-stats Edge Function can read the real cursor, but the next public snapshot overwrote it in the browser.
 The UI now accepts scan cursor/completion only from live-stats, preserving private indexer RLS. Before that source responds, it shows Checking scan progress instead of an assumed 0%. Genuine scan-cycle restarts still update to 0%. Claim totals and the four-relay availability requirement are unchanged.
