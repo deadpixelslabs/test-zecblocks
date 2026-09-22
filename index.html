@@ -1991,7 +1991,7 @@ async function reconcileFreeClaimRecovery(tokenId=null,{registerFirst=false}={})
     }
     clearFreeClaimRecovery(r.tokenId,owner);
     if(Number(S.target?.token)===Number(r.tokenId)){
-      if(sameTx)MINING_UI.preview={id:r.tokenId,height:S.target.sourceHeight,seed:S.target.sourceHash+':'+S.target.sourceHeight};
+      if(sameTx&&MINING_UI.completedClaim?.art)MINING_UI.preview=MINING_UI.completedClaim.art;
       S.target=null;S.proof=null;$('mineStatus').textContent='Claim resolved · choose another block';
     }
     loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});

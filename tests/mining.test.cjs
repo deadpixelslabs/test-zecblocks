@@ -574,7 +574,8 @@ test('confirmed claim has a clear success screen despite another pending claim a
   assert.doesNotMatch(await f.page.locator('#actionTitle').textContent(),/claimed successfully/);
   await f.page.evaluate(owner=>{S.ownerCommitment=owner;renderMiningExperience()},owner);
   f.reserveToken(72);
-  await f.page.getByRole('button',{name:'Find Next NFT',exact:true}).click();
+  assert.equal(await f.page.locator('#findUnclaimedBtn').textContent(),'Find Next NFT');
+  await f.page.locator('#findUnclaimedBtn').click();
   await f.page.waitForFunction(()=>S.target?.token===72&&!S.targetBusy);
   assert.equal(await f.page.locator('#actionTitle').textContent(),'Ready when you are.');
   assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
@@ -686,9 +687,15 @@ test('newer counters cannot suppress collection updates; older snapshots cannot 
 test('exact claim results survive delayed snapshots and do not mark the whole gallery fresh',async()=>{
  const f=await fixture();try{
   const p=f.page;await f.connect();f.claimedTokens.add(71);
-  const previous=await p.evaluate(()=>S.lastServerSnapshot);
-  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
-  assert.equal(await p.evaluate(()=>S.lastServerSnapshot),previous);
+  const timestamps=await p.evaluate(async()=>{
+   // Process an already received reply so unrelated connection-time network
+   // responses cannot race this assertion about exact-check processing.
+   const original=backendJson,response=await original('check-claims',{body:{tokenIds:[71],deep:true}});
+   backendJson=(op,args)=>op==='check-claims'?Promise.resolve(response):original(op,args);
+   const before=S.lastServerSnapshot;
+   try{await serverCheckClaims([71],{deep:true});return [before,S.lastServerSnapshot]}finally{backendJson=original}
+  });
+  assert.equal(timestamps[1],timestamps[0]);
   await p.evaluate(snapshot=>applyServerMiningSnapshot({...snapshot,generated_at:200}),snapshot);
   assert.equal(await p.locator('[data-candidate="71"]').count(),0);
   assert.equal(await p.locator('#claimCount').textContent(),'3,505');
