@@ -47,7 +47,8 @@ const stats={tick:'ZECS',mint_open:true,deploy_status:'confirmed',minted_supply:
 async function openZecs(page){await page.getByRole('tab',{name:'$ZECS',exact:true}).click();}
 async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1360,height:1000},colorScheme:'dark'});
+ const context=await browser.newContext({viewport:{width:1360,height:1000},colorScheme:'dark'});
+ const page=await context.newPage();
  const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map(),claimedTokens=new Set();
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
@@ -734,5 +735,101 @@ test('claim becoming unavailable while the wallet signs is blocked before paymen
   assert.equal(await p.locator('[data-candidate="71"]').count(),0);
   assert.equal(await p.locator('#findUnclaimedBtn').isVisible(),true);
   assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('a late clear response cannot erase a newer pending claim or reopen its payment gate',async()=>{
+ const f=await fixture();try{
+  const result=await f.page.evaluate(async()=>{
+   const original=backendJson;let finish;
+   backendJson=(op,args)=>op==='check-claims'?new Promise(resolve=>finish=resolve):original(op,args);
+   const old=serverCheckClaims([71],{deep:true});
+   rememberUnavailable(71,'claimed_pending');updateAvailabilityCounts();
+   const reply={ok:true,complete:true,relays_ok:4,clear_ids:[71],status_by_token:{71:'clear'}};
+   finish(reply);await old;backendJson=original;
+   return {blocked:tokenUnavailable(71),listed:S.serverClearIds.has(71),gate:claimGateClear(reply,71),cards:document.querySelectorAll('[data-candidate="71"]').length,sends:walletTest.sends};
+  });
+  assert.deepEqual(result,{blocked:true,listed:false,gate:false,cards:0,sends:0});assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('expired or failed gallery reads pause selection until a fresh snapshot arrives',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();
+  await p.evaluate(()=>{S.lastServerSnapshot=Date.now()-GALLERY_MAX_AGE-1;renderAvailableTokens()});
+  assert.equal(await p.locator('[data-candidate="71"]').isDisabled(),true);
+  assert.match(await p.locator('[data-candidate="71"]').innerText(),/Checking/);
+  assert.match(await p.locator('#availabilityFreshness').innerText(),/Selection is paused/);
+  await p.evaluate(()=>loadServerMiningSnapshot({force:true}));
+  assert.equal(await p.locator('[data-candidate="71"]').isEnabled(),true);
+  f.fail(true);await p.evaluate(()=>loadServerMiningSnapshot({force:true}));
+  assert.equal(await p.locator('[data-candidate="71"]').isDisabled(),true);
+  assert.equal(await p.locator('#availableTokens').getByText('Available',{exact:true}).count(),0);
+  f.fail(false);await p.locator('#refreshAvailable').click();
+  await p.waitForFunction(()=>galleryIsFresh()&&!document.getElementById('refreshAvailable').disabled);
+  assert.equal(await p.locator('[data-candidate="71"]').isEnabled(),true);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('confirmed NFT exclusions survive reload, wallet switching and a stale server snapshot',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();f.claimedTokens.add(71);
+  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
+  f.claimedTokens.delete(71);await p.reload({waitUntil:'domcontentloaded'});
+  await p.waitForFunction(()=>S.lastServerSnapshot>0);
+  await p.evaluate(()=>{S.ownerCommitment='ff'.repeat(32);updateMiningControls();renderAvailableTokens()});
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await p.evaluate(()=>tokenUnavailable(71)),true);
+  assert.equal(await p.locator('[data-candidate="72"]').count(),1);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('another tab immediately removes its saved or confirmed NFT from the gallery',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();const tab=await p.context().newPage();
+  await tab.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Same-origin tab</title>'}));
+  await tab.goto('http://localhost:4321/other-tab');
+  const keys=await p.evaluate(()=>({pending:claimRecoveryQueueKey(S.ownerCommitment),confirmed:CONFIRMED_CLAIMS_KEY}));
+  await tab.evaluate(keys=>localStorage.setItem(keys.pending,JSON.stringify([{tokenId:71,status:'wallet_approval'}])),keys);
+  await p.waitForFunction(()=>!document.querySelector('[data-candidate="71"]'));
+  await tab.evaluate(keys=>{localStorage.setItem(keys.confirmed,JSON.stringify([71]));localStorage.setItem(keys.pending,'[]')},keys);
+  await p.waitForFunction(()=>unavailableTokens.get(71)==='claimed');
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);assert.equal(await p.evaluate(()=>walletTest.sends),0);
+  await tab.close();assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('an NFT claimed in another tab cannot open a second payment approval',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.evaluate(()=>{CFG.powBits=8;S.enginePreference='cpu'});await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.proof&&!S.targetBusy);
+  const key=await p.evaluate(()=>'zb1-claim:'+CFG.genesisTxid+':'+S.target.token),tab=await p.context().newPage();
+  await tab.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Same-origin claim</title>'}));
+  await tab.goto('http://localhost:4321/other-claim');
+  await tab.evaluate(key=>{navigator.locks.request(key,async()=>{window.locked=true;await new Promise(resolve=>window.releaseClaim=resolve)})},key);
+  await tab.waitForFunction(()=>window.locked);
+  await p.locator('#submitClaimBtn').click();await p.waitForFunction(()=>!S.walletAction);
+  assert.equal(await p.evaluate(()=>walletTest.sends+walletTest.signs),0);assert.match(await p.locator('#toast').innerText(),/another tab/);
+  await tab.evaluate(()=>window.releaseClaim());await tab.close();assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('final claim validation cannot reuse a lease check begun before wallet signing',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.evaluate(()=>{CFG.powBits=8;S.enginePreference='cpu'});await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.proof&&!S.targetBusy);
+  await p.exposeFunction('claimArrivedDuringSigning',()=>f.claimedTokens.add(71));
+  await p.evaluate(()=>{
+   const sign=noirwallet.zcash.signMessage;
+   noirwallet.zcash.signMessage=async(...args)=>{
+    const result=await sign(...args);
+    if(String(args[0]).startsWith('ZB1:CLAIM:v1')){S.leasePromise=Promise.resolve(S.miningLease);await claimArrivedDuringSigning()}
+    return result;
+   };
+  });
+  await p.locator('#submitClaimBtn').click();await p.waitForFunction(()=>walletTest.signs>=2&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);assert.equal(await p.evaluate(()=>loadFreeClaimRecovery(71)),null);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
