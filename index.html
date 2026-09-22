@@ -1889,7 +1889,7 @@ async function recoverPendingClaims(){
     if(owner===S.ownerCommitment&&epoch===S.walletEpoch)updateMiningControls();
   }
 }
-async function reconcileFreeClaimRecovery(tokenId=null){
+async function reconcileFreeClaimRecovery(tokenId=null,{registerFirst=false}={}){
   if(CFG.claimProtocolFeeEnabled!==false||!S.ownerCommitment)return null;
   const owner=S.ownerCommitment,epoch=S.walletEpoch;
   if(tokenId==null&&activeClaimRecoveryBatch())return null;
@@ -1910,17 +1910,34 @@ async function reconcileFreeClaimRecovery(tokenId=null){
   };
   const settled=q=>{
     if(!current()||q?.status_by_token?.[String(r.tokenId)]!=='claimed')return false;
-    // Canonical settlement resolves the ID, even if another wallet won the NFT.
-    status('complete','Confirmed on Zcash','This NFT has a canonical claim. Check Portfolio for ownership. No additional transaction is needed.');
+    const canonical=q.canonical_claims?.[String(r.tokenId)];
+    const sameTx=canonical?.txid&&r.txid&&String(canonical.txid).toLowerCase()===String(r.txid).toLowerCase();
+    const otherTx=canonical?.txid&&r.txid&&!sameTx;
+    status('complete',otherTx?'Duplicate claim':sameTx?'Confirmed on Zcash':'NFT claim resolved',
+      otherTx?'Another transaction is the canonical claim for this NFT. This transaction does not create another NFT or increase Claims seen. Check Portfolio for ownership.':
+      sameTx?'Your transaction is the canonical claim for this NFT and is included in Confirmed claims. Claims seen counts unique IDs in history; it stays unchanged when an ID was seen before. Check Portfolio for current ownership.':
+      'This NFT has a canonical claim. The indexer has not returned enough transaction details to match your saved attempt. Check Portfolio for ownership. No additional transaction is needed.');
     clearFreeClaimRecovery(r.tokenId,owner);
     if(Number(S.target?.token)===Number(r.tokenId)){
+      if(sameTx)MINING_UI.preview={id:r.tokenId,height:S.target.sourceHeight,seed:S.target.sourceHash+':'+S.target.sourceHeight};
       S.target=null;S.proof=null;$('mineStatus').textContent='Claim resolved · choose another block';
     }
     loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});
     return true;
   };
   const check=()=>serverCheckClaims([Number(r.tokenId)],{deep:false,signal:controller.signal,isCurrent:current});
+  const register=async()=>{
+    const ev=normalizeEvent({...r.event,txid:r.txid,eventId:r.txid});
+    status('checking','Registering saved claim…','Submitting this transaction directly to the indexer. No new wallet payment is requested.');
+    const ack=await backendJson('backfill-client-claims',{body:{claims:[ev]},signal:controller.signal});
+    if(!current())return;
+    if(!ack?.ok||Number(ack.rejected||0)>0)throw new Error(ack?.error||'The indexer rejected this claim record. Your saved proof and TXID are retained.');
+    loadServerLiveStats({force:true}).catch(()=>{});
+  };
   const run=async()=>{
+    // Fresh broadcasts bypass the historical backfill throttle and batch limit.
+    // Recovery is bounded and runs outside the wallet action gate.
+    if(registerFirst&&r.txid&&r.event){await register();if(!current())return r;}
     status('checking','Checking confirmation…','Looking for a completed claim before contacting your wallet.');
     const first=await check();
     if(!current())return r;
@@ -1942,14 +1959,13 @@ async function reconcileFreeClaimRecovery(tokenId=null){
         return r;
       }
     }
-    if(r.event){
+    if(r.event&&!registerFirst){
       status('checking','Registering saved claim…','Submitting your existing transaction to the indexer. No wallet approval or payment is requested.');
       const ev=normalizeEvent({...r.event,txid:r.txid,eventId:r.txid});
       saveLocalEvent(ev);updateKnownTokenIndex([ev]);
       if(!S.events.some(x=>x.txid===r.txid))S.events.push(ev);
-      const ack=await backendJson('backfill-client-claims',{body:{claims:[ev]},signal:controller.signal});
+      await register();
       if(!current())return r;
-      if(!ack?.ok)throw new Error(ack?.error||'Claim registration is temporarily unavailable.');
     }
     status('checking','Verifying transaction…','Checking the saved claim against Zcash and the protocol rules.');
     const audit=await backendJson('claim-audit',{body:{tokenId:Number(r.tokenId)},signal:controller.signal});
@@ -1961,8 +1977,10 @@ async function reconcileFreeClaimRecovery(tokenId=null){
     if(settled(final))return null;
     const result=audit.results?.find(x=>Number(x.token)===Number(r.tokenId)&&String(x.txid).toLowerCase()===String(r.txid).toLowerCase());
     if(result?.ok===false){
+      const chainWaiting=result.deferred&&/chain HTTP 404|not yet visible|transaction not confirmed/i.test(result.error||'');
       status(result.deferred?'pending':'error',result.deferred?'Waiting for verification':'Claim needs attention',
-        (result.error||'The verifier could not accept this claim.')+(result.deferred?' We will check again automatically.':' Check this transaction in Noir or contact support with its TXID. Your saved proof is retained.'));
+        chainWaiting?'Your transaction is saved. The chain provider has not returned its confirmation yet. This does not mean the claim failed. We will check again automatically; do not pay again.':
+        (result.error||'The verifier could not accept this claim.')+(result.deferred?' We will check again automatically. Do not send another payment.':' Check this transaction in Noir or contact support with its TXID. Your saved proof is retained.'));
       return r;
     }
     status('pending','Awaiting verification','The transaction is saved, but no canonical claim is confirmed yet. We will check again automatically. You can mine another NFT.');
@@ -2081,11 +2099,7 @@ async function submitClaim(){
     // Claims seen. A token-scoped audit also prevents new claims from waiting
     // behind the global historical audit backlog.
     publishRelay(ev,{fallback:true}).catch(e=>console.warn('free claim relay publish',e));
-    S.lastServerBackfill=0;
-    await backfillServerClaimsFromBrowser({limit:40}).catch(e=>console.warn('immediate claim backfill',e));
-    auditClaimToken(tokenId).catch(e=>console.warn('immediate claim audit',e));
-    loadServerLiveStats({force:true}).catch(()=>{});
-    reconcileFreeClaimRecovery(tokenId).catch(()=>{});
+    reconcileFreeClaimRecovery(tokenId,{registerFirst:true}).catch(()=>{});
     releaseMiningLease().catch(()=>{});
     S.proof=null;
     $('mineStatus').textContent='Claim broadcast · canonical confirmation pending';
