@@ -49,7 +49,7 @@ async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const context=await browser.newContext({viewport:{width:1360,height:1000},colorScheme:'dark'});
  const page=await context.newPage();
- const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map(),claimedTokens=new Set();
+ const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false,reservedToken=71;const registered=new Map(),claimedTokens=new Set();
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());
@@ -63,7 +63,7 @@ async function fixture(){
     let data={ok:true};
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
-    if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
+    if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,token_id:body.tokenId||reservedToken,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
     if(op==='check-claims'){
      const ids=body.tokenIds||[],confirmed=id=>claimed||claimedTokens.has(id);
      data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),canonical_claims:Object.fromEntries(ids.filter(confirmed).map(id=>[id,{txid}])),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
@@ -93,7 +93,7 @@ async function fixture(){
  },{pub,txid});
  await page.goto('http://localhost:4321/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.getElementById('claimCount').textContent==='3,505');
- return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},registered,claimedTokens,claimConfirmed(v){claimed=v},async connect(){
+ return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},reserveToken(v){reservedToken=v},registered,claimedTokens,claimConfirmed(v){claimed=v},async connect(){
   await page.getByRole('button',{name:'Connect Noir Wallet',exact:true}).click();
   await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);
  }};
@@ -128,9 +128,13 @@ test('confirmed claims advance independently of historical IDs and ignore stale 
  const f=await fixture();try{
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,660');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2660');
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.20% claimed and confirmed/);
   await f.page.evaluate(()=>{applyServerLiveStats({claims_seen:3505,canonical_claims:2661,canonical_clear:2282,canonical_verifying:57,canonical_unknown:0,generated_at:200});rebuildState()});
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2661');
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.22% claimed and confirmed/);
   await f.page.evaluate(()=>applyServerMiningSnapshot({claims_seen:3505,verified_indexed:2660,generated_at:100}));
   f.fail(true);await f.page.evaluate(()=>loadServerLiveStats({force:true}));
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
@@ -536,7 +540,44 @@ test('a different canonical TXID is shown as duplicate without claiming ownershi
   await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
   const text=await f.page.locator('[data-recovery-token="774"]').textContent();
   assert.match(text,/Duplicate claim/);assert.doesNotMatch(text,/Your transaction is the canonical/);
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
+  assert.doesNotMatch(await f.page.locator('#actionTitle').textContent(),/claimed successfully/);
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+
+test('confirmed claim has a clear success screen despite another pending claim and unchanged historical count',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimedTokens.add(71);
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:3681,status:'unknown'});
+   saveFreeClaimRecovery({tokenId:71,status:'pending',txid,event:{sourceHeight:3488502,sourceHash:'22'.repeat(32)}});
+   return reconcileFreeClaimRecovery(71);
+  },txid);
+  assert.equal(await f.page.locator('#actionTitle').textContent(),'NFT #71 claimed successfully.');
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),true);
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').getAttribute('href'),'https://www.zecblocks.xyz/#portfolio');
+  assert.match(await f.page.locator('[data-recovery-token="71"]').textContent(),/Your claim succeeded/);
+  assert.match(await f.page.locator('#claimReceipt').textContent(),/Claim #71 confirmed/);
+  assert.equal(await f.page.locator('#artState').textContent(),'Confirmed');
+  assert.equal(await f.page.locator('[data-step].complete').count(),4);
+  assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
+  assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,660','do not invent counter increments while the aggregate catches up');
+  assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(3681)),true);
+  assert.equal(await f.page.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  await f.page.evaluate(()=>{S.ownerCommitment='44'.repeat(32);renderMiningExperience()});
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
+  assert.doesNotMatch(await f.page.locator('#actionTitle').textContent(),/claimed successfully/);
+  await f.page.evaluate(owner=>{S.ownerCommitment=owner;renderMiningExperience()},owner);
+  f.reserveToken(72);
+  await f.page.getByRole('button',{name:'Find Next NFT',exact:true}).click();
+  await f.page.waitForFunction(()=>S.target?.token===72&&!S.targetBusy);
+  assert.equal(await f.page.locator('#actionTitle').textContent(),'Ready when you are.');
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
 

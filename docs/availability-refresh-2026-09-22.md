@@ -28,3 +28,13 @@ Confirmed IDs are retained locally per collection and shared across tabs. An exa
 An origin-wide Web Lock serializes claims for the same NFT across tabs. Immediately before payment, the browser checks the recovery journal again and forces a new lease validation after any earlier lease check finishes. Missing Web Locks support stops claim submission with a browser update message. No signatures, keys, token rules or settlement behavior are changed.
 
 Tests cover stale/failed refreshes, delayed clear replies, confirmed IDs after reload/account changes, storage events between real tabs, competing claim locks, and a stale lease check during signing. Simulations do not send real funds. These guards cannot guarantee that a competing transaction is never broadcast by an unrelated client outside the reservation system, or establish the outcome of a transaction the chain provider has not returned.
+
+## Confirmed progress and claim results
+
+The subsequent #1088 report was a successful claim. Production records matched transaction `a2ebf8aa097a03e4f22de531a88c5049d42e2c786ad37d42791195ae6f2ad182`, Zcash height 3492632, full protocol verification and the reporting wallet's current ownership. It was excluded from clear IDs. The historical counter had already observed #1088 on September 20 through an earlier invalid attempt, so the later successful claim did not add a new historical ID.
+
+The prominent collection count and progress bar now show confirmed claims. Claims seen remains visible and explicitly labelled as historical IDs. Neither counter is artificially incremented by the browser; both continue to use the server projection.
+
+A saved transaction that matches the canonical claim now produces a success heading, completed steps, a confirmed receipt and a Portfolio link. Another unresolved claim does not obscure that result. Starting another selection clears the success screen, and changing wallets hides the previous wallet's result. A different or missing canonical TXID never gets this success state. Current ownership can change after a successful claim through transfers or sales; a confirmed claim receipt does not replace the Portfolio ownership check.
+
+Browser regression coverage verifies progress changes independently of Claims seen, a successful claim alongside another unresolved attempt, no extra signatures/payments during recovery, wallet isolation and continuing to the next available NFT. Existing failure, duplicate claim and payment-gate tests remain required.
