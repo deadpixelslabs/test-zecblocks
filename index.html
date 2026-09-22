@@ -1909,6 +1909,10 @@ async function reconcileFreeClaimRecovery(tokenId=null,{registerFirst=false}={})
     renderClaimRecoveries();
   };
   const settled=q=>{
+    if(current()&&q?.ownership_review_ids?.includes(Number(r.tokenId))){
+      status('error','Ownership verification needed','The claim history and ownership record need reconciliation. Your proof and transaction are saved. Do not send another payment for this NFT.');
+      return true;
+    }
     if(!current()||q?.status_by_token?.[String(r.tokenId)]!=='claimed')return false;
     const canonical=q.canonical_claims?.[String(r.tokenId)];
     const sameTx=canonical?.txid&&r.txid&&String(canonical.txid).toLowerCase()===String(r.txid).toLowerCase();

@@ -24,6 +24,8 @@ Browser regression tests cover finding/mining, one broadcast despite repeated cl
 
 ## Outstanding historical records
 
+An additional ownership cross-check found 21 IDs whose earliest currently audited transaction differs from the existing canonical ownership record. It also found 308 IDs marked clear even though historical claim/ownership records already exclude them from the finder (81 have FULL ownership records). The follow-up history guard mirrors those existing finder exclusions in availability and prevents recovery from announcing a conflicting transaction as successful. These records are marked for verification; ownership and historical Claims seen are preserved. Resolving conflicting legacy evidence requires a separate evidence review, not automatic reassignment.
+
 The collection-wide audit found 42 distinct unresolved claim transactions, excluding relay duplicates of already verified transactions. Direct chain-provider reads returned 404 for 37, and confirmed transactions for five. Those five remain deferred because the legacy reservation evidence is missing. These are transaction counts, not counts of affected wallets. A provider 404 alone does not prove a transaction never existed; confirmation alone does not replace a missing protocol proof. None are force-marked valid or automatically rebroadcast.
 
 All claims without a TXID in a user's local wallet journal require wallet-history evidence; server-wide checks cannot enumerate journals that never reached the server. The reporting wallet's 3874 recovery remains unresolved for this reason.
@@ -31,6 +33,7 @@ All claims without a TXID in a user's local wallet journal require wallet-histor
 ## Deployment order
 
 1. Apply `20260922120000_complete_claim_classification.sql`.
+   Then apply `20260922121500_claim_history_guards.sql` before deploying the updated check/scan functions.
 2. Run `tests/claim-classification.sql` and verify role permissions.
 3. Deploy check-claims, availability-scan and claim-audit Edge Functions from this repository.
 4. Run browser/chain-cache checks before publishing the frontend.

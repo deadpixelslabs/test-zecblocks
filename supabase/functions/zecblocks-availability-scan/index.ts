@@ -102,6 +102,9 @@ Deno.serve(async(req:Request)=>{
     // Canonical classification comes from audited DB state, never raw relay presence.
     const {data:db,error:dbe}=await supabase.rpc("zecblocks_claim_state_rows",{p_token_ids:ids});
     if(dbe)throw dbe;
+    const {data:guards,error:guardError}=await supabase.rpc("zecblocks_claim_history_guards",{p_token_ids:ids});
+    if(guardError)throw guardError;
+    const history=new Map<number,any>((guards||[]).map((x:any)=>[Number(x.token_id),x]));
     const by=new Map<number,any[]>();
     for(const x of db||[]){const id=Number(x.token_id);if(!by.has(id))by.set(id,[]);by.get(id)!.push(x)}
 
@@ -114,7 +117,9 @@ Deno.serve(async(req:Request)=>{
       const waiting=claims.filter((x:any)=>x.protocol_audited!==true&&["pending","deferred","verified"].includes(String(x.verification_status||"")));
       const activeIntents=intents.filter((x:any)=>x.protocol_audited===true&&x.valid_signature===true&&x.verification_status==="verified"&&Number(x.payload?.expires||0)>nowSec);
       let status="clear",winner:any=null;
-      if(valid.length){status="claimed";winner=valid[0];claimed++}
+      const prior=history.get(id),needsReview=prior&&(!valid.length||(prior.claim_txid&&prior.claim_txid!==valid[0].txid));
+      if(needsReview){status="claimed_pending";verifying++}
+      else if(valid.length){status="claimed";winner=valid[0];claimed++}
       else if(waiting.length){status="claimed_pending";winner=waiting[0];verifying++}
       else if(activeIntents.length){status="submitting";winner=activeIntents.sort((a:any,b:any)=>Number(b.event_timestamp||0)-Number(a.event_timestamp||0))[0];submitting++}
       else clear++;

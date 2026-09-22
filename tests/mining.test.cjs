@@ -525,6 +525,22 @@ test('a different canonical TXID is shown as duplicate without claiming ownershi
  }finally{await f.browser.close()}
 });
 
+test('conflicting historical ownership retains recovery and never claims success or pays again',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   const original=backendJson;
+   backendJson=(op,args)=>op==='check-claims'?Promise.resolve({ok:true,status_by_token:{774:'claimed_pending'},ownership_review_ids:[774],events:[]}):original(op,args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774).txid),txid);
+  const text=await f.page.locator('[data-recovery-token="774"]').textContent();
+  assert.match(text,/Ownership verification needed/);assert.doesNotMatch(text,/Confirmed on Zcash/);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+
 test('direct registration timeout releases wallet controls and retains the exact claim',async()=>{
  const f=await fixture();try{
   await f.connect();
