@@ -398,7 +398,7 @@ test('one recovery click checks all claims; missing TXID does not hide a settled
   await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size&&!loadFreeClaimRecovery(774));
   assert.deepEqual(await f.page.evaluate(()=>claimRecoveries().map(r=>r.tokenId)),[3874]);
   assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Confirmed on Zcash/);
-  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/included in Confirmed claims.*stays unchanged when an ID was seen before/);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Your claim succeeded.*included in Confirmed claims/);
   assert.match(await f.page.locator('[data-recovery-token="3874"]').textContent(),/Check Noir Wallet/);
   assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(774)).length,1);
   assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(3874)).length,1);
@@ -416,6 +416,8 @@ test('canonical settlement resolves a no-TXID journal even when wallet history i
   await f.connect();f.claimedTokens.add(774);
   await f.page.evaluate(()=>{walletTest.historyHang=true;walletTest.historyReads=0;saveFreeClaimRecovery({tokenId:774,status:'wallet_approval'})});
   await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
+  assert.doesNotMatch(await f.page.locator('#actionTitle').textContent(),/claimed successfully/);
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
   assert.equal(await f.page.evaluate(()=>walletTest.historyReads),0);
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
