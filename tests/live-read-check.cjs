@@ -22,6 +22,8 @@ async function json(url, body) {
       assert.match(page, /id="confirmedClaimCount"/);
       assert.match(page, /id="claimProgressTrack"/);
       assert.match(page, /unique NFT IDs in claim history/);
+      assert.match(page, /id="claimRecoveryList"/);
+      assert.match(page, /async function recoverPendingClaims\(/);
       const [snapshot, zecs, live] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {}),

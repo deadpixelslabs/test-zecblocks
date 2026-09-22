@@ -5,6 +5,13 @@ This repository serves mine.zecblocks.xyz. The marketplace is a separate deploym
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
 
+Pending NFT claims
+- Continue Pending Claim checks the whole saved queue, with two independent checks at a time and visible per-NFT results. Known transaction IDs are checked first. Repeated clicks join the current work rather than starting duplicate submissions.
+- Recovery checks canonical settlement before reading wallet history or registering an event. An already confirmed NFT resolves even if Noir has not returned its transaction ID. This confirms the NFT has a canonical claim; Portfolio determines ownership.
+- Unsettled transactions backfill only their exact saved event, then request an audit and recheck confirmation. Verifier errors and unavailable wallet history are shown explicitly.
+- Each claim check has a 60-second deadline. A timeout releases the button and preserves the journal; late responses cannot update a different wallet or finish an expired check. Automatic retries are spaced by at least 60 seconds per claim, and manual retry is available immediately.
+- If no matching transaction ID is available, check Noir transaction history. The saved proof is retained, and only that NFT remains protected from duplicate submission. Empty history or an available NFT is not proof that a broadcast failed. Recovery never sends another transaction or asks for another signature.
+
 Claim counts and audit queue
 - Claims seen is displayed in the main collection statistics with a progress bar and percentage of the 5,000 NFT IDs encountered. It refreshes from server statistics, including when the user is not connected to a wallet; the count is never hardcoded.
 - Confirmed claims is displayed separately below the main statistics and counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.

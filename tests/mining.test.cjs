@@ -34,7 +34,7 @@ async function openZecs(page){await page.getByRole('tab',{name:'$ZECS',exact:tru
 async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1360,height:1000},colorScheme:'dark'});
- const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map();
+ const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map(),claimedTokens=new Set();
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());
@@ -49,7 +49,10 @@ async function fixture(){
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
     if(op==='mining-lease')data={ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
-    if(op==='check-claims')data={ok:true,complete:true,relays_ok:4,clear_ids:body.tokenIds,claimed_ids:[],events:[],status_by_token:Object.fromEntries((body.tokenIds||[]).map(id=>[id,claimed?'claimed':'clear']))};
+    if(op==='check-claims'){
+     const ids=body.tokenIds||[],confirmed=id=>claimed||claimedTokens.has(id);
+     data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
+    }
     if(op==='zb20-mint'){
      if(body.action==='lookup')data={ok:true,rows:body.txids.slice(0,50).map(id=>registered.get(id)).filter(Boolean)};
      if(body.action==='preflight')data={ok:true,eligible:true,mint_open:true};
@@ -75,7 +78,7 @@ async function fixture(){
  },{pub,txid});
  await page.goto('http://localhost:4321/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.getElementById('claimCount').textContent==='3,505');
- return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},registered,claimConfirmed(v){claimed=v},async connect(){
+ return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},registered,claimedTokens,claimConfirmed(v){claimed=v},async connect(){
   await page.getByRole('button',{name:'Connect Noir Wallet',exact:true}).click();
   await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);
  }};
@@ -269,7 +272,7 @@ test('legacy NFT lock protects its own ID while a different block can mine and c
   assert.equal(await f.page.locator('#startMineBtn').isDisabled(),true);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
-test('NFT recovery backfills only its saved event and unlocks controls after canonical settlement',async()=>{
+test('already confirmed NFT recovery clears the journal without redundant registration or wallet calls',async()=>{
  const f=await fixture();try{
   await f.connect();f.claimConfirmed(true);
   await f.page.evaluate(txid=>{
@@ -277,13 +280,13 @@ test('NFT recovery backfills only its saved event and unlocks controls after can
    S.serverBackfillBusy=true;
   },txid);
   await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!loadFreeClaimRecovery(71));
-  assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.length===1&&c.body.claims[0].txid===txid));
+  assert.equal(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.some(e=>e.txid===txid)),false);
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(71)),null);
   // Settled IDs are never mined again even after the local journal is resolved.
   assert.equal(await f.page.locator('#recoverClaimBtn').isHidden(),true);
   assert.equal(await f.page.locator('#startMineBtn').isDisabled(),true);
   assert.equal(await f.page.evaluate(()=>walletTest.sends),0);
-  assert.match(await f.page.locator('#claimRecoveryStatus').textContent(),/canonical result/);
+  assert.match(await f.page.locator('[data-recovery-token="71"]').textContent(),/Confirmed on Zcash/);
  }finally{await f.browser.close()}
 });
 test('targeted NFT history recovery skips unrelated claims before chain lookups',async()=>{
@@ -358,6 +361,132 @@ test('slow NFT indexer recovery does not hold the wallet action gate',async()=>{
   assert.equal(await f.page.locator('#findUnclaimedBtn').isDisabled(),false);
   assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),true);
   assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(3874)),true);
+ }finally{await f.browser.close()}
+});
+
+test('one recovery click checks all claims; missing TXID does not hide a settled claim',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimedTokens.add(774);
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:3874,status:'wallet_approval',memo:'saved-proof'});
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   document.getElementById('recoverClaimBtn').click();document.getElementById('recoverClaimBtn').click();
+  },txid);
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size&&!loadFreeClaimRecovery(774));
+  assert.deepEqual(await f.page.evaluate(()=>claimRecoveries().map(r=>r.tokenId)),[3874]);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Confirmed on Zcash/);
+  assert.match(await f.page.locator('[data-recovery-token="3874"]').textContent(),/Check Noir Wallet/);
+  assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(774)).length,1);
+  assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(3874)).length,1);
+  assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),false);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  await f.page.screenshot({path:path.join(root,'test-artifacts/recovery-results-desktop.png'),fullPage:true});
+  await f.page.setViewportSize({width:390,height:844});
+  assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await f.page.screenshot({path:path.join(root,'test-artifacts/recovery-results-mobile.png'),fullPage:true});
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('canonical settlement resolves a no-TXID journal even when wallet history is unavailable',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimedTokens.add(774);
+  await f.page.evaluate(()=>{walletTest.historyHang=true;walletTest.historyReads=0;saveFreeClaimRecovery({tokenId:774,status:'wallet_approval'})});
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
+  assert.equal(await f.page.evaluate(()=>walletTest.historyReads),0);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+test('missing NFT registration backfills its exact saved event then checks settlement',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid,event:{tokenId:774,type:'CLAIM',txid}});
+   const original=backendJson;let audited=false;
+   backendJson=async(op,args)=>{
+    const result=await original(op,args);
+    if(op==='claim-audit')audited=true;
+    if(op==='check-claims'&&audited)return {...result,status_by_token:{774:'claimed'},claimed_ids:[774],clear_ids:[]};
+    return result;
+   };
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims.length===1&&c.body.claims[0].txid===txid));
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+test('wallet history timeout is reported accurately and does not prevent other claims settling',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimedTokens.add(774);
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:3874,status:'wallet_approval'});saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   walletTest.historyHang=true;
+   const old=setTimeout;window.setTimeout=(fn,ms,...args)=>old(fn,ms===WALLET_READ_TIMEOUT?80:ms,...args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.match(await f.page.locator('[data-recovery-token="3874"]').textContent(),/Noir read timed out/);
+  assert.doesNotMatch(await f.page.locator('[data-recovery-token="3874"]').textContent(),/No matching TXID/);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
+  assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(3874)),true);
+  assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),false);
+ }finally{await f.browser.close()}
+});
+test('bounded NFT recovery exposes progress, preserves the journal and ignores late completion',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid,event:{tokenId:774,txid}});
+   const original=backendJson;
+   backendJson=(op,args)=>op==='backfill-client-claims'?new Promise(resolve=>window.finishClaimBackfill=resolve):original(op,args);
+   const old=setTimeout;window.setTimeout=(fn,ms,...args)=>old(fn,ms===CLAIM_RECOVERY_TIMEOUT?800:ms,...args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();
+  await f.page.waitForFunction(()=>!!window.finishClaimBackfill);
+  assert.match(await f.page.locator('#recoverClaimBtn').textContent(),/Checking claims/);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Registering saved claim/);
+  assert.equal(await f.page.locator('#findUnclaimedBtn').isDisabled(),false);
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/timed out/);
+  assert.equal(await f.page.locator('#recoverClaimBtn').isDisabled(),false);
+  await f.page.evaluate(()=>window.finishClaimBackfill({ok:true}));
+  assert.equal(f.calls.some(c=>c.op==='claim-audit'),false);
+  assert.equal(await f.page.evaluate(()=>!!loadFreeClaimRecovery(774)),true);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+test('account changes during recovery cannot clear journals or show another wallet results',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  const owner=await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   const original=backendJson;backendJson=(op,args)=>op==='check-claims'?new Promise(resolve=>window.finishClaimCheck=resolve):original(op,args);
+   recoverPendingClaims();return S.ownerCommitment;
+  },txid);
+  await f.page.waitForFunction(()=>!!window.finishClaimCheck);
+  await f.page.evaluate(async()=>{
+   clearNoirSession();S.ownerCommitment='ff'.repeat(32);updateMiningControls();
+   window.finishClaimCheck({ok:true,status_by_token:{774:'claimed'},claimed_ids:[774],events:[]});
+  });
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.equal(await f.page.evaluate(owner=>!!loadFreeClaimRecovery(774,owner),owner),true);
+  assert.equal(await f.page.locator('#claimRecoveryList').isHidden(),true);
+  assert.equal(await f.page.locator('#claimRecoveryStatus').isHidden(),true);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+test('NFT audit errors retain the exact transaction and show the verifier reason',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   const original=backendJson;
+   backendJson=(op,args)=>op==='claim-audit'?Promise.resolve({ok:true,results:[{token:774,txid,ok:false,deferred:false,error:'signature mismatch'}]}):original(op,args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Claim needs attention.*signature mismatch/);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774).txid),txid);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
  }finally{await f.browser.close()}
 });
 
