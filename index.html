@@ -2076,7 +2076,15 @@ async function submitClaim(){
     
     updateAvailabilityCounts();
 
+    // Register the signed claim with the canonical index immediately. Relay
+    // ingestion remains a redundant discovery path, not a queue in front of
+    // Claims seen. A token-scoped audit also prevents new claims from waiting
+    // behind the global historical audit backlog.
     publishRelay(ev,{fallback:true}).catch(e=>console.warn('free claim relay publish',e));
+    S.lastServerBackfill=0;
+    await backfillServerClaimsFromBrowser({limit:40}).catch(e=>console.warn('immediate claim backfill',e));
+    auditClaimToken(tokenId).catch(e=>console.warn('immediate claim audit',e));
+    loadServerLiveStats({force:true}).catch(()=>{});
     reconcileFreeClaimRecovery(tokenId).catch(()=>{});
     releaseMiningLease().catch(()=>{});
     S.proof=null;

@@ -150,6 +150,8 @@ test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',a
   await f.page.evaluate(()=>{document.getElementById('submitClaimBtn').click();document.getElementById('submitClaimBtn').click()});
   await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>window.walletTest.sends),1);
+  assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.some(e=>e.txid===txid)),'new claim must enter the canonical index immediately');
+  assert.ok(f.calls.some(c=>c.op==='claim-audit'&&c.body.tokenId===71),'new claim must receive a token-scoped audit');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
   assert.equal(await f.page.locator('#submitClaimBtn').isDisabled(),true);
   assert.match(await f.page.locator('#claimReceipt').textContent(),/Claim #71/);assert.deepEqual(f.errors,[]);
