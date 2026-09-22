@@ -150,6 +150,9 @@ Deno.serve(async(req:Request)=>{
 
     const {data:db,error:dbe}=await supabase.rpc("zecblocks_claim_state_rows",{p_token_ids:tokenIds});
     if(dbe)throw dbe;
+    const {data:guards,error:guardError}=await supabase.rpc("zecblocks_claim_history_guards",{p_token_ids:tokenIds});
+    if(guardError)throw guardError;
+    const history=new Map<number,any>((guards||[]).map((x:any)=>[Number(x.token_id),x]));
 
     const byToken=new Map<number,any[]>();
     for(const row of db||[]){
@@ -160,7 +163,7 @@ Deno.serve(async(req:Request)=>{
 
     const complete=relaysOk>=4,nowSec=Math.floor(Date.now()/1000);
     const claimedIds:number[]=[],pendingIds:number[]=[],submittingIds:number[]=[],clearIds:number[]=[];
-    const statusByToken:any={},canonicalClaims:any={},events:any[]=[];
+    const statusByToken:any={},canonicalClaims:any={},events:any[]=[],reviewIds:number[]=[];
     const availabilityRows:any[]=[];
     const nowIso=new Date().toISOString();
 
@@ -172,7 +175,9 @@ Deno.serve(async(req:Request)=>{
       const activeIntents=intents.filter((x:any)=>x.protocol_audited===true&&x.valid_signature===true&&x.verification_status==="verified"&&Number(x.payload?.expires||0)>nowSec);
 
       let status="unknown",winner:any=null;
-      if(valid.length){status="claimed";winner=valid[0];claimedIds.push(id)}
+      const prior=history.get(id),needsReview=prior&&(!valid.length||(prior.claim_txid&&prior.claim_txid!==valid[0].txid));
+      if(needsReview){status="claimed_pending";reviewIds.push(id);pendingIds.push(id)}
+      else if(valid.length){status="claimed";winner=valid[0];claimedIds.push(id)}
       else if(waiting.length){status="claimed_pending";winner=waiting[0];pendingIds.push(id)}
       else if(activeIntents.length){status="submitting";winner=activeIntents.sort((a:any,b:any)=>Number(b.event_timestamp||0)-Number(a.event_timestamp||0))[0];submittingIds.push(id)}
       else if(complete){status="clear";clearIds.push(id)}
@@ -191,7 +196,7 @@ Deno.serve(async(req:Request)=>{
     return new Response(JSON.stringify({
       ok:true,complete,relays_ok:relaysOk,relays:relayNames,requested:tokenIds,
       claimed_ids:claimedIds,pending_ids:pendingIds,submitting_ids:submittingIds,clear_ids:clearIds,
-      status_by_token:statusByToken,canonical_claims:canonicalClaims,events,inserted
+      status_by_token:statusByToken,canonical_claims:canonicalClaims,ownership_review_ids:reviewIds,events,inserted
     }),{headers:CORS})
   }catch(e){
     return new Response(JSON.stringify({ok:false,error:String(e?.message||e)}),{status:500,headers:CORS})
