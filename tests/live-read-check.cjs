@@ -25,7 +25,9 @@ async function json(url, body) {
       assert.match(page, /id="claimRecoveryList"/);
       assert.match(page, /async function recoverPendingClaims\(/);
       assert.match(page, /S\.snapshotGeneratedAt=at/);
-      assert.match(page, /const unavailableTokens=new Map\(\)/);
+      assert.match(page, /CONFIRMED_CLAIMS_KEY/);
+      assert.match(page, /id="availabilityFreshness"/);
+      assert.match(page, /validateMiningLease\(\{fresh:true\}\)/);
       const [snapshot, zecs, live] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {}),
