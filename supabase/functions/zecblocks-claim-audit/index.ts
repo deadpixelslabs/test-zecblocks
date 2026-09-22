@@ -45,14 +45,22 @@ async function pubToTaddr(pub:Uint8Array){const P=secp256k1.ProjectivePoint.from
 function collectAddresses(o:any,out=new Set<string>(),depth=0){if(o==null||depth>8)return out;if(typeof o==="string"){if(/^t[13][1-9A-HJ-NP-Za-km-z]{20,}$/.test(o))out.add(o);return out}if(Array.isArray(o)){for(const v of o)collectAddresses(v,out,depth+1);return out}if(typeof o!=="object")return out;for(const [k,v] of Object.entries(o)){const key=k.toLowerCase();if((key.includes("address")||key==="addr")&&typeof v==="string"&&/^t[13][1-9A-HJ-NP-Za-km-z]{20,}$/.test(v))out.add(v);if(v&&typeof v==="object")collectAddresses(v,out,depth+1)}return out}
 function valueZat(o:any){const v=o?.valueZat??o?.value_zat??o?.satoshis??o?.value??o?.amount;if(v==null)return null;if(typeof v==="string"&&/^\d+$/.test(v))return BigInt(v);if(typeof v==="number"&&Number.isInteger(v))return BigInt(v);if(typeof v==="number"&&Number.isFinite(v))return BigInt(Math.round(v*1e8));if(typeof v==="string"&&/^\d+\.\d+$/.test(v)){const [w,f=""]=v.split(".");return BigInt(w)*100000000n+BigInt((f+"00000000").slice(0,8))}return null}
 async function chain(kind:"tx"|"block",id:string|number){
-  const key=kind+":"+id,cache=kind==="tx"?txCache:blockCache;if(cache.has(key))return cache.get(key);
+  const key=kind+":"+id,cache=kind==="tx"?txCache:blockCache,cached=cache.get(key);
+  if(cached&&cached.expires>Date.now())return cached.data;
+  cache.delete(key);
   let last:any=null;
   for(const base of BASES){
     const ac=new AbortController(),timer=setTimeout(()=>ac.abort(),6500);
     try{
       const r=await fetch(base+"/"+kind+"/"+encodeURIComponent(String(id)),{headers:{accept:"application/json","user-agent":"ZEC-BLOCKS-AUDIT/1.0"},signal:ac.signal});
-      if(!r.ok){last=new Error("chain HTTP "+r.status);continue}
-      const j=await r.json();cache.set(key,j);return j
+      if(!r.ok){last=new Error(r.status===404?kind+" "+id+" not yet visible to the chain provider":"chain HTTP "+r.status);continue}
+      const j=await r.json();
+      // Never keep a pending transaction forever in a warm worker.
+      if(kind!=="tx"||confirmed(j)){
+        if(cache.size>=512)cache.delete(cache.keys().next().value!);
+        cache.set(key,{data:j,expires:Date.now()+10000});
+      }
+      return j
     }catch(e){last=e}finally{clearTimeout(timer)}
   }
   throw new DeferredError("chain provider unavailable: "+String(last?.message||last||"unknown"))
@@ -210,10 +218,9 @@ async function validate(row:any){
   return {valid:true,token,txid,owner,version:v,blockHeight:ch,txIndex:await txIndexFor(txid,ch),feeTxid:null}
 }
 async function markToken(token:number){
-  const {data:rows,error}=await supabase.from("zecblocks_events")
-    .select("event_key,txid,payload,verification_status,protocol_audited,chain_confirmed,event_timestamp")
-    .eq("event_type","CLAIM").eq("token_id",token);
+  const {data:stateRows,error}=await supabase.rpc("zecblocks_claim_state_rows",{p_token_ids:[token]});
   if(error)throw error;
+  const rows=(stateRows||[]).filter((x:any)=>x.event_type==="CLAIM");
   const valid=(rows||[]).filter((x:any)=>x.protocol_audited===true&&x.chain_confirmed===true&&x.verification_status==="verified")
     .sort((a:any,b:any)=>Number(a.payload?.blockHeight||a.event_timestamp||0)-Number(b.payload?.blockHeight||b.event_timestamp||0));
   if(valid.length){
@@ -240,6 +247,15 @@ async function auditRow(row:any){
     return {ok:true,token,txid,existing:true}
   }
 
+  // A relay can add a duplicate row after this transaction was finalized.
+  // Token-scoped recovery must respect the same rule as the batch audit queue.
+  const {data:finalized,error:finalizedError}=await supabase.from("zecblocks_events")
+    .select("event_key").eq("event_type","CLAIM").eq("token_id",token).eq("txid",txid)
+    .eq("verification_status","verified").eq("verified_level","full")
+    .eq("protocol_audited",true).eq("chain_confirmed",true).limit(1);
+  if(finalizedError)throw finalizedError;
+  if(finalized?.length){await markToken(token);return {ok:true,token,txid,existing:true}}
+
   try{
     const v=await validate(row);
 
@@ -258,7 +274,7 @@ async function auditRow(row:any){
     const patched={...(row.payload||{}),ownerCommitment:v.owner,_auditedOwner:v.owner,blockHeight:v.blockHeight,txIndex:v.txIndex};
     const {error}=await supabase.from("zecblocks_events").update({
       verification_status:"verified",verified_level:"full",valid_signature:true,
-      protocol_audited:true,chain_confirmed:true,audited_at:now,audit_error:null,
+      protocol_audited:true,chain_confirmed:true,audited_at:now,audit_error:null,verification_error:null,
       block_height:v.blockHeight,tx_index:v.txIndex,payload:patched,updated_at:now
     }).eq("event_type","CLAIM").eq("token_id",token).eq("txid",txid);
     if(error)throw error;

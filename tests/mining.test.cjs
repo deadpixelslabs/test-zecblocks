@@ -51,7 +51,7 @@ async function fixture(){
     if(op==='mining-lease')data={ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
     if(op==='check-claims'){
      const ids=body.tokenIds||[],confirmed=id=>claimed||claimedTokens.has(id);
-     data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
+     data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),canonical_claims:Object.fromEntries(ids.filter(confirmed).map(id=>[id,{txid}])),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
     }
     if(op==='zb20-mint'){
      if(body.action==='lookup')data={ok:true,rows:body.txids.slice(0,50).map(id=>registered.get(id)).filter(Boolean)};
@@ -147,9 +147,11 @@ test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',a
   await f.page.evaluate(()=>CFG.powBits=8);
   await f.page.locator('#startMineBtn').click();await f.page.waitForFunction(()=>!!S.proof);
   assert.equal(await f.page.evaluate(()=>leadingZeroBits(hexToBytes(S.proof.hash))>=8),true);
+  await f.page.evaluate(()=>{S.serverBackfillBusy=true;S.lastServerBackfill=Date.now()});
   await f.page.evaluate(()=>{document.getElementById('submitClaimBtn').click();document.getElementById('submitClaimBtn').click()});
   await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>window.walletTest.sends),1);
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_JOBS.size);
   assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.some(e=>e.txid===txid)),'new claim must enter the canonical index immediately');
   assert.ok(f.calls.some(c=>c.op==='claim-audit'&&c.body.tokenId===71),'new claim must receive a token-scoped audit');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
@@ -377,6 +379,7 @@ test('one recovery click checks all claims; missing TXID does not hide a settled
   await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size&&!loadFreeClaimRecovery(774));
   assert.deepEqual(await f.page.evaluate(()=>claimRecoveries().map(r=>r.tokenId)),[3874]);
   assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Confirmed on Zcash/);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/included in Confirmed claims.*stays unchanged when an ID was seen before/);
   assert.match(await f.page.locator('[data-recovery-token="3874"]').textContent(),/Check Noir Wallet/);
   assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(774)).length,1);
   assert.equal(f.calls.filter(c=>c.op==='check-claims'&&c.body.tokenIds.includes(3874)).length,1);
@@ -489,6 +492,53 @@ test('NFT audit errors retain the exact transaction and show the verifier reason
   assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Claim needs attention.*signature mismatch/);
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774).txid),txid);
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+
+test('a chain-provider 404 is pending and recovery never sends another payment',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid});
+   const original=backendJson;
+   backendJson=(op,args)=>op==='claim-audit'?Promise.resolve({ok:true,results:[{token:774,txid,ok:false,deferred:true,error:'chain provider unavailable: chain HTTP 404'}]}):original(op,args);
+  },txid);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/does not mean the claim failed.*do not pay again/);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774).txid),txid);
+  f.claimedTokens.add(774);
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
+  assert.match(await f.page.locator('[data-recovery-token="774"]').textContent(),/Confirmed on Zcash/);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+
+test('a different canonical TXID is shown as duplicate without claiming ownership',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.claimedTokens.add(774);
+  await f.page.evaluate(()=>saveFreeClaimRecovery({tokenId:774,status:'pending',txid:'cd'.repeat(32)}));
+  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  const text=await f.page.locator('[data-recovery-token="774"]').textContent();
+  assert.match(text,/Duplicate claim/);assert.doesNotMatch(text,/Your transaction is the canonical/);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+
+test('direct registration timeout releases wallet controls and retains the exact claim',async()=>{
+ const f=await fixture();try{
+  await f.connect();
+  await f.page.evaluate(txid=>{
+   saveFreeClaimRecovery({tokenId:71,status:'pending',txid,event:{tokenId:71,txid}});
+   const original=backendJson;backendJson=(op,args)=>op==='backfill-client-claims'?new Promise(()=>{}):original(op,args);
+   const timer=setTimeout;window.setTimeout=(fn,ms,...args)=>timer(fn,ms===CLAIM_RECOVERY_TIMEOUT?100:ms,...args);
+   reconcileFreeClaimRecovery(71,{registerFirst:true});
+  },txid);
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_JOBS.size);
+  assert.equal(await f.page.evaluate(()=>S.walletAction),false);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(71).txid),txid);
+  assert.match(await f.page.locator('[data-recovery-token="71"]').textContent(),/timed out/);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),0);
  }finally{await f.browser.close()}
 });
 
