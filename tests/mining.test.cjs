@@ -47,7 +47,8 @@ const stats={tick:'ZECS',mint_open:true,deploy_status:'confirmed',minted_supply:
 async function openZecs(page){await page.getByRole('tab',{name:'$ZECS',exact:true}).click();}
 async function fixture(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1360,height:1000},colorScheme:'dark'});
+ const context=await browser.newContext({viewport:{width:1360,height:1000},colorScheme:'dark'});
+ const page=await context.newPage();
  const errors=[],calls=[];let failure=false,registerFailure=false,slow=false,claimed=false;const registered=new Map(),claimedTokens=new Set();
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
@@ -765,6 +766,7 @@ test('expired or failed gallery reads pause selection until a fresh snapshot arr
   assert.equal(await p.locator('[data-candidate="71"]').isDisabled(),true);
   assert.equal(await p.locator('#availableTokens').getByText('Available',{exact:true}).count(),0);
   f.fail(false);await p.locator('#refreshAvailable').click();
+  await p.waitForFunction(()=>galleryIsFresh()&&!document.getElementById('refreshAvailable').disabled);
   assert.equal(await p.locator('[data-candidate="71"]').isEnabled(),true);
   assert.equal(await p.evaluate(()=>walletTest.sends),0);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}

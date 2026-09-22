@@ -19,7 +19,7 @@ At investigation time, NFT #825's claim `826bea9ef3d372fbff565827e006293b293b721
 
 ## Browser freshness and duplicate-payment follow-up
 
-A read-only check of production found #847 and #2427 confirmed for the reporting wallet and excluded from clear IDs. #814 had a new transaction awaiting chain-provider visibility; it was not proven to be a failed or duplicate claim. Old invalid-signature attempts for the other displayed IDs do not establish NFT ownership. Claims seen is historical and can remain unchanged when a previously observed ID obtains its first valid claim.
+A read-only check of production found #847 and #2427 confirmed for the reporting wallet and excluded from clear IDs. #814 initially had a new transaction awaiting chain-provider visibility and was subsequently confirmed for the same wallet during this investigation. Old invalid-signature attempts for the other displayed IDs do not establish NFT ownership. Claims seen is historical and can remain unchanged when a previously observed ID obtains its first valid claim.
 
 The browser now pauses gallery selection after a failed snapshot or after 30 seconds without a successful refresh. Cached cards say Checking instead of Available until the next fresh snapshot. Refresh waits for an in-flight snapshot instead of returning early.
 
