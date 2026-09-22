@@ -20,6 +20,9 @@ async function json(url, body) {
       const page = await fetch(base + '/?release-check=' + Date.now(), { signal: AbortSignal.timeout(15000) }).then(r => r.text());
       assert.match(page, /data-mining-layout="collection"/);
       assert.match(page, /id="confirmedClaimCount"/);
+      assert.match(page, /id="confirmedPortfolioLink"/);
+      assert.match(page, /aria-label="Confirmed claims out of collection"/);
+      assert.match(page, /claimed successfully/);
       assert.match(page, /id="claimProgressTrack"/);
       assert.match(page, /unique NFT IDs in claim history/);
       assert.match(page, /id="claimRecoveryList"/);

@@ -42,7 +42,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
 <main id="home">
   <section class="intro" aria-labelledby="pageTitle">
     <div><div class="eyebrow"><span class="liveDot"></span>BUILT FROM ZCASH BLOCKS</div><h1 id="pageTitle">Mine your next <em>block.</em></h1><p id="pageIntro">Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.</p></div>
-    <div class="collection-overview"><div class="collection-stats" aria-label="Collection statistics"><div class="collection-stat"><small>Total collection</small><b>5,000</b></div><div class="collection-stat" title="Unique NFT IDs seen in claim history. Confirmed claims are shown separately."><small>Claims seen</small><b id="claimCount">—</b></div><div class="collection-stat"><small>Verified available</small><b id="clearCount">—</b></div></div><div class="claim-progress" id="claimProgress" hidden><div class="claim-progress-labels"><span id="claimProgressPercent">—</span><span title="NFTs verified against the protocol and Zcash confirmation."><b id="confirmedClaimCount">—</b> confirmed</span></div><div class="claim-progress-track" id="claimProgressTrack" role="progressbar" aria-label="Claims seen out of collection" aria-valuemin="0" aria-valuemax="5000"><i id="claimProgressFill"></i></div></div></div>
+    <div class="collection-overview"><div class="collection-stats" aria-label="Collection statistics"><div class="collection-stat"><small>Total collection</small><b>5,000</b></div><div class="collection-stat" title="NFT claims verified against the protocol and confirmed on Zcash."><small>Confirmed claims</small><b id="confirmedClaimCount">—</b></div><div class="collection-stat"><small>Verified available</small><b id="clearCount">—</b></div></div><div class="claim-progress" id="claimProgress" hidden><div class="claim-progress-labels"><span id="claimProgressPercent">—</span><span title="Unique NFT IDs in claim history, including pending and invalid attempts. This is not the number of successful claims.">Claims seen · <b id="claimCount">—</b> historical IDs</span></div><div class="claim-progress-track" id="claimProgressTrack" role="progressbar" aria-label="Confirmed claims out of collection" aria-valuemin="0" aria-valuemax="5000"><i id="claimProgressFill"></i></div></div></div>
   </section>
   <div class="workspace-nav">
     <div class="experience-tabs" role="tablist" aria-label="Choose what to mine"><button class="experience-tab" id="nftTab" role="tab" aria-selected="true" aria-controls="mining" tabindex="0" data-tab="mining"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5M12 12v9"/></svg>Mine NFTs</button><button class="experience-tab" id="zecsTab" role="tab" aria-selected="false" aria-controls="zecs" tabindex="-1" data-tab="zecs"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8h8l-8 8h8M12 5v3m0 8v3"/></svg>$ZECS</button></div>
@@ -59,6 +59,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
         <div class="console-heading"><h2 id="consoleTitle">Make it yours</h2><span class="network"><span class="liveDot"></span>Zcash Mainnet</span></div>
         <ol class="mining-steps" aria-label="Mining steps"><li data-step="0" aria-current="step"><i>1</i>Connect</li><li data-step="1"><i>2</i>Choose</li><li data-step="2"><i>3</i>Mine</li><li data-step="3"><i>4</i>Claim</li></ol>
         <div class="action-copy" aria-live="polite"><h3 id="actionTitle">Your block is waiting.</h3><p id="actionDescription">Connect Noir Wallet to find an available NFT and start mining in your browser.</p></div>
+        <a id="confirmedPortfolioLink" class="btn green" href="https://www.zecblocks.xyz/#portfolio" hidden>View in Portfolio ↗</a>
         <div class="target-picker"><label for="tokenInput">NFT #</label><input id="tokenInput" class="input" aria-label="Token ID" type="number" min="1" max="5000" value="1" placeholder="1–5000"><button id="loadTargetBtn" class="btn" disabled>Check NFT</button></div>
         <div class="mining-meter" id="miningMeter" hidden><div class="meter-labels"><span id="meterLabel">Mining in your browser</span><b id="hashrate">0 H/s</b></div><div class="progress" role="progressbar" aria-label="Proof search" aria-valuetext="Completion time varies"><i id="mineProgress"></i></div><small id="meterHint">Proof discovery is probabilistic. Completion time varies.</small></div>
         <div class="primary-actions"><button id="connectMineBtn" class="btn gold">Connect Wallet</button><button id="findUnclaimedBtn" class="btn gold" hidden disabled>Find Unclaimed NFT</button><button id="startMineBtn" class="btn gold" hidden disabled>Start Mining</button><button id="submitClaimBtn" class="btn green" hidden disabled>Claim NFT</button><button id="miningBusyBtn" class="btn gold" hidden disabled>Working…</button></div>
@@ -1262,11 +1263,11 @@ function updateAvailabilityCounts(){
   const unknown=Math.max(0,Number(S.serverUnknownCount||0));
   $('confirmedClaimCount').textContent=S.serverStatsReady?verified.toLocaleString():'—';
   $('claimProgress').hidden=!S.serverStatsReady;
-  const seenPercent=Math.min(100,Math.max(0,total/CFG.supply*100));
-  $('claimProgressPercent').textContent=seenPercent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+'% of collection seen';
-  $('claimProgressFill').style.width=seenPercent+'%';
-  $('claimProgressTrack').setAttribute('aria-valuenow',String(total));
-  $('claimProgressTrack').setAttribute('aria-valuetext',total.toLocaleString()+' of '+CFG.supply.toLocaleString()+' NFT IDs seen');
+  const confirmedPercent=Math.min(100,Math.max(0,verified/CFG.supply*100));
+  $('claimProgressPercent').textContent=confirmedPercent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+'% claimed and confirmed';
+  $('claimProgressFill').style.width=confirmedPercent+'%';
+  $('claimProgressTrack').setAttribute('aria-valuenow',String(verified));
+  $('claimProgressTrack').setAttribute('aria-valuetext',verified.toLocaleString()+' of '+CFG.supply.toLocaleString()+' NFT claims confirmed');
   $('knownClaimed').textContent=verified.toLocaleString();
   $('knownAvailable').textContent=clear.toLocaleString()+' CANONICAL CLEAR IDs';
   if(S.serverMappingComplete){
@@ -1479,6 +1480,7 @@ async function loadTarget({silent=false}={}){
     const owner=S.ownerCommitment,epoch=S.walletEpoch;
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
     const token=Number($('tokenInput').value);if(!Number.isInteger(token)||token<1||token>CFG.supply)throw new Error('Token ID must be 1–5000.');
+    MINING_UI.completedClaim=null;
     setClaimStatus('Deep-checking live relays + reserving token…','warn');
     $('mineStatus').textContent='Verifying unclaimed token…';$('hashLog').textContent='Checking live ZB-1 claim state and reserving this Token ID before mining…';
     await ensureMiningLease(token);
@@ -1520,6 +1522,7 @@ $('findUnclaimedBtn').onclick=async()=>{
   const rejected=new Set(claimRecoveries().map(r=>Number(r.tokenId)));
   try{
     if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');
+    MINING_UI.completedClaim=null;
     $('findUnclaimedBtn').disabled=true;
     if(S.mining)stopMining(false);
 
@@ -1917,7 +1920,8 @@ function renderClaimRecoveries(){
     return '<div class="notice '+(s.kind==='complete'?'good':s.kind==='error'?'bad':'')+'" data-recovery-token="'+s.tokenId+'" aria-busy="'+(s.kind==='checking')+'">'+
       '<strong>Claim #'+s.tokenId+' · '+esc(s.label||'Ready to check')+'</strong><p>'+esc(s.detail||'Your saved claim will be checked without sending another transaction.')+'</p>'+
       (s.checkedAt?'<small>Checked '+esc(new Date(s.checkedAt).toLocaleTimeString())+'</small>':'')+
-      (/^[0-9a-f]{64}$/i.test(txid)?'<p><a href="https://cipherscan.app/tx/'+txid+'" target="_blank" rel="noreferrer" style="text-decoration:underline">View transaction ↗</a></p>':'')+'</div>'
+      (/^[0-9a-f]{64}$/i.test(txid)?'<p><a href="https://cipherscan.app/tx/'+txid+'" target="_blank" rel="noreferrer" style="text-decoration:underline">View transaction ↗</a></p>':'')+
+      (s.confirmed?'<p><a href="https://www.zecblocks.xyz/#portfolio" style="text-decoration:underline">View in Portfolio ↗</a></p>':'')+'</div>'
   }).join('');
   if(batch)claimRecoveryNotice('Checking pending claims: '+batch.done+' of '+batch.total+' checked. No new transaction will be sent.');
   else if(queue.length)claimRecoveryNotice(queue.length+' pending claim'+(queue.length===1?'':'s')+'. See each result below. Automatic checks continue; you can mine a different NFT.');
@@ -1960,10 +1964,10 @@ async function reconcileFreeClaimRecovery(tokenId=null,{registerFirst=false}={})
   let active=true;
   const sameWallet=()=>owner===S.ownerCommitment&&epoch===S.walletEpoch;
   const current=()=>active&&sameWallet();
-  const status=(kind,label,detail)=>{
+  const status=(kind,label,detail,extra={})=>{
     if(!current())return;
     CLAIM_RECOVERY_STATES.set(key,{owner,tokenId:Number(r.tokenId),txid:r.txid,kind,label,detail,
-      checkedAt:kind==='checking'?null:Date.now(),retryAt:Date.now()+CLAIM_RECOVERY_RETRY});
+      checkedAt:kind==='checking'?null:Date.now(),retryAt:Date.now()+CLAIM_RECOVERY_RETRY,...extra});
     renderClaimRecoveries();
   };
   const settled=q=>{
@@ -1977,14 +1981,21 @@ async function reconcileFreeClaimRecovery(tokenId=null,{registerFirst=false}={})
     const otherTx=canonical?.txid&&r.txid&&!sameTx;
     status('complete',otherTx?'Duplicate claim':sameTx?'Confirmed on Zcash':'NFT claim resolved',
       otherTx?'Another transaction is the canonical claim for this NFT. This transaction does not create another NFT or increase Claims seen. Check Portfolio for ownership.':
-      sameTx?'Your transaction is the canonical claim for this NFT and is included in Confirmed claims. Claims seen counts unique IDs in history; it stays unchanged when an ID was seen before. Check Portfolio for current ownership.':
-      'This NFT has a canonical claim. The indexer has not returned enough transaction details to match your saved attempt. Check Portfolio for ownership. No additional transaction is needed.');
+      sameTx?'Your claim succeeded. NFT #'+r.tokenId+' is included in Confirmed claims. Open Portfolio with this wallet to view it. No further payment is needed.':
+      'This NFT has a canonical claim. The indexer has not returned enough transaction details to match your saved attempt. Check Portfolio for ownership. No additional transaction is needed.',{confirmed:!!sameTx});
+    if(sameTx){
+      const target=Number(S.target?.token)===Number(r.tokenId)?S.target:null;
+      const height=Number(target?.sourceHeight||r.event?.sourceHeight||0),hash=target?.sourceHash||r.event?.sourceHash;
+      MINING_UI.completedClaim={owner,tokenId:Number(r.tokenId),txid:r.txid,art:height&&hash?{id:Number(r.tokenId),height,seed:hash+':'+height}:null};
+      showClaimReceipt(r.tokenId,r.txid,{confirmed:true});
+    }
     clearFreeClaimRecovery(r.tokenId,owner);
     if(Number(S.target?.token)===Number(r.tokenId)){
-      if(sameTx)MINING_UI.preview={id:r.tokenId,height:S.target.sourceHeight,seed:S.target.sourceHash+':'+S.target.sourceHeight};
+      if(sameTx&&MINING_UI.completedClaim?.art)MINING_UI.preview=MINING_UI.completedClaim.art;
       S.target=null;S.proof=null;$('mineStatus').textContent='Claim resolved · choose another block';
     }
     loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});
+    renderMiningExperience();
     return true;
   };
   const check=()=>serverCheckClaims([Number(r.tokenId)],{deep:false,signal:controller.signal,isCurrent:current});
@@ -2888,7 +2899,7 @@ function assertActionWallet(){
     throw new Error('Wallet changed during this action. Reconnect and recover any pending transaction.');
 }
 // Presentation state is separate from wallet, lease and transaction state.
-const MINING_UI={view:'mining',galleryKey:'',generation:0,artCache:new Map(),preview:null};
+const MINING_UI={view:'mining',galleryKey:'',generation:0,artCache:new Map(),preview:null,completedClaim:null};
 function setMiningView(view,{focus=false}={}){
   view=view==='zecs'?'zecs':'mining';MINING_UI.view=view;
   $('pageTitle').innerHTML=view==='zecs'?'Mint your next <em>ZECS.</em>':'Mine your next <em>block.</em>';
@@ -2906,6 +2917,7 @@ function renderMiningExperience(){
   const connected=!!S.ownerCommitment&&!S.noirLocked;
   const busy=S.targetBusy||S.walletAction||S.zecsRegistrationBusy;
   const recovery=S.target?loadFreeClaimRecovery(S.target.token):null;
+  const completed=connected&&!S.target&&!busy&&MINING_UI.completedClaim?.owner===S.ownerCommitment?MINING_UI.completedClaim:null;
   const raw=$('mineStatus').textContent;
   const failed=/failed|error|unavailable|retry needed|quorum|reservation lost/i.test(raw);
   let title='Your block is waiting.',description='Connect Noir Wallet to find an available NFT and start mining in your browser.',step=0,action='connectMineBtn';
@@ -2918,11 +2930,13 @@ function renderMiningExperience(){
     if(S.target&&tokenUnavailable(S.target.token)){step=1;action='findUnclaimedBtn';title='Choose another NFT.';description='NFT #'+S.target.token+' has claim activity and is no longer available for mining. Find another NFT to continue.';}
     if(recovery){step=3;action='findUnclaimedBtn';title=recovery.txid?'Claim sent to Zcash.':'Continue your pending claim.';description='Your claim is saved. Check its status below, or choose another NFT while it is being verified.';}
     if(busy&&!S.mining){action='miningBusyBtn';title=S.walletAction?'Check Noir Wallet.':'Checking your NFT…';description=S.walletAction?'Complete the request in your wallet. Your transaction will appear here after it is sent.':'Verifying availability and preparing your selection. This may take a moment.';}
+    if(completed){step=4;action='findUnclaimedBtn';title='NFT #'+completed.tokenId+' claimed successfully.';description='Your claim is confirmed on Zcash. View it in Portfolio, or find your next NFT.';}
   }
   for(const id of ['connectMineBtn','findUnclaimedBtn','startMineBtn','submitClaimBtn','miningBusyBtn'])$(id).hidden=id!==action;
   $('connectMineBtn').disabled=!!S.noirConnectPromise;
   $('miningBusyBtn').textContent=S.mining?'Mining in progress…':S.walletAction?'Waiting for wallet…':'Checking availability…';
-  $('findUnclaimedBtn').textContent=recovery?'Find Another NFT':'Find Unclaimed NFT';
+  $('findUnclaimedBtn').textContent=completed?'Find Next NFT':recovery?'Find Another NFT':'Find Unclaimed NFT';
+  $('confirmedPortfolioLink').hidden=!completed;
   if(!CFG.claimProtocolFeeEnabled&&!$('submitClaimBtn').dataset.busy&&!recovery)$('submitClaimBtn').textContent='Claim NFT';
   $('actionTitle').textContent=title;$('actionDescription').textContent=description;
   $('stopMineBtn').hidden=!S.mining;
@@ -2943,9 +2957,9 @@ function renderMiningExperience(){
     $('heroArt').setAttribute('aria-label','ZEC BLOCK #'+S.target.token+' artwork');
     $('artState').textContent=recovery?'Pending confirmation':tokenUnavailable(S.target.token)?'Unavailable':S.proof?'Proof ready':S.mining?'Mining':'Selected';
     $('heroHeight').textContent=Number(S.target.sourceHeight||0)?Number(S.target.sourceHeight).toLocaleString():'—';
-  }else if(MINING_UI.preview){
-    const p=MINING_UI.preview;$('artCaption').textContent='EXPLORE THE COLLECTION';$('artTitle').textContent='ZEC BLOCK #'+p.id;
-    $('artState').textContent='Preview';$('heroHeight').textContent=p.height.toLocaleString();
+  }else if(completed?.art||MINING_UI.preview){
+    const p=completed?.art||MINING_UI.preview;$('artCaption').textContent=completed?.art?'CLAIM CONFIRMED':'EXPLORE THE COLLECTION';$('artTitle').textContent='ZEC BLOCK #'+p.id;
+    $('artState').textContent=completed?.art?'Confirmed':'Preview';$('heroHeight').textContent=p.height.toLocaleString();
     // Never leave a previous wallet's target artwork under a new preview label.
     if($('heroArt').dataset.preview!==String(p.id)){artSvg($('heroArt'),p.seed,'ZB #'+p.id);$('heroArt').dataset.preview=String(p.id);}
     $('heroArt').setAttribute('aria-label','Preview of ZEC BLOCK #'+p.id);
@@ -3048,10 +3062,10 @@ function claimGateClear(j,token){
   const intent=activeIntentForToken(token);
   return status==='submitting'&&intent?.ownerCommitment===S.ownerCommitment&&String(intent.nonce)===String(S.proof?.nonce);
 }
-function showClaimReceipt(token,txid){
+function showClaimReceipt(token,txid,{confirmed=false}={}){
   if(!/^[0-9a-f]{64}$/i.test(txid))return;
   $('claimReceipt').hidden=false;
-  $('claimReceipt').innerHTML='Claim #'+Number(token)+' broadcast · <a target="_blank" rel="noreferrer" href="https://cipherscan.app/tx/'+txid+'">View transaction ↗</a>';
+  $('claimReceipt').innerHTML='Claim #'+Number(token)+(confirmed?' confirmed':' broadcast')+' · <a target="_blank" rel="noreferrer" href="https://cipherscan.app/tx/'+txid+'">View transaction ↗</a>';
 }
 function renderAvailableTokens(){
   const pending=new Set(claimRecoveries(S.ownerCommitment||'anon').map(r=>Number(r.tokenId)));
