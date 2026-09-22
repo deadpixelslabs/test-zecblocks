@@ -58,10 +58,15 @@ module.exports=async function handler(req,res){
       const name=String(req.query.name||'');
       if(!RPC.has(name))return res.status(400).json({ok:false,error:'Unsupported RPC'});
       if(req.method!=='POST')return res.status(405).json({ok:false,error:'POST only'});
-      const u=await upstream(SUPABASE_URL+'/rest/v1/rpc/'+encodeURIComponent(name),{
-        method:'POST',body:jsonBody(req),rpc:true
+      const body=jsonBody(req),availability=name==='zecblocks_mining_snapshot';
+      // Private event rows are intentionally hidden from anon by RLS. The
+      // server returns a fixed public ID/status projection without exposing them.
+      const url=availability?SUPABASE_URL+'/functions/v1/zecblocks-live-stats?view=availability':SUPABASE_URL+'/rest/v1/rpc/'+encodeURIComponent(name);
+      const u=await upstream(url,{
+        method:availability?'GET':'POST',body:availability?null:body,rpc:!availability
       });
       if(!u.ok)return res.status(u.status).json(u.data||{ok:false,error:'RPC upstream failed'});
+      if(availability&&u.data?.ok===false)return res.status(503).json(u.data);
       return res.status(200).json({ok:true,data:u.data});
     }
 

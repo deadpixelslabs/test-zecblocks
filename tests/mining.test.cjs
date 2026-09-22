@@ -25,6 +25,20 @@ test('temporary verification failure preserves reservation details',async()=>{
  const handler=proxy(async()=>({ok:true,status:200,text:async()=>JSON.stringify({ok:false,error:'VERIFICATION_TEMPORARY_UNAVAILABLE',preserve_lease:true})}));
  const r=response();await handler({query:{op:'mining-lease'},method:'POST',body:{action:'validate'}},r);assert.equal(r.data.data.preserve_lease,true);
 });
+test('gallery RPC uses the server projection while unrelated RPCs keep their original route',async()=>{
+ const seen=[];
+ const handler=proxy(async(url,opts)=>{seen.push({url,method:opts.method});return {ok:true,status:200,text:async()=>'{}'}});
+ for(const name of ['zecblocks_mining_snapshot','zecblocks_zb20_stats']){
+  const r=response();await handler({query:{op:'rpc',name},method:'POST',body:{}},r);assert.equal(r.code,200);
+ }
+ assert.match(seen[0].url,/\/functions\/v1\/zecblocks-live-stats\?view=availability$/);assert.equal(seen[0].method,'GET');
+ assert.match(seen[1].url,/\/rest\/v1\/rpc\/zecblocks_zb20_stats$/);assert.equal(seen[1].method,'POST');
+});
+test('gallery upstream errors are not wrapped as a successful empty snapshot',async()=>{
+ const handler=proxy(async()=>({ok:true,status:200,text:async()=>' {"ok":false,"error":"Availability snapshot incomplete"}'}));
+ const r=response();await handler({query:{op:'rpc',name:'zecblocks_mining_snapshot'},method:'POST',body:{}},r);
+ assert.equal(r.code,503);assert.equal(r.data.ok,false);
+});
 test('inline scripts parse',()=>{for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1])});
 
 const {chromium}=require('playwright'),pub='02'+'11'.repeat(32),txid='ab'.repeat(32);
@@ -48,7 +62,7 @@ async function fixture(){
     let data={ok:true};
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
-    if(op==='mining-lease')data={ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
+    if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,token_id:body.tokenId||71,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
     if(op==='check-claims'){
      const ids=body.tokenIds||[],confirmed=id=>claimed||claimedTokens.has(id);
      data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),canonical_claims:Object.fromEntries(ids.filter(confirmed).map(id=>[id,{txid}])),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
@@ -603,6 +617,122 @@ test('NFT and ZECS tabs preserve active mining; deep links and keyboard navigati
   await openZecs(p);await p.reload({waitUntil:'domcontentloaded'});
   await p.waitForFunction(()=>document.getElementById('zecsTab').getAttribute('aria-selected')==='true');
   assert.equal(await p.locator('#zecs').isVisible(),true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('newer counters cannot suppress collection updates; older snapshots cannot restore claimed cards',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();
+  await p.evaluate(snapshot=>{
+   applyServerLiveStats({claims_seen:3507,canonical_claims:2662,canonical_clear:2281,generated_at:300});
+   applyServerMiningSnapshot({...snapshot,generated_at:200,candidate_ids:[1,2,71],verified_ids:[1,2,71],clear_ids:[72,73]});
+  },snapshot);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await p.locator('[data-candidate="72"]').count(),1);
+  assert.equal(await p.locator('#claimCount').textContent(),'3,507');
+  assert.equal(await p.locator('#confirmedClaimCount').textContent(),'2,662');
+  await p.evaluate(snapshot=>applyServerMiningSnapshot({...snapshot,generated_at:150}),snapshot);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await p.evaluate(()=>S.snapshotGeneratedAt),200000);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('exact claim results survive delayed snapshots and do not mark the whole gallery fresh',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();f.claimedTokens.add(71);
+  const previous=await p.evaluate(()=>S.lastServerSnapshot);
+  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
+  assert.equal(await p.evaluate(()=>S.lastServerSnapshot),previous);
+  await p.evaluate(snapshot=>applyServerMiningSnapshot({...snapshot,generated_at:200}),snapshot);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await p.locator('#claimCount').textContent(),'3,505');
+  f.claimedTokens.delete(71);
+  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0,'a known confirmed claim cannot become clear from a lagging relay response');
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('pending cards survive delayed snapshots but may return after an explicit complete clear check',async()=>{
+ const f=await fixture();try{
+  const p=f.page;
+  await p.route('**/api/zb?op=check-claims',r=>r.fulfill({json:{ok:true,data:{ok:true,complete:true,relays_ok:4,pending_ids:[71],status_by_token:{71:'claimed_pending'}}}}));
+  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
+  await p.evaluate(snapshot=>applyServerMiningSnapshot({...snapshot,generated_at:200}),snapshot);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  await p.unroute('**/api/zb?op=check-claims');
+  await p.evaluate(()=>serverCheckClaims([71],{deep:true}));
+  assert.equal(await p.locator('[data-candidate="71"]').count(),1);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('claimed gallery selection removes the card without starting workers or requesting a payment',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();f.claimedTokens.add(71);
+  await p.getByRole('button',{name:'Select ZEC BLOCK #71',exact:true}).click();
+  await p.waitForFunction(()=>!S.targetBusy&&!document.querySelector('[data-candidate="71"]'));
+  assert.equal(await p.evaluate(()=>S.workers.length),0);
+  assert.equal(await p.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  await p.getByRole('button',{name:'Select ZEC BLOCK #72',exact:true}).click();
+  await p.waitForFunction(()=>S.target?.token===72&&!S.targetBusy);
+  assert.equal(await p.locator('#startMineBtn').isEnabled(),true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('failed fresh checks cannot reuse a lease and incomplete clear responses cannot authorize spending',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();
+  await p.waitForFunction(()=>S.target&&!S.targetBusy);f.fail(true);
+  assert.equal(await p.evaluate(async()=>(await checkTargetAvailability(S.target,{refresh:true})).available),false);
+  const gates=await p.evaluate(()=>{
+   const good={complete:true,relays_ok:4,status_by_token:{71:'clear'},clear_ids:[71]};
+   return [claimGateClear(good,71),claimGateClear({...good,relays_ok:undefined},71),claimGateClear({...good,clear_ids:[]},71),claimGateClear({...good,complete:false},71)];
+  });
+  assert.deepEqual(gates,[true,false,false,false]);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('a claim discovered during mining stops workers and directs the user to another NFT',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.locator('#miningDetails > summary').click();await p.locator('#engineSelect').selectOption('cpu');
+  await p.evaluate(()=>CFG.powBits=256);await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.mining&&S.workers.length>0&&!S.targetBusy);
+  await p.evaluate(snapshot=>applyServerMiningSnapshot({...snapshot,generated_at:200,candidate_ids:[1,2,71],verified_ids:[1,2,71],clear_ids:[72,73]}),snapshot);
+  assert.equal(await p.evaluate(()=>S.mining),false);
+  assert.equal(await p.evaluate(()=>S.workers.length),0);
+  assert.equal(await p.locator('#actionTitle').textContent(),'Choose another NFT.');
+  assert.equal(await p.locator('#findUnclaimedBtn').isVisible(),true);
+  assert.equal(await p.locator('#submitClaimBtn').isDisabled(),true);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('claim becoming unavailable while the wallet signs is blocked before payment',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.locator('#miningDetails > summary').click();await p.locator('#engineSelect').selectOption('cpu');
+  await p.evaluate(()=>CFG.powBits=8);await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.proof&&!S.targetBusy);
+  await p.exposeFunction('simulateClaimCompetition',()=>f.claimedTokens.add(71));
+  await p.evaluate(()=>{
+   const sign=noirwallet.zcash.signMessage;
+   noirwallet.zcash.signMessage=async(...args)=>{
+    const result=await sign(...args);
+    if(String(args[0]).startsWith('ZB1:CLAIM:v1'))await simulateClaimCompetition();
+    return result;
+   };
+  });
+  await p.locator('#submitClaimBtn').click();await p.waitForFunction(()=>walletTest.signs>=2&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);
+  assert.equal(await p.evaluate(()=>loadFreeClaimRecovery(71)),null);
+  assert.equal(await p.locator('[data-candidate="71"]').count(),0);
+  assert.equal(await p.locator('#findUnclaimedBtn').isVisible(),true);
   assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });

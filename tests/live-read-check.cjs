@@ -24,6 +24,8 @@ async function json(url, body) {
       assert.match(page, /unique NFT IDs in claim history/);
       assert.match(page, /id="claimRecoveryList"/);
       assert.match(page, /async function recoverPendingClaims\(/);
+      assert.match(page, /S\.snapshotGeneratedAt=at/);
+      assert.match(page, /const unavailableTokens=new Map\(\)/);
       const [snapshot, zecs, live] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {}),
@@ -34,6 +36,10 @@ async function json(url, body) {
       assert.ok(Number.isInteger(Number(snapshot.verified_indexed)));
       assert.ok(Number(snapshot.verified_indexed) >= 0 && Number(snapshot.verified_indexed) <= 5000);
       assert.ok(Array.isArray(snapshot.clear_ids));
+      assert.ok(Array.isArray(snapshot.candidate_ids));
+      assert.ok(Array.isArray(snapshot.verified_ids));
+      const blocked = new Set([...snapshot.candidate_ids, ...snapshot.verified_ids].map(Number));
+      assert.equal(snapshot.clear_ids.some(id => blocked.has(Number(id))), false, 'available IDs must exclude known claims');
       assert.ok(Number.isFinite(Number(zecs.minted_supply)));
       assert.equal(live.ok, true);
       assert.ok(Number.isInteger(live.scan_cursor) && live.scan_cursor >= 1 && live.scan_cursor <= 5001);
