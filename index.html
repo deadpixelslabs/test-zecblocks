@@ -619,20 +619,48 @@ function restoreAuthoritativeStatsCache(){
     return true
   }catch{return false}
 }
+const unavailableTokens=new Map();
+function tokenUnavailable(token){
+  const status=unavailableTokens.get(Number(token));
+  if(status==='submitting'){
+    const intent=activeIntentForToken(Number(token));
+    if(intent?.ownerCommitment===S.ownerCommitment&&String(intent.nonce)===String(S.proof?.nonce))return false;
+  }
+  return !!status;
+}
+function rememberUnavailable(token,status='claimed_pending'){
+  token=Number(token);if(!Number.isInteger(token)||token<1||token>CFG.supply)return;
+  // A delayed snapshot must not offer a just-broadcast/confirmed NFT again.
+  if(unavailableTokens.get(token)!=='claimed')unavailableTokens.set(token,status);
+  S.serverCandidateIds.add(token);S.serverClearIds.delete(token);
+  if(Number(S.target?.token)===token&&tokenUnavailable(token)){
+    if(S.mining)stopMining(false);
+    if(!S.walletAction){$('mineStatus').textContent='Target no longer available';setClaimStatus('Claim detected · choose another NFT','warn');}
+  }
+}
 function applyServerMiningSnapshot(d){
-  if(!d||typeof d!=='object')return;
-  if(!acceptStats(d))return;
-  S.serverClaimTotal=Number(d.claims_seen);
+  if(!d||!['candidate_ids','verified_ids','clear_ids'].every(k=>Array.isArray(d[k])))return false;
+  const at=responseGeneratedAt(d);
+  if(!at||at<(S.snapshotGeneratedAt||0))return false;
+  // The gallery has its own clock. A newer counter response contains no IDs
+  // and therefore cannot supersede this collection snapshot.
+  S.snapshotGeneratedAt=at;
   S.serverCandidateIds=new Set((Array.isArray(d.candidate_ids)?d.candidate_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
   S.serverVerifiedIds=new Set((Array.isArray(d.verified_ids)?d.verified_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
   S.serverClearIds=new Set((Array.isArray(d.clear_ids)?d.clear_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
-  S.serverUnknownCount=Math.max(0,Number(d.unknown_indexed??(CFG.supply-S.serverVerifiedIds.size-S.serverClearIds.size)));
-  S.serverPendingCount=Math.max(0,Number(d.pending_indexed||0));
-  S.serverVerifiedCount=Math.max(0,Number(d.verified_indexed??S.serverVerifiedIds.size));
-  S.serverClearCount=Math.max(0,Number(d.clear_indexed??S.serverClearIds.size));
+  for(const id of S.serverCandidateIds)rememberUnavailable(id,S.serverVerifiedIds.has(id)?'claimed':'claimed_pending');
+  for(const id of S.serverVerifiedIds)rememberUnavailable(id,'claimed');
+  for(const [id,status] of unavailableTokens)rememberUnavailable(id,status);
+  if(acceptStats(d)){
+    S.serverClaimTotal=Number(d.claims_seen);
+    S.serverUnknownCount=Math.max(0,Number(d.unknown_indexed??(CFG.supply-S.serverVerifiedIds.size-S.serverClearIds.size)));
+    S.serverPendingCount=Math.max(0,Number(d.pending_indexed||0));
+    S.serverVerifiedCount=Math.max(0,Number(d.verified_indexed??S.serverVerifiedIds.size));
+    S.serverClearCount=Math.max(0,Number(d.clear_indexed??S.serverClearIds.size));
+  }
   S.serverMappingComplete=!!d.mapping_complete;
-  // Public snapshots cannot read private scanner state under RLS; their cursor
-  // defaults to 1. Scan progress comes only from the service-backed live stats.
+  // Scan progress keeps its separate live-stats clock; older direct-RPC clients
+  // may still receive a default cursor under RLS.
   S.lastServerSnapshot=Date.now();
   const local=knownTokenIndex();for(const id of S.serverCandidateIds)local.add(id);saveKnownTokenIndex(local);
   saveAuthoritativeStatsCache();updateAvailabilityCounts();updateIndexProgress();updateClaimSyncAge()
@@ -694,22 +722,22 @@ async function serverCheckClaims(tokenIds,{deep=false,signal=null,isCurrent=()=>
   if(!j?.ok)throw new Error(j?.error||'Availability server unavailable');
   if(!isCurrent())return j;
   for(const id0 of (j.claimed_ids||[])){
-    const id=Number(id0);if(!Number.isInteger(id))continue;
-    S.serverCandidateIds.add(id);S.serverClearIds.delete(id)
+    const id=Number(id0);if(!ids.includes(id))continue;
+    rememberUnavailable(id,'claimed')
   }
   for(const id0 of [...(j.pending_ids||[]),...(j.submitting_ids||[])]){
-    const id=Number(id0);if(!Number.isInteger(id))continue;
-    S.serverCandidateIds.add(id);S.serverClearIds.delete(id)
+    const id=Number(id0);if(!ids.includes(id))continue;
+    rememberUnavailable(id,j.status_by_token?.[id]||'claimed_pending')
   }
   for(const id0 of (j.clear_ids||[])){
-    const id=Number(id0);if(!Number.isInteger(id)||S.serverCandidateIds.has(id))continue;
-    S.serverClearIds.add(id)
+    const id=Number(id0);if(!ids.includes(id)||j.complete!==true||!(Number(j.relays_ok)>=4)||j.status_by_token?.[id]!=='clear')continue;
+    if(unavailableTokens.get(id)==='claimed')continue;
+    unavailableTokens.delete(id);S.serverCandidateIds.delete(id);S.serverClearIds.add(id)
   }
   if(Array.isArray(j.events)&&j.events.length){
     const evs=j.events.map(x=>normalizeEvent(x));
     mergeDiscoveryEvents(evs)
   }else updateAvailabilityCounts();
-  S.lastServerSnapshot=Date.now();
   updateIndexProgress();updateClaimSyncAge();
   return j
 }
@@ -761,9 +789,12 @@ async function validateMiningLeaseOnce(){
         err.tokenId=l.tokenId;
         throw err
       }
-      S.miningLease=null;updateLeaseUI();throw new Error(j?.error||'Reserved token is no longer clear.')
+      if(['claimed','claimed_pending','submitting'].includes(j?.status))rememberUnavailable(l.tokenId,j.status);
+      S.miningLease=null;updateLeaseUI();updateAvailabilityCounts();throw new Error(j?.error||'Reserved token is no longer clear.')
     }
-    l.expiresAt=Number(j.expires_at||l.expiresAt);l.verifiedAt=Number(j.verified_at||Math.floor(Date.now()/1000));l.relaysOk=Number(j.relays_ok||l.relaysOk||0);
+    l.relaysOk=Number(j.relays_ok||0);
+    if(!(l.relaysOk>=4))throw new Error('Availability verification is incomplete. No claim payment was sent; retry the check.');
+    l.expiresAt=Number(j.expires_at||l.expiresAt);l.verifiedAt=Number(j.verified_at||Math.floor(Date.now()/1000));
     updateLeaseUI();return l
   }finally{S.leaseCheckBusy=false}
 }
@@ -775,7 +806,11 @@ async function ensureMiningLease(tokenId,{force=false}={}){
   }
   if(l)await releaseMiningLease();
   const j=await leaseRequest('reserve_specific',{tokenId});
-  if(!j?.ok)throw new Error(j?.error==='TOKEN_NOT_DEEP_CLEAR'?`ZEC BLOCK #${tokenId} is not verified unclaimed across the live relays.`:(j?.error||'Could not reserve this ZEC BLOCK.'));
+  if(!j?.ok){
+    if(['claimed','claimed_pending','submitting'].includes(j?.status))rememberUnavailable(tokenId,j.status);
+    updateAvailabilityCounts();
+    throw new Error(j?.error==='TOKEN_NOT_DEEP_CLEAR'?`ZEC BLOCK #${tokenId} is not verified unclaimed across the live relays.`:(j?.error||'Could not reserve this ZEC BLOCK.'));
+  }
   return setMiningLease(j)
 }
 async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeTokens=[],forceNew=true}={}){
@@ -1357,8 +1392,8 @@ async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
     return {available:false,confirmed:false,event:null,invalidTarget:true,unknown:true};
   }
   const fresh=refresh?await deepRefreshToken(target.token,{deep}):null;
-  const leaseClear=!!(S.miningLease&&Number(S.miningLease.tokenId)===Number(target.token)&&Number(S.miningLease.expiresAt||0)>Math.floor(Date.now()/1000));
-  const server=fresh?.server||(leaseClear?{status_by_token:{[String(target.token)]:'clear'},clear_ids:[Number(target.token)],complete:true,relays_ok:Number(S.miningLease.relaysOk||4)}:null);
+  const leaseClear=!!(!refresh&&!tokenUnavailable(target.token)&&S.miningLease&&S.miningLease.owner===S.ownerCommitment&&Number(S.miningLease.tokenId)===Number(target.token)&&Number(S.miningLease.expiresAt||0)>Math.floor(Date.now()/1000)&&Number(S.miningLease.relaysOk)>=4&&Date.now()-Number(S.miningLease.verifiedAt||0)*1000<20000);
+  const server=fresh?.server||(leaseClear?{status_by_token:{[String(target.token)]:'clear'},clear_ids:[Number(target.token)],complete:true,relays_ok:Number(S.miningLease.relaysOk)}:null);
 
   const events=S.events.filter(e=>e.type==='CLAIM'&&Number(e.tokenId)===Number(target.token));
   const checked=[];
@@ -1407,7 +1442,7 @@ async function checkTargetAvailability(target,{refresh=true,deep=true}={}){
     setClaimStatus('CLAIM INTENT SEEN · another miner is submitting','warn');
     return {available:false,confirmed:false,event:intent,intent:true,verify:intentVerify};
   }
-  if(serverStatus==='clear'){
+  if(serverStatus==='clear'&&server?.complete===true&&Number(server.relays_ok)>=4&&server.clear_ids?.map(Number).includes(Number(target.token))&&!tokenUnavailable(target.token)){
     setClaimStatus('CANONICAL CLEAR · 4+ relay quorum · reserved','good');
     S.serverClearIds.add(Number(target.token));
     return {available:true,confirmed:false,event:null,serverClear:true}
@@ -1430,7 +1465,7 @@ async function loadTarget({silent=false}={}){
     if(!/^[0-9a-fA-F]{64}$/.test(hash))throw new Error('Could not resolve source block hash for height '+sh+'.');
     if(owner!==S.ownerCommitment||epoch!==S.walletEpoch||token!==Number($('tokenInput').value))throw new Error('Wallet or target changed. Choose a target again.');
     S.target={token,sourceHeight:sh,sourceHash:hash.toLowerCase()};S.proof=null;
-    const availability=await checkTargetAvailability(S.target,{refresh:false});
+    const availability=await checkTargetAvailability(S.target,{refresh:tokenUnavailable(token)});
     $('sourceInfo').textContent=sh.toLocaleString()+' · '+short(hash,10);
     artSvg($('heroArt'),hash+':'+sh,'ZB #'+token);$('heroToken').textContent='#'+token;$('heroHeight').textContent=sh.toLocaleString();
     if(!availability.available){
@@ -2075,6 +2110,10 @@ async function submitClaim(){
     if(enc.encode(memo).length>512)throw new Error('Claim memo exceeds 512 bytes.');
 
     const tokenId=Number(S.target.token);
+    // Signing may leave the wallet open long enough for the lease or target to
+    // change. Recheck immediately before saving the spending request.
+    await validateMiningLease();assertActionWallet();
+    if(Number(S.target?.token)!==tokenId||tokenUnavailable(tokenId))throw new Error('This NFT is no longer available. No claim payment was sent. Choose another NFT.');
     const baseEvent={
       protocol:'ZB1',v:1,type:'CLAIM',tokenId,nonce:S.proof.nonce,pubkey:pub,
       signature:sig.signature,ownerCommitment:S.ownerCommitment,
@@ -2093,8 +2132,7 @@ async function submitClaim(){
     saveFreeClaimRecovery({status:'pending',tokenId,txid,event:ev,startedAt:Date.now()});
     saveLocalEvent(ev);
     updateKnownTokenIndex([ev]);
-    S.serverCandidateIds.add(tokenId);
-    S.serverClearIds.delete(tokenId);
+    rememberUnavailable(tokenId);
     
     updateAvailabilityCounts();
 
@@ -2799,10 +2837,14 @@ $('zecsRecoverBtn').onclick=recoverZecsMint;
 async function refreshAll(){await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true}),fetchRelay(null,true),loadZecsState()]);if(CFG.claimProtocolFeeEnabled)await reconcileFeeCredit();else await reconcileFreeClaimRecovery();updateFeeCreditUI();renderMarket();renderPortfolio()}
 function artSvg(svg,seed,label){const gold=['#d3a84f','#e9c56e','#b98a37','#f0d690'],bg=['#080808','#0c0c0c','#11100e','#0a0a0a'],dark=['#111','#141311','#181613','#1d1a15'];const hex=((seed||'')+seed).toLowerCase().replace(/[^0-9a-f]/g,'')||'0',bits=[...hex].map(ch=>parseInt(ch,16).toString(2).padStart(4,'0')).join(''),grid=24,cell=20,pad=60,bgc=bg[parseInt(hex[0]||'0',16)%bg.length],g1=gold[parseInt(hex[1]||'0',16)%4],g2=gold[parseInt(hex[2]||'0',16)%4],g3=gold[parseInt(hex[3]||'0',16)%4],d1=dark[parseInt(hex[4]||'0',16)%4];const r=(x,y,w=1,h=1,f=d1,o=1)=>`<rect x="${pad+x*cell}" y="${pad+y*cell}" width="${w*cell}" height="${h*cell}" fill="${f}" opacity="${o}"/>`;let a=`<rect width="600" height="600" fill="${bgc}"/>`;for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const i=(x+y*grid)%bits.length;if(((x+y)%2===0&&bits[i]==='1')||((x+y)%5===0&&bits[(i+17)%bits.length]==='1'))a+=r(x,y,1,1,dark[(x+y)%4],.35)}for(let y=0;y<grid;y++)for(let x=0;x<grid;x++){const ed=x===0||y===0||x===grid-1||y===grid-1,inn=x===2||y===2||x===grid-3||y===grid-3;if(ed)a+=r(x,y,1,1,(x+y)%3===0?g2:g1,.96);else if(inn&&((x+y)%2===0||bits[(x*7+y*11)%bits.length]==='1'))a+=r(x,y,1,1,g3,.88)}for(let y=0;y<16;y++)for(let x=0;x<8;x++){const i=(y*8+x)%bits.length,b1=bits[i]==='1',b2=bits[(i+29)%bits.length]==='1',b3=bits[(i+61)%bits.length]==='1',ring=Math.max(Math.abs(x-3.5),Math.abs(y-7.5));let on=ring<=1.5?(b1||b2):ring<=3.5?((b1&&b2)||(b1&&((x+y)%2===0))):ring<=6.5?(b1&&b2&&(b3||((x+y)%3===0))):false;if(on){const f=(x+y)%5===0?g3:(b2&&b3?g2:g1);a+=r(4+x,4+y,1,1,f,.98)+r(grid-5-x,4+y,1,1,f,.98)}}const arm=3+(parseInt(hex[5]||'0',16)%4);a+=r(11,11-arm,2,arm*2+2,g2,.96)+r(11-arm,11,arm*2+2,2,g2,.96)+r(10,10,4,4,g1,1);svg.innerHTML=a+`<text x="36" y="46" fill="#6d665a" font-size="14" font-family="monospace">ZEC BLOCKS / ${esc(label)}</text><text x="36" y="568" fill="#45413b" font-size="11" font-family="monospace">${esc(String(seed).slice(0,34).toUpperCase())}</text>`}
 
+function responseGeneratedAt(d){
+  const raw=d?.generated_at,numeric=Number(raw);
+  return Number.isFinite(numeric)&&numeric>0?(numeric<1e12?numeric*1000:numeric):(Date.parse(raw)||0);
+}
 function acceptStats(d){
   const n=Number(d?.claims_seen);
   if(!Number.isInteger(n)||n<0||n>CFG.supply)return false;
-  const raw=d.generated_at,numeric=Number(raw),at=Number.isFinite(numeric)&&numeric>0?(numeric<1e12?numeric*1000:numeric):(Date.parse(raw)||0);
+  const at=responseGeneratedAt(d);
   if(at&&S.statsGeneratedAt&&at<S.statsGeneratedAt)return false;
   if(at)S.statsGeneratedAt=at;
   S.serverStatsReady=true;return true
@@ -2839,6 +2881,7 @@ function renderMiningExperience(){
     if(S.proof&&S.target){step=3;action='submitClaimBtn';title='Your proof is ready.';description='Claim NFT #'+S.target.token+' by approving the transaction in Noir Wallet.';}
     if(failed&&!S.mining){description='The last check could not finish. '+(S.target?'Try again, or choose another NFT.':'Find another NFT or retry your selection. Details are available below.');}
     if(S.mining){step=2;action='miningBusyBtn';title='Finding your proof.';description='Your device is mining NFT #'+S.target.token+'. Keep this tab open. You can stop at any time.';}
+    if(S.target&&tokenUnavailable(S.target.token)){step=1;action='findUnclaimedBtn';title='Choose another NFT.';description='NFT #'+S.target.token+' has claim activity and is no longer available for mining. Find another NFT to continue.';}
     if(recovery){step=3;action='findUnclaimedBtn';title=recovery.txid?'Claim sent to Zcash.':'Continue your pending claim.';description='Your claim is saved. Check its status below, or choose another NFT while it is being verified.';}
     if(busy&&!S.mining){action='miningBusyBtn';title=S.walletAction?'Check Noir Wallet.':'Checking your NFT…';description=S.walletAction?'Complete the request in your wallet. Your transaction will appear here after it is sent.':'Verifying availability and preparing your selection. This may take a moment.';}
   }
@@ -2852,11 +2895,11 @@ function renderMiningExperience(){
   $('surpriseBtn').hidden=!connected||S.mining||!!busy;
   $('surpriseBtn').disabled=!connected||!!busy||S.mining;
   $('browseGalleryLink').hidden=S.mining||!!busy;
-  $('miningMeter').hidden=!S.mining&&!S.proof;
+  $('miningMeter').hidden=(!S.mining&&!S.proof)||tokenUnavailable(S.target?.token);
   $('meterLabel').textContent=S.proof?'Proof found':'Mining in your browser';
   $('meterHint').textContent=S.proof?'Ready for your wallet approval.':'Proof discovery is probabilistic. Completion time varies.';
   $('miningExperience').classList.toggle('is-mining',!!S.mining);
-  $('miningExperience').classList.toggle('is-proof',!!S.proof&&!recovery);
+  $('miningExperience').classList.toggle('is-proof',!!S.proof&&!recovery&&!tokenUnavailable(S.target?.token));
   document.querySelectorAll('[data-step]').forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle('complete',n<step);if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
   $('clearCount').textContent=S.serverStatsReady?Number(S.serverClearCount||0).toLocaleString():'—';
   $('claimFeeNote').textContent=CFG.claimProtocolFeeEnabled?'Claim fee '+CFG.paidClaimFeeZec+' ZEC. Network fee applies.':'No mint fee. Zcash network fee applies.';
@@ -2864,7 +2907,7 @@ function renderMiningExperience(){
   if(S.target){
     $('artCaption').textContent='YOUR SELECTED NFT';$('artTitle').textContent='ZEC BLOCK #'+S.target.token;
     $('heroArt').setAttribute('aria-label','ZEC BLOCK #'+S.target.token+' artwork');
-    $('artState').textContent=recovery?'Pending confirmation':S.proof?'Proof ready':S.mining?'Mining':'Selected';
+    $('artState').textContent=recovery?'Pending confirmation':tokenUnavailable(S.target.token)?'Unavailable':S.proof?'Proof ready':S.mining?'Mining':'Selected';
     $('heroHeight').textContent=Number(S.target.sourceHeight||0)?Number(S.target.sourceHeight).toLocaleString():'—';
   }else if(MINING_UI.preview){
     const p=MINING_UI.preview;$('artCaption').textContent='EXPLORE THE COLLECTION';$('artTitle').textContent='ZEC BLOCK #'+p.id;
@@ -2940,8 +2983,8 @@ function updateMiningControls(){
   const connected=!!S.ownerCommitment&&!S.noirLocked,busy=S.targetBusy||S.walletAction;
   const recovery=S.target?loadFreeClaimRecovery(S.target.token):null,queue=claimRecoveries(S.ownerCommitment||'anon');
   for(const id of ['loadTargetBtn','findUnclaimedBtn','tokenInput','engineSelect','testGpuBtn'])$(id).disabled=!connected||busy||S.mining;
-  $('startMineBtn').disabled=!connected||busy||S.mining||!S.target||recovery;
-  $('submitClaimBtn').disabled=!connected||busy||S.mining||!S.target||!S.proof||recovery;
+  $('startMineBtn').disabled=!connected||busy||S.mining||!S.target||recovery||tokenUnavailable(S.target?.token);
+  $('submitClaimBtn').disabled=!connected||busy||S.mining||!S.target||!S.proof||recovery||tokenUnavailable(S.target?.token);
   $('stopMineBtn').disabled=!S.mining;
   const recoveryBatch=activeClaimRecoveryBatch();
   $('recoverClaimBtn').disabled=!connected||busy||S.mining||!!recoveryBatch;
@@ -2964,9 +3007,9 @@ async function runMiningAction(fn,{wallet=false}={}){
   finally{S.targetBusy=false;S.walletAction=false;S.actionOwner=null;updateMiningControls();updateZecsUI()}
 }
 function claimGateClear(j,token){
-  if(j?.complete!==true||Number(j.relays_ok)<4)return false;
+  if(j?.complete!==true||!(Number(j.relays_ok)>=4)||tokenUnavailable(token))return false;
   const status=j.status_by_token?.[token];
-  if(status==='clear')return true;
+  if(status==='clear')return j.clear_ids?.map(Number).includes(Number(token))===true&&!tokenUnavailable(token);
   const intent=activeIntentForToken(token);
   return status==='submitting'&&intent?.ownerCommitment===S.ownerCommitment&&String(intent.nonce)===String(S.proof?.nonce);
 }
@@ -3060,8 +3103,7 @@ setupMiningExperience();
 
   if(!S.serverTimer)S.serverTimer=setInterval(async()=>{
     try{
-      await loadServerLiveStats({force:true});
-      await loadServerMiningSnapshot({force:true});
+      await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true})]);
       await backfillServerClaimsFromBrowser({limit:160})
     }catch{}
   },15000);

@@ -24,6 +24,7 @@ jobs:
           sha256sum -c SHA256SUMS.txt
           node --test tests/mining.test.cjs
           node --test tests/claim-chain-cache.cjs
+          node --test tests/availability-endpoint.cjs
       - name: Save UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
