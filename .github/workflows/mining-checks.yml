@@ -22,6 +22,7 @@ jobs:
         run: |
           node _syntax_check.js
           sha256sum -c SHA256SUMS.txt
+          node --test tests/zecs-recovery.test.cjs
           node --test tests/mining.test.cjs
           node --test tests/claim-chain-cache.cjs
           node --test tests/availability-endpoint.cjs

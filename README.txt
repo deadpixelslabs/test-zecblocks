@@ -2,6 +2,15 @@ ZEC BLOCKS — Mining
 
 This repository serves mine.zecblocks.xyz. The marketplace is a separate deployment.
 
+ZECS mint recovery
+- Continue Pending Mint checks saved TXIDs and signed registrations before querying Noir history. A slow or unavailable history response cannot block a known transaction.
+- A registration-only journal also blocks a new payment and can be resumed with its saved signature. Every acknowledgement must match the exact TXID and owner before recovery data is removed.
+- Confirmed and registered-pending mints are removed individually from the recovery queue. A failed registration or rejected signature retains the unresolved queue and does not strand other acknowledged mints.
+- The button shows progress, individual results link to the existing transaction, and periodic statistics refreshes preserve the recovery error. Pending registration is not presented as blockchain confirmation.
+- Automatic checks can reuse an already saved signature; they never open a signing prompt or send money. An explicit recovery click may request a missing registration signature, never a new payment.
+- An unidentified broadcast remains protected if Noir provides no TXID. Recovering unrelated older mints does not prove that broadcast failed. Keep the original browser recovery data, unlock/sync Noir, and retry. The application does not unlock a wallet by assuming a payment failed.
+- Verification: node --test tests/zecs-recovery.test.cjs plus browser scenarios in tests/mining.test.cjs. Fixtures do not prove a particular user's chain transaction.
+
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
 
