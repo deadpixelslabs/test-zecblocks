@@ -355,8 +355,13 @@ test('already confirmed NFT recovery clears the journal without redundant regist
   await f.page.evaluate(txid=>{
    S.target={token:71};saveFreeClaimRecovery({tokenId:71,status:'pending',txid,event:{tokenId:71,type:'CLAIM',protocol:'ZB1',txid,nonce:'1'}});
    S.serverBackfillBusy=true;
+   // Click in the same turn as journal creation, before background recovery can
+   // legitimately finish it and remove the button from the next browser frame.
+   const button=document.getElementById('recoverClaimBtn');
+   if(button.hidden||button.disabled)throw new Error('Recovery action is unavailable');
+   button.click();
   },txid);
-  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!loadFreeClaimRecovery(71));
+  await f.page.waitForFunction(()=>!loadFreeClaimRecovery(71));
   assert.equal(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.some(e=>e.txid===txid)),false);
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(71)),null);
   // Settled IDs are never mined again even after the local journal is resolved.
