@@ -26,6 +26,8 @@ async function json(url, body) {
       assert.match(page, /id="claimProgressTrack"/);
       assert.match(page, /unique NFT IDs in claim history/);
       assert.match(page, /id="claimRecoveryList"/);
+      assert.match(page, /id="zecsRecoveryList"/);
+      assert.match(page, /function zecsSavedTxids\(/);
       assert.match(page, /async function recoverPendingClaims\(/);
       assert.match(page, /S\.snapshotGeneratedAt=at/);
       assert.match(page, /CONFIRMED_CLAIMS_KEY/);

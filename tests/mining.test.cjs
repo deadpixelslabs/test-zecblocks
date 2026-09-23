@@ -73,7 +73,9 @@ async function fixture(){
      if(body.action==='preflight')data={ok:true,eligible:true,mint_open:true};
      if(body.action==='register'){
       if(registerFailure)return route.fulfill({status:503,json:{ok:false,error:'registration unavailable'}});
-      data={ok:true,status:'pending',stats,account:{eligible:true,eligible_nfts:1,balance:210,pending_mints:1}};
+      const owner=await page.evaluate(()=>S.ownerCommitment);
+      registered.set(body.txid,{txid:body.txid,owner_commitment:owner,status:'pending'});
+      data={ok:true,txid:body.txid,owner_commitment:owner,status:'pending',stats,account:{eligible:true,eligible_nfts:1,balance:210,pending_mints:1}};
      }
     }
     return route.fulfill({json:{ok:true,data}});
@@ -268,6 +270,58 @@ test('manual recovery releases a confirmed discovery lock without asking for ano
   await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
   assert.equal(await f.page.evaluate(()=>loadZecsBroadcastLock()),null);
   assert.equal(await f.page.evaluate(()=>walletTest.signs+walletTest.sends),0);
+ }finally{await f.browser.close()}
+});
+test('Continue Pending Mint resolves a saved TXID even when Noir history never responds',async()=>{
+ const f=await fixture();try{
+  await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  f.registered.set(txid,{txid,status:'confirmed',owner_commitment:owner});
+  await f.page.evaluate(txid=>{saveZecsPendingTxid(txid);saveZecsBroadcastLock({status:'txid_known',txid});walletTest.historyHang=true},txid);
+  await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();
+  await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy&&!loadZecsBroadcastLock());
+  assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),true);
+  assert.match(await f.page.locator('#zecsRecoveryList').textContent(),/Confirmed on Zcash/);
+  assert.equal(await f.page.evaluate(()=>walletTest.signs+walletTest.sends),0);
+  await f.page.screenshot({path:path.join(root,'test-artifacts/zecs-recovery-confirmed.png'),fullPage:true});
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('Continue Pending Mint reuses the saved signature through unavailable history and double clicks',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.registerFail(true);await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();
+  await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction&&!!loadZecsRegistration());
+  const signs=await f.page.evaluate(()=>walletTest.signs);f.registerFail(false);
+  await f.page.evaluate(()=>{walletTest.historyHang=true;document.getElementById('zecsRecoverBtn').click();document.getElementById('zecsRecoverBtn').click()});
+  await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy&&!loadZecsBroadcastLock());
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),1);assert.equal(await f.page.evaluate(()=>walletTest.signs),signs);
+  assert.equal(await f.page.locator('#zecsMintBtn').isEnabled(),true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('saved registration alone displays recovery and does not allow another payment',async()=>{
+ const f=await fixture();try{
+  await f.connect();await f.page.evaluate(txid=>{
+   durableSet(zecsRegistrationKey(),JSON.stringify({txid,owner:S.ownerCommitment,body:{txid,pubkey:S.pubkey,anchorSignature:'1f'+'33'.repeat(64),message:ZECS_MINT_MESSAGE}}));
+   walletTest.historyHang=true;updateZecsUI();
+  },txid);
+  await openZecs(f.page);assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),false);
+  assert.match(await f.page.locator('#zecsRecoverBtn').textContent(),/Continue Pending Mint/);
+  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!loadZecsRegistration());
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+ }finally{await f.browser.close()}
+});
+test('recovery errors remain visible through polling and have a retryable button',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.registerFail(true);await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();
+  await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  await f.page.evaluate(()=>loadZecsState());await f.page.waitForFunction(()=>!S.zecsRegistrationBusy);
+  assert.match(await f.page.locator('#zecsStatus').textContent(),/registration unavailable/);
+  assert.equal(await f.page.locator('#zecsRecoverBtn').isEnabled(),true);
+  assert.equal(await f.page.evaluate(()=>!!loadZecsRegistration()&&!!loadZecsBroadcastLock()),true);
+  await f.page.setViewportSize({width:390,height:844});
+  assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await f.page.screenshot({path:path.join(root,'test-artifacts/zecs-recovery-mobile.png'),fullPage:true});
  }finally{await f.browser.close()}
 });
 test('registered lookup for another owner cannot clear the current wallet lock',async()=>{
