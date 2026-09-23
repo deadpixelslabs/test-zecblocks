@@ -1898,8 +1898,10 @@ function clearFreeClaimRecovery(tokenId,owner=recoveryOwner()){
 function rememberWalletBroadcast(owner,memo,raw){
   const txid=zcashTxidFromResult(raw);if(!owner||!/^[0-9a-f]{64}$/.test(txid))return;
   if(memo===ZECS_MINT_MESSAGE){
+    const key='zb20_zecs_broadcast_lock_v2_'+owner;
+    let lock={};try{lock=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
     durableSet('zb20_zecs_pending_mint_txid_'+owner,txid);
-    durableSet('zb20_zecs_broadcast_lock_v2_'+owner,JSON.stringify({status:'txid_known',txid}));
+    durableSet(key,JSON.stringify({...lock,status:'txid_known',txid,unidentified:false,found:[...new Set([...(Array.isArray(lock?.found)?lock.found:[]),lock?.txid,txid].filter(x=>/^[0-9a-f]{64}$/.test(x||'')))]}));
   }else{
     const r=claimRecoveries(owner).find(r=>(r.memo||r.event?.memo)===memo);
     if(r)saveFreeClaimRecovery({...r,status:'pending',txid,event:{...r.event,txid,eventId:txid}},owner)

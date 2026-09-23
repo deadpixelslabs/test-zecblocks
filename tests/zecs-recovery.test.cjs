@@ -22,6 +22,7 @@ function fixture(){
     esc:s=>String(s).replaceAll('<','&lt;'),short:s=>s.slice(0,8),
   };
   vm.createContext(c);vm.runInContext(source,c);c.updateZecsUI=()=>{};
+  vm.runInContext(html.slice(html.indexOf('function rememberWalletBroadcast('),html.indexOf('function claimRecoveryNotice(')),c);
   return {c,state,rows,calls,data,status:()=>c.$('zecsStatus').textContent,
     lock:value=>c.saveZecsBroadcastLock(value),
     saved:(id=txid)=>data.set('zb20_zecs_registration_v1_'+owner,JSON.stringify({owner,txid:id,body:{txid:id,message:'fixture',anchorSignature:'saved'}})),
@@ -94,4 +95,17 @@ test('recovering unrelated historical mints cannot clear an unidentified broadca
   const f=fixture();f.lock({status:'broadcast_unknown'});f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
   f.c.rpc=async()=>[{txid,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}];
   await f.c.recoverZecsMint();assert.equal(f.c.loadZecsBroadcastLock().unidentified,true);assert.match(f.status(),/no TXID/);
+});
+test('late broadcast response identifies its own mint without discarding other pending TXIDs',()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',unidentified:true,found:[other]});
+  f.c.rememberWalletBroadcast(owner,'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}',{txid});
+  const lock=f.c.loadZecsBroadcastLock();assert.equal(lock.unidentified,false);
+  assert.deepEqual(new Set(lock.found),new Set([other,txid]));
+  f.c.completeZecsRecord(txid,owner);assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),[other]);
+});
+test('a partial batch retains all transactions beyond the twelve-registration limit',async()=>{
+  const f=fixture(),ids=Array.from({length:15},(_,i)=>(i+1).toString(16).padStart(64,'0'));
+  f.lock({status:'recovery_required',found:ids});let registered=0;
+  f.c.registerZecsMintTx=async id=>{registered++;f.c.completeZecsRecord(id,owner);return {ok:true,status:'pending'}};
+  await f.c.recoverZecsMint();assert.equal(registered,12);assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),ids.slice(12));
 });
