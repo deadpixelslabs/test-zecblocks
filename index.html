@@ -2600,10 +2600,11 @@ function zecsRecoveryNotice(text,kind='warn'){
   S.zecsRecoveryFeedback={owner:S.ownerCommitment,epoch:S.walletEpoch,text,kind};
   zecsSetStatus(text,kind);
 }
-function zecsRecoveryResult(txid,text,kind='warn'){
-  ZECS_RECOVERY_RESULTS.set(S.ownerCommitment+':'+txid,{owner:S.ownerCommitment,txid,text,kind});
+function zecsRecoveryResult(txid,text,kind='warn',status=null){
+  ZECS_RECOVERY_RESULTS.set(S.ownerCommitment+':'+txid,{owner:S.ownerCommitment,txid,text,kind,status});
   renderZecsRecoveryResults();
 }
+function zecsAwaitingConfirmation(){return [...ZECS_RECOVERY_RESULTS.values()].filter(x=>x.owner===S.ownerCommitment&&x.status==='pending').map(x=>x.txid)}
 function renderZecsRecoveryResults(){
   const el=$('zecsRecoveryList');if(!el)return;
   const rows=[...ZECS_RECOVERY_RESULTS.values()].filter(x=>x.owner===S.ownerCommitment).slice(-12);
@@ -2723,6 +2724,7 @@ async function loadZecsState(){
       if(S.walletAction||S.zecsBusy)return;
       const feedback=S.zecsRecoveryFeedback;
       const ownFeedback=feedback?.owner===owner&&feedback.epoch===epoch;
+      if(!zecsRecoveryRequired()&&zecsAwaitingConfirmation().length)resumeZecsRegistration().catch(()=>{});
       if(zecsRecoveryRequired()){
         if(ownFeedback)zecsSetStatus(feedback.text,feedback.kind);
         else zecsSetStatus('A previous mint is saved. Continue Pending Mint checks it without sending another payment.','warn');
@@ -2762,14 +2764,14 @@ async function finishZecsRegistration(record){
 async function resumeZecsRegistration(){
   if(S.zecsRegistrationBusy||S.walletAction||S.zecsBusy)return;
   const owner=S.ownerCommitment,epoch=S.walletEpoch,record=loadZecsRegistration();
-  const ids=zecsSavedTxids();
+  const ids=[...new Set([...zecsSavedTxids(),...zecsAwaitingConfirmation()])];
   if(!record&&!ids.length)return;
   S.zecsRegistrationBusy=true;updateZecsUI();
   try{
     const registered=await lookupZecsMints(ids);
     if(owner!==S.ownerCommitment||epoch!==S.walletEpoch)return;
     for(const row of registered){
-      try{zecsRecoveryResult(row.txid,acknowledgeZecsMint(row,owner),'good')}
+      try{zecsRecoveryResult(row.txid,acknowledgeZecsMint(row,owner),'good',row.status)}
       catch(e){zecsRecoveryResult(row.txid,e.message||String(e),'bad')}
     }
     if(!zecsRecoveryRequired()){
@@ -2778,7 +2780,7 @@ async function resumeZecsRegistration(){
     if(record&&!registered.some(r=>r.txid===record.txid)){
       const out=await finishZecsRegistration(record);
       if(owner===S.ownerCommitment&&epoch===S.walletEpoch){
-        zecsRecoveryResult(record.txid,out.status==='confirmed'?'Confirmed on Zcash.':'Registered. Waiting for Zcash confirmation.','good');
+        zecsRecoveryResult(record.txid,out.status==='confirmed'?'Confirmed on Zcash.':'Registered. Waiting for Zcash confirmation.','good',out.status);
         zecsRecoveryNotice(zecsRecoveryRequired()?'Saved registration recovered. Continue Pending Mint to check the remaining transactions.':out.status==='confirmed'?'Mint confirmed · 210 ZECS registered.':'Mint registered · waiting for Zcash confirmation.','good');
       }
       return out
@@ -2917,7 +2919,7 @@ async function recoverZecsMint(){
         let out=row;
         if(row){
           const message=acknowledgeZecsMint(row,owner);
-          zecsRecoveryResult(txid,message,'good');
+          zecsRecoveryResult(txid,message,'good',row.status);
         }else{
           attempts++;
           saveZecsPendingTxid(txid);
@@ -2925,7 +2927,7 @@ async function recoverZecsMint(){
           zecsRecoveryNotice('Checking mint '+(i+1)+' / '+ids.length+(saved?' · submitting your saved registration…':' · approve the registration signature in Noir. No new payment is needed.'));
           zecsRecoveryResult(txid,saved?'Submitting saved registration…':'Waiting for a registration signature in Noir Wallet.');
           out=await registerZecsMintTx(txid);if(!current())return;assertActionWallet();
-          zecsRecoveryResult(txid,out.status==='confirmed'?'Confirmed on Zcash.':'Registered. Waiting for Zcash confirmation.','good');
+          zecsRecoveryResult(txid,out.status==='confirmed'?'Confirmed on Zcash.':'Registered. Waiting for Zcash confirmation.','good',out.status);
         }
         if(out.status==='confirmed')confirmed++;else pending++;
       }catch(e){

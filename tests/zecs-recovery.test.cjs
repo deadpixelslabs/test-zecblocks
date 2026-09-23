@@ -109,3 +109,12 @@ test('a partial batch retains all transactions beyond the twelve-registration li
   f.c.registerZecsMintTx=async id=>{registered++;f.c.completeZecsRecord(id,owner);return {ok:true,status:'pending'}};
   await f.c.recoverZecsMint();assert.equal(registered,12);assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),ids.slice(12));
 });
+test('registered recovery results automatically advance to confirmation without another click',async()=>{
+  const f=fixture();f.lock({status:'txid_known',txid});f.rows.set(txid,{txid,owner_commitment:owner,status:'pending'});
+  await f.c.recoverZecsMint();assert.equal(f.c.loadZecsBroadcastLock(),null);
+  assert.match(f.c.$('zecsRecoveryList').innerHTML,/Waiting for Zcash confirmation/);
+  f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
+  await f.c.loadZecsState();await new Promise(r=>setImmediate(r));
+  assert.match(f.c.$('zecsRecoveryList').innerHTML,/Confirmed on Zcash/);
+  assert.equal(f.c.zecsAwaitingConfirmation().length,0);
+});
