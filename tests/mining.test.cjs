@@ -473,8 +473,13 @@ test('one recovery click checks all claims; missing TXID does not hide a settled
 test('canonical settlement resolves a no-TXID journal even when wallet history is unavailable',async()=>{
  const f=await fixture();try{
   await f.connect();f.claimedTokens.add(774);
-  await f.page.evaluate(()=>{walletTest.historyHang=true;walletTest.historyReads=0;saveFreeClaimRecovery({tokenId:774,status:'wallet_approval'})});
-  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  await f.page.evaluate(()=>{
+   walletTest.historyHang=true;walletTest.historyReads=0;saveFreeClaimRecovery({tokenId:774,status:'wallet_approval'});
+   const button=document.getElementById('recoverClaimBtn');
+   if(button.hidden||button.disabled)throw new Error('Recovery action is unavailable');
+   button.click();
+  });
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
   assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
   assert.doesNotMatch(await f.page.locator('#actionTitle').textContent(),/claimed successfully/);
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
@@ -494,8 +499,11 @@ test('missing NFT registration backfills its exact saved event then checks settl
     if(op==='check-claims'&&audited)return {...result,status_by_token:{774:'claimed'},claimed_ids:[774],clear_ids:[]};
     return result;
    };
+   const button=document.getElementById('recoverClaimBtn');
+   if(button.hidden||button.disabled)throw new Error('Recovery action is unavailable');
+   button.click();
   },txid);
-  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
   assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims.length===1&&c.body.claims[0].txid===txid));
   assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(774)),null);
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
@@ -597,8 +605,13 @@ test('a chain-provider 404 is pending and recovery never sends another payment',
 test('a different canonical TXID is shown as duplicate without claiming ownership',async()=>{
  const f=await fixture();try{
   await f.connect();f.claimedTokens.add(774);
-  await f.page.evaluate(()=>saveFreeClaimRecovery({tokenId:774,status:'pending',txid:'cd'.repeat(32)}));
-  await f.page.locator('#recoverClaimBtn').click();await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
+  await f.page.evaluate(()=>{
+   saveFreeClaimRecovery({tokenId:774,status:'pending',txid:'cd'.repeat(32)});
+   const button=document.getElementById('recoverClaimBtn');
+   if(button.hidden||button.disabled)throw new Error('Recovery action is unavailable');
+   button.click();
+  });
+  await f.page.waitForFunction(()=>!CLAIM_RECOVERY_BATCHES.size);
   const text=await f.page.locator('[data-recovery-token="774"]').textContent();
   assert.match(text,/Duplicate claim/);assert.doesNotMatch(text,/Your transaction is the canonical/);
   assert.equal(await f.page.locator('#confirmedPortfolioLink').isVisible(),false);
