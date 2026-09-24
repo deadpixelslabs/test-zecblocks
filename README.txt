@@ -4,7 +4,9 @@ This repository serves mine.zecblocks.xyz. The marketplace is a separate deploym
 
 ZECS mint recovery
 - Continue Pending Mint checks saved TXIDs and signed registrations before querying Noir history. A slow or unavailable history response cannot block a known transaction.
-- A registration-only journal also blocks a new payment and can be resumed with its saved signature. Every acknowledgement must match the exact TXID and owner before recovery data is removed.
+- A registration-only journal also blocks a new payment and can be resumed with its saved signature. Successful registration acknowledgement must match the exact TXID and owner.
+- History-only entries registered to another wallet are archived locally and removed from the pending queue. They never count as this wallet's confirmed/pending mints. Existing send/signature/approval evidence is not cleared automatically by a foreign registration.
+- For a known TXID confirmed for another wallet, Remove from pending queue rechecks that registration and saves the full local journal before removing the selected item. It changes no balance or backend record and sends no payment. Unknown broadcasts cannot use this action; other unresolved transactions remain protected.
 - Confirmed and registered-pending mints are removed individually from the recovery queue. A failed registration or rejected signature retains the unresolved queue and does not strand other acknowledged mints.
 - The button shows progress, individual results link to the existing transaction, and periodic statistics refreshes preserve the recovery error. Pending registration is not presented as blockchain confirmation.
 - Automatic checks can reuse an already saved signature; they never open a signing prompt or send money. An explicit recovery click may request a missing registration signature, never a new payment.
@@ -86,6 +88,7 @@ Optional server environment overrides: SUPABASE_URL and SUPABASE_ANON_KEY. Set t
 Never configure a service-role key as SUPABASE_ANON_KEY or put one in browser code.
 Owner commitments are identifiers, not proof of identity by themselves. Backend signature and chain verification establish canonical events.
 Local storage holds theme/engine preferences, public discovery cache, pending TXIDs, broadcast locks and signed ZECS registration requests scoped to owner commitment.
+Foreign-registration recovery copies are stored in zb20_zecs_foreign_mint_v1_<owner>_<txid>. Keep browser data to retain these audit copies; they are separate from active pending mints.
 It also holds the existing Nostr discovery identity, separate from wallet keys.
 A signed registration can be replayed for its same TXID; it does not authorize another wallet payment.
 Keep recovery data until confirmation. Clearing browser storage during an unresolved broadcast removes that local recovery protection.
