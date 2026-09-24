@@ -414,14 +414,18 @@ test('Continue Pending Mint reuses the saved signature through unavailable histo
 });
 test('saved registration alone displays recovery and does not allow another payment',async()=>{
  const f=await fixture();try{
-  await f.connect();await f.page.evaluate(txid=>{
+  await f.connect();f.registerFail(true);await f.page.evaluate(txid=>{
    durableSet(zecsRegistrationKey(),JSON.stringify({txid,owner:S.ownerCommitment,body:{txid,pubkey:S.pubkey,anchorSignature:'1f'+'33'.repeat(64),message:ZECS_MINT_MESSAGE}}));
    walletTest.historyHang=true;updateZecsUI();
   },txid);
-  await openZecs(f.page);assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),false);
+  await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.zecsRegistrationBusy);
+  assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),false);
+  assert.equal(await f.page.evaluate(()=>!!loadZecsRegistration()),true);
   assert.match(await f.page.locator('#zecsRecoverBtn').textContent(),/Continue Pending Mint/);
+  f.registerFail(false);
   await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!loadZecsRegistration());
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
 test('recovery errors remain visible through polling and have a retryable button',async()=>{
