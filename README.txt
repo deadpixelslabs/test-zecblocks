@@ -15,6 +15,12 @@ ZECS mint recovery
 - Saved attempts remain available after refresh and can be restored for recovery. Each new send has an attempt ID, so a late wallet response updates the original saved attempt rather than clearing or overwriting a newer broadcast. Other known TXIDs/signatures still need recovery.
 - Verification: node --test tests/zecs-recovery.test.cjs plus browser scenarios in tests/mining.test.cjs. Fixtures do not prove a particular user's chain transaction.
 
+Mining request efficiency
+- Public NFT/ZECS counters share a five-second CDN cache. Fresh post-action reads bypass it. Failed/incomplete responses and all account, availability, reservation and transaction requests remain uncached.
+- The visible NFT view refreshes NFT counters and availability every 15 seconds. The ZECS view refreshes NFT counters, ZECS counters and the connected account instead. Initial data is loaded once; view/focus changes refresh relevant data immediately.
+- Hidden tabs pause presentation polling. Active mining reservation checks and pending NFT/ZECS recovery continue independently, without opening a wallet prompt or sending a new transaction automatically.
+- See docs/mining-request-efficiency-2026-09-25.md for scope and validation.
+
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
 Release identifiers are kept internal and are not displayed in the public mining UI.
 

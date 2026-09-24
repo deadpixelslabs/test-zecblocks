@@ -28,6 +28,30 @@ function fixture(){
     saved:(id=txid)=>data.set('zb20_zecs_registration_v1_'+owner,JSON.stringify({owner,txid:id,body:{txid:id,message:'fixture',anchorSignature:'saved'}})),
   };
 }
+test('a fresh ZECS refresh waits for an in-flight public read then requests uncached statistics',async()=>{
+ const f=fixture();let finish,reads=0;
+ f.c.backendJson=async op=>{assert.equal(op,'zecs-stats');return new Promise(resolve=>finish=resolve)};
+ f.c.supabaseRpc=async name=>{if(name==='zecblocks_zb20_stats'){reads++;return {mint_open:true,generated_at:200,minted_supply:420}}return f.state.zecsAccount};
+ const background=f.c.loadZecsState({fresh:false}),fresh=f.c.loadZecsState();
+ assert.equal(reads,0);finish({mint_open:true,generated_at:100,minted_supply:210});await Promise.all([background,fresh]);
+ assert.equal(reads,1);assert.equal(f.state.zecsStats.minted_supply,420);
+});
+test('older cached ZECS counters cannot overwrite a newer registration result',async()=>{
+ const f=fixture();f.state.zecsStats={mint_open:true,generated_at:200,minted_supply:420};
+ f.c.backendJson=async()=>({mint_open:true,generated_at:100,minted_supply:210});
+ await f.c.loadZecsState({fresh:false});assert.equal(f.state.zecsStats.minted_supply,420);
+});
+test('a wallet switch during a statistics refresh loads the new account after the old request ends',async()=>{
+ const f=fixture();let finish;const accounts=[];
+ f.c.supabaseRpc=async(name,body)=>{
+  if(name==='zecblocks_zb20_stats')return {mint_open:true};
+  accounts.push(body.p_owner_commitment);
+  return accounts.length===1?new Promise(resolve=>finish=resolve):{eligible:false,balance:0};
+ };
+ const before=f.c.loadZecsState();f.state.ownerCommitment='ff'.repeat(32);f.state.walletEpoch++;
+ const after=f.c.loadZecsState();finish({eligible:true,balance:999});await Promise.all([before,after]);
+ assert.deepEqual(accounts,[owner,'ff'.repeat(32)]);assert.equal(f.state.zecsAccount.balance,0);
+});
 test('manual recovery resolves a saved confirmed TXID without wallet history',async()=>{
   const f=fixture();f.lock({status:'txid_known',txid});f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
   await f.c.recoverZecsMint();
