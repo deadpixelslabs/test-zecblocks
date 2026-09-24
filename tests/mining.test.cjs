@@ -373,7 +373,8 @@ test('confirmed foreign send can be set aside explicitly, survives reload and pe
   const archive=await p.evaluate(old=>JSON.parse(localStorage.getItem('zb20_zecs_foreign_mint_v1_'+S.ownerCommitment+'_'+old)),old);
   assert.equal(archive.broadcastLock.txid,old);assert.equal(archive.pendingTxid,old);
   await p.reload({waitUntil:'domcontentloaded'});
-  await p.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);await openZecs(p);
+  await f.connect();await openZecs(p);
+  assert.equal(await p.evaluate(old=>JSON.parse(localStorage.getItem('zb20_zecs_foreign_mint_v1_'+S.ownerCommitment+'_'+old)).pendingTxid,old),old);
   await p.evaluate(old=>{walletTest.history=[{txid:old,memo:ZECS_MINT_MESSAGE,type:'send',status:'mined'}]},old);
   assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);
   await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
