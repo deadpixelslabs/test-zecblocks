@@ -118,3 +118,82 @@ test('registered recovery results automatically advance to confirmation without 
   assert.match(f.c.$('zecsRecoveryList').innerHTML,/Confirmed on Zcash/);
   assert.equal(f.c.zecsAwaitingConfirmation().length,0);
 });
+test('discovery excludes failed operations and incoming memos without hiding valid or legacy sends',async()=>{
+  const f=fixture(),memo='{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}';
+  f.c.rpc=async()=>[
+    {txid,memo,type:'send',status:'failed'},
+    {txid:other,memo,type:'receive',status:'mined'},
+    {txid:'ef'.repeat(32),memo,type:'send',status:'pending',timestamp:1700000000000},
+    {txid:'12'.repeat(32),memo,type:'send',status:'mined',timestamp:1700000001000},
+    {txid:'34'.repeat(32),memo},
+  ];
+  const candidates=await f.c.zecsMintHistoryCandidates();
+  assert.deepEqual(Array.from(candidates,x=>x.txid),['12'.repeat(32),'ef'.repeat(32),'34'.repeat(32)]);
+  assert.equal(candidates[0].timestamp,1700000001);
+});
+test('explicit selection of the matching outgoing mint resolves an unidentified broadcast without a send',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',startedAt:1700000000});
+  f.c.rpc=async method=>{f.calls.push(method);assert.equal(method,'zcash_getTransactionHistory');return [{txid,type:'send',status:'mined',timestamp:1700000001000,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}]};
+  f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
+  await f.c.recoverZecsMint('0x'+txid.toUpperCase());
+  assert.equal(f.c.loadZecsBroadcastLock(),null);assert.equal(f.c.loadZecsPendingTxid(),'');
+  assert.match(f.status(),/Recovery complete/);assert.equal(f.calls.includes('zcash_sendTransaction'),false);
+});
+test('manual selection retains a concrete recovery journal through signature rejection',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',startedAt:1700000000});
+  f.c.rpc=async method=>{f.calls.push(method);if(method==='zcash_getTransactionHistory')return [{txid,type:'send',status:'pending',timestamp:1700000001000,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}];throw Error('User rejected signature')};
+  await f.c.recoverZecsMint(txid);
+  assert.equal(f.c.loadZecsBroadcastLock().unidentified,false);
+  assert.equal(f.c.loadZecsPendingTxid(),txid);assert.equal(f.c.zecsRecoveryRequired(),true);
+  assert.equal(f.calls.includes('zcash_sendTransaction'),false);
+});
+test('manual recovery rejects incoming, failed, stale, unknown-type and foreign-wallet transactions before changing the lock',async()=>{
+  for(const details of [{type:'receive'},{status:'failed'},{timestamp:1600000000000},{type:''},{foreign:true},{timestamp:0}]){
+    const f=fixture(),lock={status:'broadcast_unknown',startedAt:1700000000};f.lock(lock);
+    f.c.rpc=async()=>[{txid,type:'send',status:'mined',timestamp:1700000001000,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}',...details}];
+    if(details.foreign)f.rows.set(txid,{txid,owner_commitment:'ff'.repeat(32),status:'confirmed'});
+    await f.c.recoverZecsMint(txid);
+    assert.deepEqual(JSON.parse(JSON.stringify(f.c.loadZecsBroadcastLock())),lock);
+    assert.equal(f.c.loadZecsPendingTxid(),'');assert.equal(f.calls.includes('register'),false);
+  }
+});
+test('wallet switch during manual history verification cannot change either wallet journal',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown'});
+  f.c.rpc=async()=>{f.state.ownerCommitment='ff'.repeat(32);f.state.walletEpoch++;return [{txid,type:'send',status:'mined',memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}]};
+  await f.c.recoverZecsMint(txid);
+  assert.equal(JSON.parse(f.data.get('zb20_zecs_broadcast_lock_v2_'+owner)).status,'broadcast_unknown');
+  assert.equal(f.data.has('zb20_zecs_broadcast_lock_v2_'+f.state.ownerCommitment),false);
+});
+
+test('an ambiguous new mint retains its original attempt time and history baseline',async()=>{
+  for(const result of ['throw','unsupported']){
+    const f=fixture();f.c.CFG={mailbox:'test-mailbox'};f.c.walletRejected=()=>false;f.c.insufficientFundsError=()=>false;
+    f.c.zecsUnregisteredHistoryMints=async()=>({candidates:[{txid:other}],missing:[],registered:[]});
+    f.c.zecsFunction=async()=>({ok:true,eligible:true,mint_open:true});
+    let before;
+    f.c.rpc=async(method)=>{assert.equal(method,'zcash_sendTransaction');before=f.c.loadZecsBroadcastLock();if(result==='throw')throw Error('Connection lost');return {accepted:true}};
+    await f.c.mintZecs();const lock=f.c.loadZecsBroadcastLock();
+    assert.equal(lock.startedAt,before.startedAt);assert.deepEqual(Array.from(lock.historyBefore),[other]);assert.equal(lock.unidentified,true);
+  }
+});
+test('one recent candidate is suggested without automatically unlocking or registering an unknown broadcast',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',startedAt:1700000000,historyBefore:[]});
+  f.c.rpc=async()=>[{txid,type:'send',status:'mined',timestamp:1700000001000,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}];
+  await f.c.recoverZecsMint();
+  assert.equal(f.c.$('zecsRecoveryTxid').value,txid);assert.equal(f.c.zecsRecoveryRequired(),true);
+  assert.equal(f.calls.includes('register'),false);assert.match(f.status(),/Check the TXID/);
+});
+test('suggestions reject old, untimed, ambiguous, failed, incoming and pre-existing candidates',()=>{
+  const f=fixture(),lock={startedAt:1000,historyBefore:[other]},candidate={txid,type:'send',status:'mined',timestamp:1010};
+  assert.equal(f.c.suggestZecsBroadcast([candidate],lock).txid,txid);
+  for(const changes of [{timestamp:0},{timestamp:999},{timestamp:1121},{status:'failed'},{type:'receive'},{txid:other}]){
+    assert.equal(f.c.suggestZecsBroadcast([{...candidate,...changes}],lock),null);
+  }
+  assert.equal(f.c.suggestZecsBroadcast([candidate,{...candidate,txid:'ef'.repeat(32)}],lock),null);
+});
+test('explicit recovery cannot substitute a mint already present in the attempt baseline',async()=>{
+  const f=fixture(),lock={status:'broadcast_unknown',startedAt:1700000000,historyBefore:[txid]};f.lock(lock);
+  f.c.rpc=async()=>[{txid,type:'send',status:'mined',timestamp:1700000001000,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}];
+  await f.c.recoverZecsMint(txid);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.c.loadZecsBroadcastLock())),lock);assert.equal(f.c.loadZecsPendingTxid(),'');
+});
