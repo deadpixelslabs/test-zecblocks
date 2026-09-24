@@ -94,7 +94,8 @@ test('registration acknowledgement must match both TXID and wallet',async()=>{
 test('recovering unrelated historical mints cannot clear an unidentified broadcast',async()=>{
   const f=fixture();f.lock({status:'broadcast_unknown'});f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
   f.c.rpc=async()=>[{txid,memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}];
-  await f.c.recoverZecsMint();assert.equal(f.c.loadZecsBroadcastLock().unidentified,true);assert.match(f.status(),/no TXID/);
+  await f.c.recoverZecsMint();assert.equal(f.c.zecsUnidentifiedBroadcast(f.c.loadZecsBroadcastLock()),true);assert.match(f.status(),/No matching TXID/);
+  assert.equal(f.calls.includes('lookup'),false);assert.equal(f.c.zecsSavedTxids().length,0);
 });
 test('late broadcast response identifies its own mint without discarding other pending TXIDs',()=>{
   const f=fixture();f.lock({status:'broadcast_unknown',unidentified:true,found:[other]});
@@ -283,4 +284,83 @@ test('setting aside one conflict retains another exact send and signature',async
   await f.c.setAsideZecsForeignMint(txid);
   assert.equal(f.c.loadZecsBroadcastLock().txid,other);assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),[other]);
   assert.equal(f.c.loadZecsPendingTxid(),other);assert.equal(f.c.loadZecsRegistration().txid,other);
+});
+
+test('an unknown attempt requires explicit acknowledgement before enabling a separate mint',()=>{
+  const f=fixture(),lock={status:'broadcast_unknown',unidentified:true,startedAt:1700000000,historyBefore:[other]};f.lock(lock);
+  f.c.setAsideZecsUnknownAttempt();assert.equal(f.c.zecsRecoveryRequired(),true);assert.equal(f.c.loadZecsDeferredAttempts().length,0);
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  assert.equal(f.c.zecsRecoveryRequired(),false);const saved=f.c.loadZecsDeferredAttempts()[0];
+  assert.deepEqual(JSON.parse(JSON.stringify(saved.originalLock)),lock);assert.equal(saved.broadcastLock.unidentified,true);
+  assert.equal(saved.reason,'user_requested_separate_mint');assert.equal(saved.owner,owner);
+  assert.equal(f.calls.length,0);assert.match(f.status(),/No new transaction was sent/);
+});
+test('failed archive writes and corrupt saved attempts cannot release the active lock',()=>{
+  for(const kind of ['write','corrupt']){
+    const f=fixture();f.lock({status:'broadcast_unknown',unidentified:true});f.c.$('zecsNewMintAcknowledged').checked=true;
+    if(kind==='write')f.c.durableSet=()=>{throw Error('storage full')};else f.data.set(f.c.zecsDeferredKey(owner),'broken-json');
+    f.c.setAsideZecsUnknownAttempt();assert.equal(f.c.zecsRecoveryRequired(),true);
+  }
+});
+test('saving aside the unknown part retains known TXIDs and a signed registration',()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',unidentified:true,found:[txid]});f.saved();f.c.saveZecsPendingTxid(txid);
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  assert.equal(f.c.zecsRecoveryRequired(),true);assert.equal(f.c.loadZecsBroadcastLock().unidentified,false);
+  assert.equal(f.c.loadZecsPendingTxid(),txid);assert.equal(f.c.loadZecsRegistration().txid,txid);
+  assert.deepEqual(Array.from(f.c.loadZecsDeferredAttempts()[0].broadcastLock.found),[]);
+});
+test('saved attempts can be restored with the original time and history baseline',()=>{
+  const f=fixture();f.lock({attemptId:'attempt-one',status:'broadcast_unknown',startedAt:1700000000,historyBefore:[other]});
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  const id=f.c.loadZecsDeferredAttempts()[0].id;f.c.restoreZecsDeferredAttempt(id);
+  assert.equal(f.c.zecsRecoveryRequired(),true);assert.equal(f.c.loadZecsBroadcastLock().startedAt,1700000000);
+  assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().historyBefore),[other]);
+  assert.equal(f.c.loadZecsDeferredAttempts().length,0);assert.equal(f.calls.length,0);
+});
+test('restoring an old attempt cannot replace an active attempt',()=>{
+  const f=fixture();f.lock({attemptId:'attempt-one',status:'broadcast_unknown'});f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  f.lock({attemptId:'attempt-two',status:'broadcast_unknown'});f.c.restoreZecsDeferredAttempt('attempt-one');
+  assert.equal(f.c.loadZecsBroadcastLock().attemptId,'attempt-two');assert.equal(f.c.loadZecsDeferredAttempts().length,1);
+});
+test('a late response updates its saved attempt and never resolves a newer unknown broadcast',()=>{
+  const f=fixture(),first={attemptId:'attempt-one',status:'broadcast_unknown',unidentified:true,startedAt:1700000000};f.lock(first);
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  const second={attemptId:'attempt-two',status:'broadcast_unknown',unidentified:true,startedAt:1700000100};f.lock(second);
+  f.c.rememberWalletBroadcast(owner,'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}',{txid},first);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.c.loadZecsBroadcastLock())),second);assert.equal(f.c.loadZecsPendingTxid(),'');
+  const saved=f.c.loadZecsDeferredAttempts()[0];assert.equal(saved.pendingTxid,txid);assert.equal(saved.broadcastLock.unidentified,false);
+  assert.equal(saved.broadcastLock.startedAt,first.startedAt);
+});
+test('a late response belongs to the original wallet even after an account switch',()=>{
+  const f=fixture(),first={attemptId:'attempt-one',status:'broadcast_unknown',unidentified:true};f.lock(first);
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  f.state.ownerCommitment=foreign;f.state.walletEpoch++;
+  f.c.rememberWalletBroadcast(owner,'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}',{txid},first);
+  assert.equal(f.c.loadZecsDeferredAttempts(owner)[0].pendingTxid,txid);assert.equal(f.c.loadZecsDeferredAttempts(foreign).length,0);
+  assert.equal(f.c.zecsRecoveryRequired(),false);
+});
+test('restoring a late TXID recovers its registration without another send',async()=>{
+  const f=fixture(),first={attemptId:'attempt-one',status:'broadcast_unknown',unidentified:true};f.lock(first);
+  f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  f.c.rememberWalletBroadcast(owner,'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}',{txid},first);
+  f.rows.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
+  f.c.restoreZecsDeferredAttempt('attempt-one');await f.c.recoverZecsMint();
+  assert.equal(f.c.zecsRecoveryRequired(),false);assert.equal(f.c.loadZecsDeferredAttempts().length,0);
+  assert.equal(f.calls.some(x=>x.startsWith('zcash_')),false);
+});
+test('59 older mints are not replayed to resolve one unknown attempt',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',startedAt:1800000000});
+  f.c.rpc=async()=>Array.from({length:59},(_,i)=>({txid:(i+1).toString(16).padStart(64,'0'),timestamp:1700000000,type:'send',status:'mined',memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}));
+  await f.c.recoverZecsMint();assert.equal(f.c.zecsSavedTxids().length,0);assert.equal(f.calls.includes('lookup'),false);
+  assert.equal(f.c.$('zecsRecoveryList').innerHTML||'','');assert.match(f.status(),/Earlier mints are not replayed/);
+});
+test('a fresh mint is a separate user action and keeps the deferred attempt',async()=>{
+  const f=fixture();f.lock({status:'broadcast_unknown',unidentified:true});f.c.$('zecsNewMintAcknowledged').checked=true;f.c.setAsideZecsUnknownAttempt();
+  assert.equal(f.calls.length,0);
+  f.c.CFG={mailbox:'test-mailbox'};f.c.walletRejected=()=>false;f.c.insufficientFundsError=()=>false;
+  f.c.zecsUnregisteredHistoryMints=async()=>({candidates:[],missing:[],registered:[]});f.c.zecsFunction=async()=>({ok:true,eligible:true,mint_open:true});
+  f.c.rpc=async method=>{f.calls.push(method);return {txid}};
+  f.c.registerZecsMintTx=async id=>{f.c.completeZecsRecord(id,owner);return {ok:true,status:'pending'}};
+  await f.c.mintZecs();assert.deepEqual(f.calls,['zcash_sendTransaction']);
+  assert.equal(f.c.loadZecsDeferredAttempts().length,1);assert.equal(f.c.zecsRecoveryRequired(),false);
 });
