@@ -61,7 +61,7 @@ jobs:
       - name: Verify the real migration, cap boundaries and concurrent admissions
         run: |
           psql -X -v ON_ERROR_STOP=1 -f tests/claim-cap-fixture.sql
-          psql -X -v ON_ERROR_STOP=1 -1 -f supabase/migrations/20260924234025_nft_claim_cap_4444.sql
+          psql -X -v ON_ERROR_STOP=1 -1 -f supabase/migrations/20260924235839_nft_claim_cap_4444.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/claim-cap.sql
           node tests/claim-cap-concurrency.cjs
   live-read-check:
