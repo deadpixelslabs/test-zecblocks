@@ -104,7 +104,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_reserve_specific_clear_token(p_owner
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'extensions'
-AS $function$;
+AS $function$
 declare
   v_owner text := lower(replace(coalesce(p_owner_commitment,''),'0x',''));
   v_ttl integer := greatest(120,least(1200,coalesce(p_ttl_seconds,600)));
@@ -197,7 +197,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_renew_reservation(p_owner_commitment
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$;
+AS $function$
 declare
   v_owner text := lower(replace(coalesce(p_owner_commitment,''),'0x',''));
   v_ttl integer := greatest(120,least(1200,coalesce(p_ttl_seconds,600)));
@@ -264,7 +264,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_release_reservation(p_owner_commitme
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$;
+AS $function$
 declare
   v_owner text := lower(replace(coalesce(p_owner_commitment,''),'0x',''));
 begin
@@ -287,7 +287,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_claim_stats()
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'pg_catalog', 'public'
-AS $function$;
+AS $function$
   select jsonb_build_object(
     'claims_seen',public.zecblocks_claims_seen_live(),
     'claims_observed',(select count(*)::bigint from public.zecblocks_claim_observed),
@@ -307,7 +307,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_mining_snapshot()
  LANGUAGE sql
  STABLE
  SET search_path TO 'pg_catalog', 'public'
-AS $function$;
+AS $function$
 with safe_candidates as (
   select token_id from public.zecblocks_events
   where event_type='CLAIM' and token_id between 1 and 5000
@@ -365,7 +365,7 @@ CREATE OR REPLACE FUNCTION public.zecblocks_mining_candidates(p_start_token inte
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
-AS $function$;
+AS $function$
   select coalesce(array_agg(token_id order by ord), array[]::integer[])
   from (
     select
