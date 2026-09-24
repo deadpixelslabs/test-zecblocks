@@ -32,7 +32,7 @@ Pending NFT claims
 - If no matching transaction ID is available, check Noir transaction history. The saved proof is retained, and only that NFT remains protected from duplicate submission. Empty history or an available NFT is not proof that a broadcast failed. Recovery never sends another transaction or asks for another signature.
 
 Claim counts and audit queue
-- Claims seen is displayed in the main collection statistics with a progress bar and percentage of the 5,000 NFT IDs encountered. It refreshes from server statistics, including when the user is not connected to a wallet; the count is never hardcoded.
+- Confirmed claims drives the progress bar out of 4,444 current claim slots; Claims seen remains a separate historical count. It refreshes from server statistics, including when the user is not connected to a wallet; the count is never hardcoded.
 - Confirmed claims is displayed separately below the main statistics and counts canonical NFT IDs after protocol and Zcash confirmation checks. Completing proof search or broadcasting alone does not increase it.
 - Mining settings & details explains that Claims seen is a historical count including invalid/unconfirmed attempts. A later valid claim for an already observed ID can increase Confirmed claims without increasing Claims seen.
 - The historical counter and ownership validation rules are unchanged. The frontend does not count local mining attempts as successful claims.
@@ -110,7 +110,7 @@ Recover Mint registers at most 12 missing transactions per click and retains rem
 Wallet history reads time out after 10 seconds; wallet approval responses after 120 seconds. An approval timeout never resends a transaction. Check the Noir prompt before starting another wallet operation.
 
 Current protocol settings
-5,000 NFT supply; 26-bit NFT proof; 210 ZECS per mint; 21,000,000 ZECS cap.
+4,444 current NFT claim slots (legacy IDs 1–5000); 26-bit NFT proof; 210 ZECS per mint; 21,000,000 ZECS cap.
 Current NFT claimProtocolFeeEnabled=false is preserved: the UI shows zero protocol fee plus the wallet's network fee.
 Mainnet wallet approvals, holder eligibility and four-relay availability quorum remain required.
 

@@ -1,0 +1,21 @@
+-- Isolated PostgreSQL test database only. Never run this fixture in production.
+create role anon;
+create role authenticated;
+create role service_role;
+create schema extensions;
+create extension pgcrypto with schema extensions;
+create table public.zecblocks_events(token_id integer,event_type text,protocol_audited boolean,chain_confirmed boolean,valid_signature boolean,verification_status text,payload jsonb default '{}',source text);
+create table public.zecblocks_claim_availability(token_id integer primary key,status text,relay_quorum integer,last_checked_at timestamptz);
+create table public.zecblocks_ownership_events(token_id integer,event_type text,verified_level text);
+create table public.zecblocks_tokens(token_id integer primary key,owner_verified_level text,owner_commitment text);
+create table public.zecblocks_mining_reservations(token_id integer primary key references public.zecblocks_claim_availability,owner_commitment text,lease_token text unique,created_at timestamptz,renewed_at timestamptz,expires_at timestamptz,status text);
+create table public.zecblocks_claims_seen(token_id integer);
+create table public.zecblocks_claim_observed(token_id integer);
+create table public.zecblocks_indexer_state(indexer text,cursor jsonb);
+create function public.zecblocks_claims_seen_live() returns bigint language sql as $$ select count(*) from public.zecblocks_claims_seen $$;
+create function public.zecblocks_claim_total() returns bigint language sql as $$ select count(*) from public.zecblocks_tokens $$;
+insert into public.zecblocks_claim_availability select id,case when id=5000 then 'claimed' when id=4999 then 'claimed_pending' else 'clear' end,4,now() from generate_series(1,5000) id;
+insert into public.zecblocks_tokens values(5000,'full',repeat('a',64));
+insert into public.zecblocks_ownership_events values(5000,'claim','full');
+insert into public.zecblocks_claims_seen values(5000);
+create function public.test_assert(ok boolean,label text) returns void language plpgsql as $$ begin if ok is distinct from true then raise exception 'Assertion failed: %',label; end if; end $$;

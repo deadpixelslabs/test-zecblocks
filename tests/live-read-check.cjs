@@ -32,7 +32,7 @@ async function json(url, body) {
       assert.match(page, /S\.snapshotGeneratedAt=at/);
       assert.match(page, /CONFIRMED_CLAIMS_KEY/);
       assert.match(page, /id="availabilityFreshness"/);
-      assert.match(page, /validateMiningLease\(\{fresh:true\}\)/);
+      assert.match(page, /validateMiningLease\(\{fresh:true,commit:true\}\)/);
       assert.match(page, /async function refreshVisibleMiningData\(/);
       assert.match(page, /async function pollZecsRecovery\(/);
       const [snapshot, zecs, live, publicZecs] = await Promise.all([
@@ -44,7 +44,11 @@ async function json(url, body) {
       assert.ok(Number.isInteger(Number(snapshot.claims_seen)));
       assert.ok(Number(snapshot.claims_seen) >= 0 && Number(snapshot.claims_seen) <= 5000);
       assert.ok(Number.isInteger(Number(snapshot.verified_indexed)));
-      assert.ok(Number(snapshot.verified_indexed) >= 0 && Number(snapshot.verified_indexed) <= 5000);
+      assert.ok(Number(snapshot.verified_indexed) >= 0 && Number(snapshot.verified_indexed) <= 4444);
+      assert.equal(snapshot.claim_limit,4444);
+      assert.equal(live.claim_limit,4444);
+      assert.ok(snapshot.allocated_claims<=4444);
+      assert.match(page, /<small>Supply<\/small><b>4,444<\/b>/);
       assert.ok(Array.isArray(snapshot.clear_ids));
       assert.ok(Array.isArray(snapshot.candidate_ids));
       assert.ok(Array.isArray(snapshot.verified_ids));

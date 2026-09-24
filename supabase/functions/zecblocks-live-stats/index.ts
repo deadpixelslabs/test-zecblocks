@@ -44,6 +44,9 @@ Deno.serve(async(req:Request)=>{
     const cursor=scanState?.cursor||{};
     return new Response(JSON.stringify({
       ok:true,
+      claim_limit:stats?.claim_limit,legacy_id_max:stats?.legacy_id_max,
+      allocated_claims:stats?.allocated_claims,slots_available:stats?.slots_available,
+      claims_remaining:stats?.claims_remaining,claim_open:stats?.claim_open,new_claims_open:stats?.new_claims_open,
       claims_seen:Number(stats?.claims_seen||0),
       claims_observed:Number(stats?.claims_observed||0),
       canonical_claims:Number(stats?.claims_canonical||0),

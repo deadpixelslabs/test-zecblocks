@@ -42,8 +42,8 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
 </header>
 <main id="home">
   <section class="intro" aria-labelledby="pageTitle">
-    <div><div class="eyebrow"><span class="liveDot"></span>BUILT FROM ZCASH BLOCKS</div><h1 id="pageTitle">Mine your next <em>block.</em></h1><p id="pageIntro">Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.</p></div>
-    <div class="collection-overview"><div class="collection-stats" aria-label="Collection statistics"><div class="collection-stat"><small>Total collection</small><b>5,000</b></div><div class="collection-stat" title="NFT claims verified against the protocol and confirmed on Zcash."><small>Confirmed claims</small><b id="confirmedClaimCount">—</b></div><div class="collection-stat"><small>Verified available</small><b id="clearCount">—</b></div></div><div class="claim-progress" id="claimProgress" hidden><div class="claim-progress-labels"><span id="claimProgressPercent">—</span><span title="Unique NFT IDs in claim history, including pending and invalid attempts. This is not the number of successful claims.">Claims seen · <b id="claimCount">—</b> historical IDs</span></div><div class="claim-progress-track" id="claimProgressTrack" role="progressbar" aria-label="Confirmed claims out of collection" aria-valuemin="0" aria-valuemax="5000"><i id="claimProgressFill"></i></div></div></div>
+    <div><div class="eyebrow"><span class="liveDot"></span>BUILT FROM ZCASH BLOCKS</div><h1 id="pageTitle">Mine your next <em>block.</em></h1><p id="pageIntro">Find your NFT. Mine the proof. Make it yours.<br>4,444 claims. Digital artifacts shaped by Zcash.</p></div>
+    <div class="collection-overview"><div class="collection-stats" aria-label="Collection statistics"><div class="collection-stat"><small>Supply</small><b>4,444</b></div><div class="collection-stat" title="NFT claims verified against the protocol and confirmed on Zcash."><small>Confirmed claims</small><b id="confirmedClaimCount">—</b></div><div class="collection-stat"><small>Claim slots available</small><b id="clearCount">—</b></div></div><div class="claim-progress" id="claimProgress" hidden><div class="claim-progress-labels"><span id="claimProgressPercent">—</span><span title="Unique NFT IDs in claim history, including pending and invalid attempts. This is not the number of successful claims.">Claims seen · <b id="claimCount">—</b> historical IDs</span></div><div class="claim-progress-track" id="claimProgressTrack" role="progressbar" aria-label="Confirmed claims out of collection" aria-valuemin="0" aria-valuemax="4444"><i id="claimProgressFill"></i></div></div></div>
   </section>
   <div class="workspace-nav">
     <div class="experience-tabs" role="tablist" aria-label="Choose what to mine"><button class="experience-tab" id="nftTab" role="tab" aria-selected="true" aria-controls="mining" tabindex="0" data-tab="mining"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5M12 12v9"/></svg>Mine NFTs</button><button class="experience-tab" id="zecsTab" role="tab" aria-selected="false" aria-controls="zecs" tabindex="-1" data-tab="zecs"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 8h8l-8 8h8M12 5v3m0 8v3"/></svg>$ZECS</button></div>
@@ -69,7 +69,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
         <div class="recovery-area"><button id="recoverClaimBtn" class="btn" hidden>Continue Pending Claim</button><div id="claimRecoveryStatus" class="notice" role="status" hidden></div><div id="claimRecoveryList" aria-label="Pending claim details" hidden></div><div id="claimReceipt" class="receipt" role="status" hidden></div><button id="recoverFeeBtn" class="btn" style="display:none">Recover Fee Credit</button></div>
       </section>
     </div>
-    <details class="details-shell" id="miningDetails"><summary><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Mining settings & details</summary><div class="details-layout"><div>
+    <details class="details-shell" id="miningDetails"><summary><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M8 4v6m8 4v6"/></svg>Mining settings & details</summary><p class="sectionHint">Claim limit: 4,444 NFTs. Existing token IDs are preserved. Remaining allocation is reserved for future ZSA public mint.</p><div class="details-layout"><div>
       <div class="row"><span class="key">Status</span><span class="val" id="mineStatus">Idle</span></div><div class="row"><span class="key">Availability</span><span class="val" id="claimStatus">Choose an NFT</span></div><div class="row"><span class="key">Reservation</span><span class="val" id="leaseStatus">None</span></div><div class="row"><span class="key">Claim fee</span><span class="val" id="feeCreditStatus">No protocol fee</span></div><div class="row"><span class="key">Source block</span><span class="val" id="sourceInfo">Select an NFT</span></div><div class="row"><span class="key">Wallet identity</span><span class="val" id="ownerCommit">Connect wallet</span></div><div class="row"><span class="key">Genesis TXID</span><span class="val" id="gTx">ecf6fc3a…9379f0f</span></div><div class="row"><span class="key">Genesis height</span><span class="val" id="gHeight">Resolving…</span></div><div class="row"><span class="key">Genesis</span><span class="val" id="genesisStatus">Confirmed</span></div>
       <p class="availability-detail"><b id="knownClaimed">—</b> confirmed claims · <b id="knownAvailable">Checking available NFTs…</b><br><span id="availabilityIndexState">Checking availability…</span><br><span id="claimSyncAge">Syncing…</span> · <span id="claimIndexProgress">Checking index…</span></p>
       <p class="availability-detail">Claims seen counts unique NFT IDs in claim history, including unconfirmed or invalid attempts. A confirmed claim for an ID already seen does not increase this historical count.</p>
@@ -115,7 +115,7 @@ const CFG={
   genesisTxid:'ecf6fc3a79885f573d79de70a2de85c34667fc1a4fefe034d3a4015269379f0f',
   mailbox:'u1qqjyaypzmvgfnc9uatk5t0f6hmge6htpfck3d366nhx94450crtznujwn8kql9u39uzdqcdg8flzk3tmf32j2p4u0xvx370xwcjjsrmd',
   treasury:'t1b9PCdoCncgoc13CWwWz8tzZZLDYfMaTyz',
-  supply:5000,powBits:26,freeClaims:500,paidClaimFeeZat:130000,paidClaimFeeZec:'0.0013',paidClaimsActive:true,claimProtocolFeeEnabled:false,marketFeeBps:300,
+  supply:5000,claimLimit:4444,powBits:26,freeClaims:500,paidClaimFeeZat:130000,paidClaimFeeZec:'0.0013',paidClaimsActive:true,claimProtocolFeeEnabled:false,marketFeeBps:300,
   explorer:'/api/zcash',
   relays:['wss://relay.damus.io','wss://nos.lol','wss://relay.primal.net','wss://relay.nostr.band','wss://relay.snort.social','wss://nostr.mom'],
   nostrKind:30078,relayTag:'zb1-mainnet-v1',
@@ -655,13 +655,23 @@ function rememberUnavailable(token,status='claimed_pending'){
     if(!S.walletAction){$('mineStatus').textContent='Target no longer available';setClaimStatus('Claim detected · choose another NFT','warn');}
   }
 }
+function claimLimitReached(){return Number(S.serverVerifiedCount||0)>=CFG.claimLimit||S.claimCapacity?.claim_open===false}
+function newClaimsPaused(){return claimLimitReached()||S.claimCapacity?.new_claims_open===false}
+function claimCapacityMessage(){return claimLimitReached()?'All 4,444 claims are complete. Remaining allocation is reserved for public mint in the ZSA phase.':'The remaining claim slots are reserved by active or pending claims. Please wait for verification.'}
+function claimCapacityError(j){return ['CLAIM_CAP_REACHED','ZB1_CLAIM_CAP_REACHED','CLAIM_SLOTS_PENDING'].includes(j?.error)?(j.error==='CLAIM_SLOTS_PENDING'?'The remaining claim slots are reserved by active or pending claims. Please wait for verification.':'The 4,444 claim limit has been reached. Existing claims remain recoverable.'):j?.error}
+function applyClaimCapacity(d){
+  if(Number(d?.claim_limit)!==CFG.claimLimit)return;
+  const at=responseGeneratedAt(d);if(at&&at<(S.claimCapacityAt||0))return;
+  if(typeof d.claim_open!=='boolean'||typeof d.new_claims_open!=='boolean'||!Number.isInteger(d.slots_available))return;
+  S.claimCapacity=d;S.claimCapacityAt=at;
+}
 function applyServerMiningSnapshot(d){
   if(!d||!['candidate_ids','verified_ids','clear_ids'].every(k=>Array.isArray(d[k])))return false;
   const at=responseGeneratedAt(d);
   if(!at||at<(S.snapshotGeneratedAt||0))return false;
   // The gallery has its own clock. A newer counter response contains no IDs
   // and therefore cannot supersede this collection snapshot.
-  S.snapshotGeneratedAt=at;
+  S.snapshotGeneratedAt=at;applyClaimCapacity(d);
   S.serverCandidateIds=new Set((Array.isArray(d.candidate_ids)?d.candidate_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
   S.serverVerifiedIds=new Set((Array.isArray(d.verified_ids)?d.verified_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
   S.serverClearIds=new Set((Array.isArray(d.clear_ids)?d.clear_ids:[]).map(Number).filter(x=>Number.isInteger(x)&&x>=1&&x<=CFG.supply));
@@ -688,7 +698,7 @@ function applyServerLiveStats(d){
   if(!d||d.ok===false)return;
   const seen=Number(d.claims_seen||0);
   if(!acceptStats(d))return;
-  S.serverClaimTotal=seen;
+  S.serverClaimTotal=seen;applyClaimCapacity(d);
   S.serverVerifiedCount=Math.max(0,Number(d.canonical_claims||0));
   S.serverClearCount=Math.max(0,Number(d.canonical_clear||0));
   S.serverPendingCount=Math.max(0,Number(d.canonical_verifying||0));
@@ -792,18 +802,18 @@ async function releaseMiningLease({silent=true}={}){
   try{await backendJson('mining-lease',{body:{action:'release',ownerCommitment:l.owner,tokenId:l.tokenId,leaseToken:l.leaseToken}})}
   catch(e){if(!silent)throw e;console.warn('release mining reservation',e)}
 }
-async function validateMiningLease({fresh=false}={}){
+async function validateMiningLease({fresh=false,commit=false}={}){
   if(fresh&&S.leasePromise){await S.leasePromise;assertActionWallet()}
   if(!fresh&&S.leasePromise)return S.leasePromise;
-  const task=validateMiningLeaseOnce();S.leasePromise=task;
+  const task=validateMiningLeaseOnce({commit});S.leasePromise=task;
   try{return await task}finally{if(S.leasePromise===task)S.leasePromise=null}
 }
-async function validateMiningLeaseOnce(){
+async function validateMiningLeaseOnce({commit=false}={}){
   const l=S.miningLease;
   if(!l)throw new Error('No active mining reservation. Use Find Unclaimed first.');
   S.leaseCheckBusy=true;
   try{
-    const j=await leaseRequest('validate',{tokenId:l.tokenId,leaseToken:l.leaseToken});
+    const j=await leaseRequest('validate',{tokenId:l.tokenId,leaseToken:l.leaseToken,...(commit?{commit:true}:{})});
     if(S.miningLease!==l)throw new Error('Mining reservation changed.');
     if(!j?.ok){
       if(j?.error==='VERIFICATION_TEMPORARY_UNAVAILABLE'&&j?.preserve_lease){
@@ -816,8 +826,9 @@ async function validateMiningLeaseOnce(){
         throw err
       }
       if(['claimed','claimed_pending','submitting'].includes(j?.status))rememberUnavailable(l.tokenId,j.status);
-      S.miningLease=null;updateLeaseUI();updateAvailabilityCounts();throw new Error(j?.error||'Reserved token is no longer clear.')
+      S.miningLease=null;updateLeaseUI();updateAvailabilityCounts();throw new Error(claimCapacityError(j)||'Reserved token is no longer clear.')
     }
+    if(commit&&j.slot_committed!==true)throw new Error('Claim capacity is not secured yet. Retry before sending a transaction.');
     l.relaysOk=Number(j.relays_ok||0);
     if(!(l.relaysOk>=4))throw new Error('Availability verification is incomplete. No claim payment was sent; retry the check.');
     l.expiresAt=Number(j.expires_at||l.expiresAt);l.verifiedAt=Number(j.verified_at||Math.floor(Date.now()/1000));
@@ -825,6 +836,7 @@ async function validateMiningLeaseOnce(){
   }finally{S.leaseCheckBusy=false}
 }
 async function ensureMiningLease(tokenId,{force=false}={}){
+  if(claimLimitReached()||(newClaimsPaused()&&!S.miningLease))throw new Error(claimCapacityMessage());
   tokenId=Number(tokenId);const l=S.miningLease;
   if(l&&l.tokenId===tokenId&&Number(l.expiresAt||0)>Math.floor(Date.now()/1000)+30){
     if(!force&&Date.now()-Number(l.verifiedAt||0)*1000<20000)return l;
@@ -835,11 +847,12 @@ async function ensureMiningLease(tokenId,{force=false}={}){
   if(!j?.ok){
     if(['claimed','claimed_pending','submitting'].includes(j?.status))rememberUnavailable(tokenId,j.status);
     updateAvailabilityCounts();
-    throw new Error(j?.error==='TOKEN_NOT_DEEP_CLEAR'?`ZEC BLOCK #${tokenId} is not verified unclaimed across the live relays.`:(j?.error||'Could not reserve this ZEC BLOCK.'));
+    throw new Error(j?.error==='TOKEN_NOT_DEEP_CLEAR'?`ZEC BLOCK #${tokenId} is not verified unclaimed across the live relays.`:(claimCapacityError(j)||'Could not reserve this ZEC BLOCK.'));
   }
   return setMiningLease(j)
 }
 async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeTokens=[],forceNew=true}={}){
+  if(newClaimsPaused())throw new Error(claimCapacityMessage());
   const previous=S.miningLease;
   if(forceNew){
     S.miningLease=null;
@@ -854,7 +867,7 @@ async function findAndReserveMiningToken(startToken,{excludeToken=0,excludeToken
   if(!j?.ok){
     if(previous&&!forceNew)S.miningLease=previous;
     updateLeaseUI();
-    throw new Error(j?.error==='NO_DEEP_VERIFIED_CLEAR_TOKEN_AVAILABLE'?'No deeply verified unclaimed ZEC BLOCK is available right now. Retry in a few seconds.':(j?.error||'Could not find an unclaimed ZEC BLOCK.'))
+    throw new Error(j?.error==='NO_DEEP_VERIFIED_CLEAR_TOKEN_AVAILABLE'?'No deeply verified unclaimed ZEC BLOCK is available right now. Retry in a few seconds.':(claimCapacityError(j)||'Could not find an unclaimed ZEC BLOCK.'))
   }
   const l=setMiningLease(j);if(!l)throw new Error('Reservation server returned an invalid lease.');return l
 }
@@ -1266,11 +1279,11 @@ function updateAvailabilityCounts(){
   const unknown=Math.max(0,Number(S.serverUnknownCount||0));
   $('confirmedClaimCount').textContent=S.serverStatsReady?verified.toLocaleString():'—';
   $('claimProgress').hidden=!S.serverStatsReady;
-  const confirmedPercent=Math.min(100,Math.max(0,verified/CFG.supply*100));
+  const confirmedPercent=Math.min(100,Math.max(0,verified/CFG.claimLimit*100));
   $('claimProgressPercent').textContent=confirmedPercent.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+'% claimed and confirmed';
   $('claimProgressFill').style.width=confirmedPercent+'%';
   $('claimProgressTrack').setAttribute('aria-valuenow',String(verified));
-  $('claimProgressTrack').setAttribute('aria-valuetext',verified.toLocaleString()+' of '+CFG.supply.toLocaleString()+' NFT claims confirmed');
+  $('claimProgressTrack').setAttribute('aria-valuetext',verified.toLocaleString()+' of '+CFG.claimLimit.toLocaleString()+' NFT claims confirmed');
   $('knownClaimed').textContent=verified.toLocaleString();
   $('knownAvailable').textContent=clear.toLocaleString()+' CANONICAL CLEAR IDs';
   if(S.serverMappingComplete){
@@ -1779,6 +1792,7 @@ async function startCpuMining(base,reason=''){
   URL.revokeObjectURL(url)
 }
 async function startMining(){
+  if(claimLimitReached()){toast(claimCapacityMessage(),9000);updateMiningControls();return}
   try{
     if(S.mining)return;if(!S.ownerCommitment)throw new Error('Connect Noir Wallet first.');const wanted=Number($('tokenInput').value);if(!S.target||S.target.token!==wanted){const ok=await loadTarget();if(!ok||!S.target)return}
     if(loadFreeClaimRecovery(wanted))throw new Error('This block has a pending claim. Recover it or choose another block.');
@@ -2131,6 +2145,7 @@ async function submitClaimOnce(){
       return
     }
 
+    if(claimLimitReached())throw new Error(claimCapacityMessage());
     const proof=await sha256Bytes(concat(await mineBase(),u64le(BigInt(S.proof.nonce))));
     if(leadingZeroBits(proof)<CFG.powBits)throw new Error('Proof verification failed. Restart mining.');
     // Canonical preflight immediately before the only spending transaction.
@@ -2172,7 +2187,7 @@ async function submitClaimOnce(){
     const tokenId=Number(S.target.token);
     // Signing may leave the wallet open long enough for the lease or target to
     // change. Recheck immediately before saving the spending request.
-    await validateMiningLease({fresh:true});assertActionWallet();
+    await validateMiningLease({fresh:true,commit:true});assertActionWallet();
     if(Number(S.target?.token)!==tokenId||tokenUnavailable(tokenId))throw new Error('This NFT is no longer available. No claim payment was sent. Choose another NFT.');
     if(loadFreeClaimRecovery(tokenId))throw new Error('A claim for this NFT is already saved. Continue its recovery; no additional payment was sent.');
     const baseEvent={
@@ -3171,7 +3186,7 @@ const MINING_UI={view:'mining',galleryKey:'',generation:0,artCache:new Map(),pre
 function setMiningView(view,{focus=false}={}){
   view=view==='zecs'?'zecs':'mining';const changed=MINING_UI.view!==view;MINING_UI.view=view;
   $('pageTitle').innerHTML=view==='zecs'?'Mint your next <em>ZECS.</em>':'Mine your next <em>block.</em>';
-  $('pageIntro').innerHTML=view==='zecs'?'The first ZB-20 token on Zcash.<br>Exclusive minting for ZEC BLOCKS NFT holders.':'Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.';
+  $('pageIntro').innerHTML=view==='zecs'?'The first ZB-20 token on Zcash.<br>Exclusive minting for ZEC BLOCKS NFT holders.':'Find your NFT. Mine the proof. Make it yours.<br>4,444 claims. Digital artifacts shaped by Zcash.';
   for(const name of ['mining','zecs']){
     const tab=$(name==='mining'?'nftTab':'zecsTab'),active=name===view;
     $(name).hidden=!active;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;
@@ -3201,16 +3216,20 @@ function renderMiningExperience(){
     if(busy&&!S.mining){action='miningBusyBtn';title=S.walletAction?'Check Noir Wallet.':'Checking your NFT…';description=S.walletAction?'Complete the request in your wallet. Your transaction will appear here after it is sent.':'Verifying availability and preparing your selection. This may take a moment.';}
     if(completed){step=4;action='findUnclaimedBtn';title='NFT #'+completed.tokenId+' claimed successfully.';description='Your claim is confirmed on Zcash. View it in Portfolio, or find your next NFT.';}
   }
+  if(newClaimsPaused()&&!busy&&!recovery&&(claimLimitReached()||!S.target)){
+    title=claimLimitReached()?'All 4,444 claims are complete.':'Claim slots are currently reserved.';
+    description=claimCapacityMessage();action='miningBusyBtn';
+  }
   for(const id of ['connectMineBtn','findUnclaimedBtn','startMineBtn','submitClaimBtn','miningBusyBtn'])$(id).hidden=id!==action;
   $('connectMineBtn').disabled=!!S.noirConnectPromise;
-  $('miningBusyBtn').textContent=S.mining?'Mining in progress…':S.walletAction?'Waiting for wallet…':'Checking availability…';
+  $('miningBusyBtn').textContent=newClaimsPaused()&&!busy&&(claimLimitReached()||!S.target)?(claimLimitReached()?'Claiming closed':'Waiting for pending claims'):S.mining?'Mining in progress…':S.walletAction?'Waiting for wallet…':'Checking availability…';
   $('findUnclaimedBtn').textContent=completed?'Find Next NFT':recovery?'Find Another NFT':'Find Unclaimed NFT';
   $('confirmedPortfolioLink').hidden=!completed;
   if(!CFG.claimProtocolFeeEnabled&&!$('submitClaimBtn').dataset.busy&&!recovery)$('submitClaimBtn').textContent='Claim NFT';
   $('actionTitle').textContent=title;$('actionDescription').textContent=description;
   $('stopMineBtn').hidden=!S.mining;
   $('surpriseBtn').hidden=!connected||S.mining||!!busy;
-  $('surpriseBtn').disabled=!connected||!!busy||S.mining;
+  $('surpriseBtn').disabled=!connected||!!busy||S.mining||newClaimsPaused();
   $('browseGalleryLink').hidden=S.mining||!!busy;
   $('miningMeter').hidden=(!S.mining&&!S.proof)||tokenUnavailable(S.target?.token);
   $('meterLabel').textContent=S.proof?'Proof found':'Mining in your browser';
@@ -3218,7 +3237,7 @@ function renderMiningExperience(){
   $('miningExperience').classList.toggle('is-mining',!!S.mining);
   $('miningExperience').classList.toggle('is-proof',!!S.proof&&!recovery&&!tokenUnavailable(S.target?.token));
   document.querySelectorAll('[data-step]').forEach(el=>{const n=Number(el.dataset.step);el.classList.toggle('complete',n<step);if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});
-  $('clearCount').textContent=S.serverStatsReady?Number(S.serverClearCount||0).toLocaleString():'—';
+  $('clearCount').textContent=S.serverStatsReady?Math.max(0,Math.min(Number(S.serverClearCount||0),Number(S.claimCapacity?.slots_available??(CFG.claimLimit-Number(S.serverVerifiedCount||0))))).toLocaleString():'—';
   $('claimFeeNote').textContent=CFG.claimProtocolFeeEnabled?'Claim fee '+CFG.paidClaimFeeZec+' ZEC. Network fee applies.':'No mint fee. Zcash network fee applies.';
   $('candidateHint').textContent=connected?'Select an NFT to check and reserve it.':'Connect your wallet to select an NFT.';
   if(S.target){
@@ -3302,8 +3321,9 @@ function updateMiningControls(){
   const connected=!!S.ownerCommitment&&!S.noirLocked,busy=S.targetBusy||S.walletAction;
   const recovery=S.target?loadFreeClaimRecovery(S.target.token):null,queue=claimRecoveries(S.ownerCommitment||'anon');
   for(const id of ['loadTargetBtn','findUnclaimedBtn','tokenInput','engineSelect','testGpuBtn'])$(id).disabled=!connected||busy||S.mining;
-  $('startMineBtn').disabled=!connected||busy||S.mining||!S.target||recovery||tokenUnavailable(S.target?.token);
-  $('submitClaimBtn').disabled=!connected||busy||S.mining||!S.target||!S.proof||recovery||tokenUnavailable(S.target?.token);
+  for(const id of ['loadTargetBtn','findUnclaimedBtn','tokenInput'])$(id).disabled||=newClaimsPaused();
+  $('startMineBtn').disabled=claimLimitReached()||!connected||busy||S.mining||!S.target||recovery||tokenUnavailable(S.target?.token);
+  $('submitClaimBtn').disabled=claimLimitReached()||!connected||busy||S.mining||!S.target||!S.proof||recovery||tokenUnavailable(S.target?.token);
   $('stopMineBtn').disabled=!S.mining;
   const recoveryBatch=activeClaimRecoveryBatch();
   $('recoverClaimBtn').disabled=!connected||busy||S.mining||!!recoveryBatch;
@@ -3312,7 +3332,7 @@ function updateMiningControls(){
   $('recoverClaimBtn').setAttribute('aria-busy',String(!!recoveryBatch));
   if(!busy&&recovery?.txid)showClaimReceipt(recovery.tokenId,recovery.txid);
   renderClaimRecoveries();
-  document.querySelectorAll('[data-candidate]').forEach(b=>b.disabled=!connected||busy||S.mining||!galleryIsFresh());
+  document.querySelectorAll('[data-candidate]').forEach(b=>b.disabled=newClaimsPaused()||!connected||busy||S.mining||!galleryIsFresh());
   renderMiningExperience();
 }
 async function runMiningAction(fn,{wallet=false}={}){
@@ -3339,8 +3359,8 @@ function showClaimReceipt(token,txid,{confirmed=false}={}){
 }
 function renderAvailableTokens(){
   const pending=new Set(claimRecoveries(S.ownerCommitment||'anon').map(r=>Number(r.tokenId)));
-  const fresh=galleryIsFresh();MINING_UI.galleryFresh=fresh;
-  $('availabilityFreshness').textContent=fresh?'Availability updated. Each NFT is checked again when selected.':'Updating availability. Selection is paused until fresh data is available.';
+  const fresh=galleryIsFresh()&&!newClaimsPaused();MINING_UI.galleryFresh=fresh;
+  $('availabilityFreshness').textContent=newClaimsPaused()?claimCapacityMessage():fresh?'Availability updated. Each NFT is checked again when selected.':'Updating availability. Selection is paused until fresh data is available.';
   const query=String($('candidateSearch').value||'').trim().replace(/^#/, '');
   const ids=[...S.serverClearIds].filter(id=>!S.serverCandidateIds.has(id)&&!tokenUnavailable(id)&&!pending.has(id)&&(!query||String(id).includes(query))).sort((a,b)=>a-b);
   const size=6,pages=Math.max(1,Math.ceil(ids.length/size));S.availablePage=Math.min(S.availablePage||0,pages-1);
@@ -3351,7 +3371,7 @@ function renderAvailableTokens(){
     MINING_UI.galleryKey=key;MINING_UI.generation++;
     $('availableTokens').innerHTML=shown.map(id=>'<button class="candidate" data-candidate="'+id+'" aria-label="Select ZEC BLOCK #'+id+'" aria-pressed="false"><span class="candidate-art" data-placeholder="Loading artwork…"><svg viewBox="0 0 600 600" aria-hidden="true"></svg></span><span class="candidate-meta"><b>ZEC BLOCK #'+id+'</b><span>'+(fresh?'Available':'Checking…')+'</span></span></button>').join('')||'<p class="gallery-empty">'+(query?'No available NFT matches this number. Try another search.':'Availability is being checked. Refresh to look for more NFTs.')+'</p>';
     for(const b of $('availableTokens').querySelectorAll('button'))b.onclick=async()=>{
-      if(!galleryIsFresh()){await loadServerMiningSnapshot({force:true});return}
+      if(newClaimsPaused()||!galleryIsFresh()){await loadServerMiningSnapshot({force:true});return}
       const loaded=await runMiningAction(async()=>{$('tokenInput').value=b.dataset.candidate;return loadTarget()});
       if(loaded){$('miningExperience').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});$('startMineBtn').focus({preventScroll:true});}
     };
@@ -3462,7 +3482,7 @@ async function pollZecsRecovery(){
     }catch{}
   },15000);
 
-  setInterval(()=>{updateClaimSyncAge();if(MINING_UI.galleryFresh!==galleryIsFresh())renderAvailableTokens()},1000);
+  setInterval(()=>{updateClaimSyncAge();if(MINING_UI.galleryFresh!==(galleryIsFresh()&&!newClaimsPaused()))renderAvailableTokens()},1000);
 
   if(CFG.claimProtocolFeeEnabled&&!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000);
   if(!CFG.claimProtocolFeeEnabled)setInterval(()=>reconcileFreeClaimRecovery().catch(()=>{}),12000);
