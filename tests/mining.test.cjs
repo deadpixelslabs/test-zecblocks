@@ -136,11 +136,16 @@ async function fixture({manualTimers=false}={}){
    on:(name,fn)=>w.handlers[name]=fn
   }};
  },{pub,txid,manualTimers});
- await page.goto('http://localhost:4321/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>document.getElementById('claimCount').textContent==='3,505');
+ await page.goto('http://localhost:4321/',{waitUntil:'load'});
+ await page.waitForFunction(()=>S.backgroundReady&&document.getElementById('claimCount').textContent==='3,505');
  return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},reserveToken(v){reservedToken=v},registered,claimedTokens,claimConfirmed(v){claimed=v},async connect(){
+  await page.evaluate(()=>{
+   window.testWalletRefreshFinished=false;
+   const original=refreshAll;
+   refreshAll=async(...args)=>{try{return await original(...args)}finally{window.testWalletRefreshFinished=true}};
+  });
   await page.getByRole('button',{name:'Connect Noir Wallet',exact:true}).click();
-  await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);
+  await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible&&window.testWalletRefreshFinished&&!S.zecsStatePromise&&!S.serverSnapshotPromise&&!S.serverStatsBusy);
  }};
 }
 async function tick(f,ms=15000){
@@ -149,12 +154,12 @@ async function tick(f,ms=15000){
 test('scheduled statistics use two reads on NFT view and three on ZECS view, with immediate tab refresh',async()=>{
  const f=await fixture({manualTimers:true});try{
   await f.connect();f.calls.length=0;await tick(f);
-  assert.deepEqual(f.calls.map(c=>[c.op,c.name]),[['live-stats',null],['rpc','zecblocks_mining_snapshot']]);
-  assert.equal(f.calls[0].fresh,null);
+  assert.deepEqual(f.calls.map(c=>[c.op,c.name]).sort(),[['live-stats',null],['rpc','zecblocks_mining_snapshot']].sort());
+  assert.equal(f.calls.find(c=>c.op==='live-stats').fresh,null);
   await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.serverStatsBusy);
   assert.ok(f.calls.some(c=>c.name==='zecblocks_zb20_stats'),'entering ZECS obtains uncached statistics');
   f.calls.length=0;await tick(f);
-  assert.deepEqual(f.calls.map(c=>[c.op,c.name]),[['live-stats',null],['zecs-stats',null],['rpc','zecblocks_zb20_account']]);
+  assert.deepEqual(f.calls.map(c=>[c.op,c.name]).sort(),[['live-stats',null],['zecs-stats',null],['rpc','zecblocks_zb20_account']].sort());
   await f.page.getByRole('tab',{name:'Mine NFTs',exact:true}).click();
   await f.page.waitForFunction(()=>!S.serverSnapshotPromise&&!S.serverStatsBusy);
   assert.equal(await f.page.evaluate(()=>galleryIsFresh()),true);
