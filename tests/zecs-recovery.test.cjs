@@ -197,3 +197,90 @@ test('explicit recovery cannot substitute a mint already present in the attempt 
   await f.c.recoverZecsMint(txid);
   assert.deepEqual(JSON.parse(JSON.stringify(f.c.loadZecsBroadcastLock())),lock);assert.equal(f.c.loadZecsPendingTxid(),'');
 });
+
+const foreign='ff'.repeat(32),archiveKey=id=>'zb20_zecs_foreign_mint_v1_'+owner+'_'+id;
+test('foreign history-only locks self-heal in both manual and background recovery without wallet prompts',async()=>{
+  for(const method of ['recoverZecsMint','resumeZecsRegistration'])for(const status of ['pending','confirmed']){
+    const f=fixture(),lock={status:'recovery_required',found:[txid],detectedAt:1700000000};f.lock(lock);
+    f.rows.set(txid,{txid,owner_commitment:foreign,status});
+    await f.c[method]();
+    assert.equal(f.c.zecsRecoveryRequired(),false);
+    const archive=JSON.parse(f.data.get(archiveKey(txid)));
+    assert.deepEqual(archive.broadcastLock.found,[txid]);assert.equal(archive.lookup.owner_commitment,foreign);
+    assert.equal(archive.reason,'history_discovery');
+    assert.equal(f.calls.some(x=>x.startsWith('zcash_')||x==='register'),false);
+    assert.equal(f.c.zecsAwaitingConfirmation().length,0);
+    assert.match(f.c.$('zecsRecoveryList').innerHTML,/another wallet/);
+  }
+});
+test('fresh discovery of an already registered foreign mint does not poison the recovery gate',async()=>{
+  const f=fixture();f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+  f.c.rpc=async method=>{f.calls.push(method);return [{txid,type:'send',status:'mined',memo:'{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}'}]};
+  await f.c.recoverZecsMint();assert.equal(f.c.zecsRecoveryRequired(),false);
+  assert.match(f.status(),/0 confirmed.*1 history item/);assert.equal(f.calls.includes('register'),false);
+  const scan=await f.c.zecsUnregisteredHistoryMints();assert.equal(scan.missing.length,0);
+});
+test('foreign history cleanup preserves every unresolved member of a mixed queue',async()=>{
+  const f=fixture();f.lock({status:'recovery_required',found:[txid,other]});
+  f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+  await f.c.resumeZecsRegistration();
+  assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),[other]);assert.ok(f.data.get(archiveKey(txid)));
+  assert.equal(f.calls.some(x=>x.startsWith('zcash_')),false);
+});
+test('discovery cleanup never silently discards a send, signature, attempt or unknown broadcast',async()=>{
+  for(const evidence of ['pending','signature','txid','startedAt','historyBefore','unidentified','broadcast_unknown']){
+    const f=fixture(),lock={status:'recovery_required',found:[txid]};
+    if(evidence==='pending')f.c.saveZecsPendingTxid(txid);
+    else if(evidence==='signature')f.saved();
+    else if(evidence==='broadcast_unknown')lock.status='broadcast_unknown';
+    else lock[evidence]=evidence==='txid'?txid:evidence==='historyBefore'?[]:true;
+    f.lock(lock);f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+    await f.c.resumeZecsRegistration();
+    assert.equal(f.c.zecsRecoveryRequired(),true);assert.equal(f.data.has(archiveKey(txid)),false);
+  }
+});
+test('a confirmed ownership conflict can be explicitly set aside with its full journal retained',async()=>{
+  const f=fixture();f.lock({status:'txid_known',txid,startedAt:1700000000,historyBefore:[]});f.c.saveZecsPendingTxid(txid);f.saved();
+  f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+  await f.c.resumeZecsRegistration();assert.equal(f.c.zecsRecoveryRequired(),true);
+  assert.match(f.c.$('zecsRecoveryList').innerHTML,/Remove from pending queue/);
+  await f.c.setAsideZecsForeignMint(txid);assert.equal(f.c.zecsRecoveryRequired(),false);
+  const archive=JSON.parse(f.data.get(archiveKey(txid)));
+  assert.equal(archive.broadcastLock.txid,txid);assert.equal(archive.pendingTxid,txid);
+  assert.equal(archive.registration.body.anchorSignature,'saved');assert.equal(archive.reason,'user_set_aside');
+  assert.equal(f.calls.some(x=>x.startsWith('zcash_')||x==='register'),false);
+  await f.c.setAsideZecsForeignMint(txid);assert.equal(f.data.get(archiveKey(txid)),JSON.stringify(archive));
+});
+test('set-aside rechecks confirmed foreign ownership and cannot bypass an unidentified broadcast',async()=>{
+  for(const scenario of ['own','pending','invalid','missing','unknown','legacy_unknown','wallet_switch','lookup_error']){
+    const f=fixture(),lock={status:'txid_known',txid};
+    if(scenario==='unknown')lock.unidentified=true;
+    if(scenario==='legacy_unknown'){delete lock.txid;lock.status='broadcast_unknown';lock.found=[txid]}
+    f.lock(lock);f.c.saveZecsPendingTxid(txid);
+    if(scenario!=='missing')f.rows.set(txid,{txid,owner_commitment:scenario==='own'?owner:foreign,status:['pending','invalid'].includes(scenario)?scenario:'confirmed'});
+    if(scenario==='wallet_switch')f.c.backendJson=async()=>{f.state.ownerCommitment=foreign;f.state.walletEpoch++;return {ok:true,rows:[{txid,owner_commitment:foreign,status:'confirmed'}]}};
+    if(scenario==='lookup_error')f.c.backendJson=async()=>{throw Error('unavailable')};
+    await f.c.setAsideZecsForeignMint(txid);
+    assert.ok(f.data.get('zb20_zecs_broadcast_lock_v2_'+owner));
+    assert.equal(f.data.get('zb20_zecs_pending_mint_txid_'+owner),txid);assert.equal(f.data.has(archiveKey(txid)),false);
+    assert.equal(f.calls.some(x=>x.startsWith('zcash_')||x==='register'),false);
+  }
+});
+test('an archive write failure preserves the queue in automatic and explicit recovery',async()=>{
+  for(const explicit of [false,true]){
+    const f=fixture();f.lock(explicit?{status:'txid_known',txid}:{status:'recovery_required',found:[txid]});
+    f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+    f.c.durableSet=()=>{throw Error('Recovery storage unavailable')};
+    await f.c[explicit?'setAsideZecsForeignMint':'resumeZecsRegistration'](txid);
+    assert.equal(f.c.zecsRecoveryRequired(),true);assert.equal(f.data.has(archiveKey(txid)),false);
+  }
+});
+test('setting aside one conflict retains another exact send and signature',async()=>{
+  const f=fixture();f.lock({status:'txid_known',txid:other,found:[txid,other],startedAt:1700000000});f.c.saveZecsPendingTxid(other);f.saved(other);
+  f.rows.set(txid,{txid,owner_commitment:foreign,status:'confirmed'});
+  // Avoid background registration while observing the queue immediately after the explicit action.
+  f.c.loadZecsState=async()=>{};
+  await f.c.setAsideZecsForeignMint(txid);
+  assert.equal(f.c.loadZecsBroadcastLock().txid,other);assert.deepEqual(Array.from(f.c.loadZecsBroadcastLock().found),[other]);
+  assert.equal(f.c.loadZecsPendingTxid(),other);assert.equal(f.c.loadZecsRegistration().txid,other);
+});

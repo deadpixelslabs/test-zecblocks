@@ -324,12 +324,71 @@ test('recovery errors remain visible through polling and have a retryable button
   await f.page.screenshot({path:path.join(root,'test-artifacts/zecs-recovery-mobile.png'),fullPage:true});
  }finally{await f.browser.close()}
 });
-test('registered lookup for another owner cannot clear the current wallet lock',async()=>{
+test('registered lookup for another owner cannot silently clear a saved send',async()=>{
  const f=await fixture();try{
   await f.connect();f.registered.set(txid,{txid,status:'confirmed',owner_commitment:'ff'.repeat(32)});
-  await f.page.evaluate(txid=>saveZecsBroadcastLock({status:'recovery_required',found:[txid]}),txid);
+  await f.page.evaluate(txid=>{saveZecsPendingTxid(txid);saveZecsBroadcastLock({status:'txid_known',txid})},txid);
   await f.page.evaluate(()=>resumeZecsRegistration());
   assert.equal(await f.page.evaluate(()=>!!loadZecsBroadcastLock()),true);
+ }finally{await f.browser.close()}
+});
+test('foreign history recovery stops looping and a new mint sends exactly once',async()=>{
+ const f=await fixture();try{
+  const p=f.page,old='35'.repeat(32);await f.connect();
+  f.registered.set(old,{txid:old,status:'confirmed',owner_commitment:'ff'.repeat(32)});
+  await p.evaluate(old=>{
+   walletTest.history=[{txid:old,memo:ZECS_MINT_MESSAGE,type:'send',status:'mined'}];
+   saveZecsBroadcastLock({status:'recovery_required',found:[old],detectedAt:1700000000});
+  },old);
+  await openZecs(p);await p.locator('#zecsRecoverBtn').click();
+  await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  assert.equal(await p.locator('#zecsMintBtn').isVisible(),true);
+  assert.equal(await p.locator('#zecsMintBtn').isEnabled(),true);
+  assert.match(await p.locator('#zecsRecoveryList').innerText(),/another wallet/);
+  assert.equal(await p.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  // The same history remains discoverable on a second check, without relocking.
+  await p.locator('#zecsRecoverBtn').click();await p.waitForFunction(()=>!S.walletAction);
+  assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);
+  assert.equal(f.calls.filter(x=>x.op==='zb20-mint'&&x.body.action==='register').length,0);
+  await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);assert.equal(f.registered.size,2);
+  assert.equal(f.registered.get(old).owner_commitment,'ff'.repeat(32));assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('confirmed foreign send can be set aside explicitly, survives reload and permits one fresh mint',async()=>{
+ const f=await fixture();try{
+  const p=f.page,old='35'.repeat(32);await f.connect();
+  f.registered.set(old,{txid:old,status:'confirmed',owner_commitment:'ff'.repeat(32)});
+  await p.evaluate(old=>{saveZecsPendingTxid(old);saveZecsBroadcastLock({status:'txid_known',txid:old,startedAt:1700000000});},old);
+  await openZecs(p);await p.locator('#zecsRecoverBtn').click();await p.waitForFunction(()=>!S.walletAction);
+  assert.equal(await p.locator('#zecsMintBtn').isVisible(),false);
+  const remove=p.getByRole('button',{name:'Remove from pending queue',exact:true});
+  assert.equal(await remove.isEnabled(),true);
+  await p.setViewportSize({width:390,height:844});
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await p.screenshot({path:path.join(root,'test-artifacts/zecs-foreign-conflict-mobile.png'),fullPage:true});
+  await remove.click();await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  assert.equal(await p.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  assert.match(await p.locator('#zecsStatus').innerText(),/You can mint again/);
+  const archive=await p.evaluate(old=>JSON.parse(localStorage.getItem('zb20_zecs_foreign_mint_v1_'+S.ownerCommitment+'_'+old)),old);
+  assert.equal(archive.broadcastLock.txid,old);assert.equal(archive.pendingTxid,old);
+  await p.reload({waitUntil:'domcontentloaded'});
+  await p.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);await openZecs(p);
+  await p.evaluate(old=>{walletTest.history=[{txid:old,memo:ZECS_MINT_MESSAGE,type:'send',status:'mined'}]},old);
+  assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);
+  await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);assert.equal(f.registered.size,2);
+  assert.equal(f.registered.get(old).owner_commitment,'ff'.repeat(32));assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('an unidentified broadcast has no foreign-conflict escape button',async()=>{
+ const f=await fixture();try{
+  await f.connect();f.registered.set(txid,{txid,status:'confirmed',owner_commitment:'ff'.repeat(32)});
+  await f.page.evaluate(txid=>saveZecsBroadcastLock({status:'broadcast_unknown',unidentified:true,found:[txid]}),txid);
+  await openZecs(f.page);await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+  assert.equal(await f.page.getByRole('button',{name:'Remove from pending queue',exact:true}).count(),0);
+  assert.equal(await f.page.evaluate(()=>zecsRecoveryRequired()),true);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
 test('legacy NFT lock protects its own ID while a different block can mine and claim once',async()=>{
