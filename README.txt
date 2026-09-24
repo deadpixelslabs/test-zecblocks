@@ -10,7 +10,9 @@ ZECS mint recovery
 - Confirmed and registered-pending mints are removed individually from the recovery queue. A failed registration or rejected signature retains the unresolved queue and does not strand other acknowledged mints.
 - The button shows progress, individual results link to the existing transaction, and periodic statistics refreshes preserve the recovery error. Pending registration is not presented as blockchain confirmation.
 - Automatic checks can reuse an already saved signature; they never open a signing prompt or send money. An explicit recovery click may request a missing registration signature, never a new payment.
-- An unidentified broadcast remains protected if Noir provides no TXID. Recovering unrelated older mints does not prove that broadcast failed. Keep the original browser recovery data, unlock/sync Noir, and retry. The application does not unlock a wallet by assuming a payment failed.
+- If Noir returns no TXID, Check previous attempt only looks for that attempt; it does not replay every historical mint. A matching outgoing TXID still requires the user's confirmation before recovery.
+- After checking Noir Activity and closing an unfinished approval, the user may explicitly choose Save attempt & enable new mint. The unknown attempt is saved separately before releasing its active gate. This is not a failed/cancelled classification: the earlier request may still complete, and a separate mint has its own network fee. The action itself sends nothing; Mint 210 ZECS is a separate click.
+- Saved attempts remain available after refresh and can be restored for recovery. Each new send has an attempt ID, so a late wallet response updates the original saved attempt rather than clearing or overwriting a newer broadcast. Other known TXIDs/signatures still need recovery.
 - Verification: node --test tests/zecs-recovery.test.cjs plus browser scenarios in tests/mining.test.cjs. Fixtures do not prove a particular user's chain transaction.
 
 Run locally on Vercel's Node runtime or deploy the root directory to Vercel.
@@ -50,7 +52,7 @@ What changed in V16.1.1
 - NFT recovery is now scoped to each Token ID. Older pending claims are migrated into a durable queue; a different block can still be mined and claimed.
 - Recovery backfills the exact NFT event instead of waiting behind a full historical scan. Confirmation runs in the background.
 - Bounded wallet reads/approvals and GPU operations prevent indefinite busy states; late broadcast results are saved for the original wallet.
-- Only explicit wallet rejection/funding failure removes a pre-broadcast lock. Ambiguous transport errors retain recovery.
+- Only explicit wallet rejection/funding failure automatically removes a pre-broadcast lock. Ambiguous transport errors retain recovery; the explicit save-aside flow above preserves that evidence separately.
 
 V16 improvements retained
 - Fixed the malformed public Supabase credential in api/zb.js that caused Invalid API key errors.
@@ -61,7 +63,7 @@ V16 improvements retained
 - CPU results are checked again with WebCrypto; late CPU/GPU results cannot replace a new run.
 - NFT recovery locks and transaction receipts prevent accidental repeat submissions.
 - ZECS registration persists the signed request and can retry registration without sending another mint.
-- An ambiguous wallet result remains locked even when wallet history is temporarily empty.
+- An ambiguous wallet result is never automatically marked failed from empty history. A separate new mint requires the explicit save-aside choice described above.
 - Responsive dark/light themes remember the user's preference.
 
 Components and authentication
@@ -89,6 +91,7 @@ Never configure a service-role key as SUPABASE_ANON_KEY or put one in browser co
 Owner commitments are identifiers, not proof of identity by themselves. Backend signature and chain verification establish canonical events.
 Local storage holds theme/engine preferences, public discovery cache, pending TXIDs, broadcast locks and signed ZECS registration requests scoped to owner commitment.
 Foreign-registration recovery copies are stored in zb20_zecs_foreign_mint_v1_<owner>_<txid>. Keep browser data to retain these audit copies; they are separate from active pending mints.
+User-deferred unknown attempts are stored in zb20_zecs_deferred_v1_<owner>, including the original timestamp/history baseline and any late TXID. Saved attempts can be restored from the ZECS page; they are never silently evicted.
 It also holds the existing Nostr discovery identity, separate from wallet keys.
 A signed registration can be replayed for its same TXID; it does not authorize another wallet payment.
 Keep recovery data until confirmation. Clearing browser storage during an unresolved broadcast removes that local recovery protection.
@@ -96,7 +99,7 @@ Connect the original wallet and use Recover Pending Claim or Recover Pending Min
 No site timer sends a wallet transaction automatically.
 NFT recovery queue: zb1_claim_recoveries_v2_<owner>. The old zb1_free_claim_recovery_v1_<owner> record is merged before writing/removing the legacy key; pending records are never evicted.
 An unresolved NFT claim still protects that same Token ID. Choose a different ID to continue. A confirmed canonical result releases its recovery record without assuming this wallet won ownership.
-A ZECS broadcast with no TXID and no matching history remains protected: empty history does not prove that no payment occurred. Known-TXID/discovery locks are checked against server registration automatically.
+A ZECS broadcast with no TXID is not assumed failed: empty history does not prove that no payment occurred. Its evidence stays in the active journal or, after explicit user choice, Saved attempts. Known-TXID/discovery locks are checked against server registration automatically.
 Recover Mint registers at most 12 missing transactions per click and retains remaining TXIDs through partial failures.
 Wallet history reads time out after 10 seconds; wallet approval responses after 120 seconds. An approval timeout never resends a transaction. Check the Noir prompt before starting another wallet operation.
 

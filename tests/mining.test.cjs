@@ -1054,3 +1054,78 @@ test('lost mint response recovers an explicitly confirmed history TXID without p
   }finally{await f.browser.close()}
  }
 });
+
+test('Noir sync failure with 59 old mints can be saved aside, survives reload and allows one new mint',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();const owner=await p.evaluate(()=>S.ownerCommitment);
+  const ids=Array.from({length:59},(_,i)=>(i+1).toString(16).padStart(64,'0'));
+  for(const id of ids)f.registered.set(id,{txid:id,owner_commitment:owner,status:'confirmed'});
+  await p.evaluate(ids=>{
+   walletTest.history=ids.map(txid=>({txid,memo:ZECS_MINT_MESSAGE,type:'send',status:'mined',timestamp:1700000000}));
+   noirwallet.zcash.sendTransaction=async()=>{walletTest.sends++;throw Error('Wallet sync failed')};
+  },ids);
+  await openZecs(p);await p.locator('#zecsMintBtn').click();
+  await p.waitForFunction(()=>!S.walletAction&&loadZecsBroadcastLock()?.unidentified===true);
+  assert.equal(await p.locator('#zecsUnknownRecovery').isVisible(),true);
+  assert.equal(await p.locator('#zecsEnableNewMintBtn').isDisabled(),true);
+  assert.match(await p.locator('#zecsUnknownRecovery').innerText(),/earlier request may still complete/);
+  assert.match(await p.locator('#zecsRecoverBtn').innerText(),/Check previous attempt/);
+  const lookupCount=f.calls.filter(x=>x.op==='zb20-mint'&&x.body.action==='lookup').length;
+  await p.locator('#zecsRecoverBtn').click();await p.waitForFunction(()=>!S.walletAction);
+  assert.equal(f.calls.filter(x=>x.op==='zb20-mint'&&x.body.action==='lookup').length,lookupCount);
+  assert.equal(await p.locator('#zecsRecoveryList').isVisible(),false);
+  assert.match(await p.locator('#zecsStatus').innerText(),/Earlier mints are not replayed/);
+  await p.setViewportSize({width:390,height:844});
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await p.screenshot({path:path.join(root,'test-artifacts/zecs-sync-retry-mobile.png'),fullPage:true});
+  await p.locator('#zecsNewMintAcknowledged').check();await p.locator('#zecsEnableNewMintBtn').click();
+  await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  assert.equal(await p.evaluate(()=>walletTest.sends),1);assert.equal(await p.evaluate(()=>walletTest.signs),0);
+  assert.equal(await p.locator('#zecsMintBtn').isEnabled(),true);
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts().length),1);
+  await p.reload({waitUntil:'domcontentloaded'});await f.connect();await openZecs(p);
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts().length),1);
+  assert.equal(await p.locator('#zecsMintBtn').isEnabled(),true);
+  await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>zecsRecoveryRequired()),false);assert.equal(f.registered.size,60);
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts()[0].broadcastLock.unidentified),true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('a delayed wallet response cannot overwrite the next failed mint and remains recoverable from saved attempts',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await openZecs(p);
+  await p.evaluate(()=>{
+   const timer=setTimeout;window.setTimeout=(fn,ms,...args)=>timer(fn,ms===WALLET_APPROVAL_TIMEOUT?50:ms,...args);
+   noirwallet.zcash.sendTransaction=async()=>{
+    walletTest.sends++;
+    if(walletTest.sends===1)return new Promise(resolve=>walletTest.resolveFirst=resolve);
+    throw Error('Wallet sync failed');
+   };
+  });
+  await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>!S.walletAction&&loadZecsBroadcastLock()?.unidentified);
+  const first=await p.evaluate(()=>loadZecsBroadcastLock());
+  await p.locator('#zecsNewMintAcknowledged').check();await p.locator('#zecsEnableNewMintBtn').click();
+  await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  await p.locator('#zecsMintBtn').click();await p.waitForFunction(()=>!S.walletAction&&walletTest.sends===2);
+  const second=await p.evaluate(()=>loadZecsBroadcastLock());assert.notEqual(second.attemptId,first.attemptId);
+  assert.equal(await p.locator('#zecsNewMintAcknowledged').isChecked(),false);
+  await p.evaluate(txid=>walletTest.resolveFirst({txid}),txid);
+  await p.waitForFunction(txid=>loadZecsDeferredAttempts()[0]?.pendingTxid===txid,txid);
+  assert.deepEqual(await p.evaluate(()=>loadZecsBroadcastLock()),second);
+  assert.equal(await p.evaluate(()=>loadZecsPendingTxid()),'');
+  await p.locator('#zecsNewMintAcknowledged').check();await p.locator('#zecsEnableNewMintBtn').click();
+  await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts().length),2);
+  await p.locator('#zecsDeferredSummary').click();
+  await p.locator('[data-zecs-resume-attempt="'+first.attemptId+'"]').click();
+  await p.waitForFunction(()=>!S.walletAction&&!!loadZecsPendingTxid());
+  await p.locator('#zecsRecoverBtn').click();await p.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+  assert.deepEqual(await p.evaluate(()=>({sends:walletTest.sends,signs:walletTest.signs})),{sends:2,signs:1});
+  assert.equal(f.registered.get(txid).status,'pending');
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts().length),1);
+  assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts()[0].id),second.attemptId);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});

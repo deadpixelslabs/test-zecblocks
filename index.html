@@ -25,6 +25,7 @@ main{max-width:1280px;margin:auto;padding:44px 36px 24px}.intro{display:flex;jus
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}.is-mining .progress>i{width:100%!important;opacity:.5}}
 
 .collection-overview{width:410px;max-width:100%;flex:none}.collection-overview .collection-stats{justify-content:space-between}.claim-progress{margin-top:16px}.claim-progress-labels{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;margin-bottom:8px;font-variant-numeric:tabular-nums}.claim-progress-labels b{color:var(--text);font-weight:500}.claim-progress-track{height:4px;border-radius:4px;overflow:hidden;background:var(--line)}.claim-progress-track i{display:block;width:0;height:100%;background:var(--gold2);border-radius:inherit}
+.zecs-unknown-choice{display:flex;align-items:flex-start;gap:10px;margin:12px 0}.zecs-unknown-choice input{width:18px;height:18px;flex:none;margin-top:2px}
 </style>
 
 <script>
@@ -78,7 +79,7 @@ try{document.documentElement.dataset.theme=localStorage.getItem('zb1_theme')||(m
   </section>
   <section id="zecs" role="tabpanel" aria-labelledby="zecsTab" tabindex="0" hidden>
     <div class="zecs-layout"><article class="zecs-showcase"><div class="zecs-showcase-top"><span class="eyebrow">THE FIRST ZB-20 TOKEN</span><span class="badge" id="zecsLiveBadge">Checking status</span></div><div class="zecs-emblem" aria-hidden="true"><div class="zecs-coin">Ƶ</div></div><h2>Meet $ZECS.</h2><p>The next chapter for ZEC BLOCKS holders.<br>Mint 210 ZECS at a time, anchored to Zcash.</p><div class="zecs-facts"><div><small>Maximum supply</small><b>21,000,000</b></div><div><small>Premine</small><b>0</b></div><div><small>Team allocation</small><b>0</b></div></div></article>
-    <section class="zecs-mint" aria-labelledby="zecsMintTitle"><div class="eyebrow">EXCLUSIVELY FOR NFT HOLDERS</div><h2 id="zecsMintTitle">Your next 210 ZECS.</h2><div class="eligibility"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><div><h3 id="zecsEligibility">Connect Noir Wallet</h3><p id="zecsEligibilityDetail">Hold a ZEC BLOCKS NFT to participate. Ownership is checked before each mint.</p></div></div><div class="zecs-metrics"><div><small>Your balance</small><b id="zecsBalance">—</b></div><div><small>Per mint</small><b>210 ZECS</b></div></div><div class="zecsProgressTop"><b id="zecsMintedSupply">— / 21,000,000 ZECS</b><span class="gold" id="zecsMintPercent">—</span></div><div class="zecsProgress" id="zecsProgress" aria-label="ZECS mint progress"><i id="zecsProgressBar"></i></div><div class="zecs-progress-caption"><span id="zecsMintEvents">—</span> confirmed mints · <span id="zecsPendingEvents">—</span> pending</div><div class="zecsActions"><button class="btn gold" id="connectZecsBtn">Connect Wallet</button><button class="btn gold" id="zecsMintBtn" disabled hidden>Mint 210 ZECS</button></div><div class="zecs-recovery"><button class="btn subtle" id="zecsRecoverBtn">Recover Pending Mint</button><a href="#mining" data-view="mining" id="zecsGetNft" class="btn subtle" hidden>Get a ZEC BLOCKS NFT ↗</a></div><div class="zecsStatus" id="zecsStatus" role="status" aria-live="polite">Checking mint availability…</div><div id="zecsRecoveryList" aria-label="Mint recovery results" hidden></div><div id="zecsTxidRecovery" class="zecsStatus" hidden><label for="zecsRecoveryTxid">TXID of your pending mint</label><p>Copy the transaction ID of this mint attempt from Noir Activity. Recovery checks your wallet and requests a registration signature if needed.</p><input class="input" id="zecsRecoveryTxid" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the full transaction ID" maxlength="66" aria-describedby="zecsTxidHelp"><p id="zecsTxidHelp">No new payment is sent.</p><button class="btn subtle" id="zecsRecoverTxidBtn" type="button">Recover this transaction</button></div><div class="fee-note">No token mint fee. Zcash network fee applies.</div></section></div>
+    <section class="zecs-mint" aria-labelledby="zecsMintTitle"><div class="eyebrow">EXCLUSIVELY FOR NFT HOLDERS</div><h2 id="zecsMintTitle">Your next 210 ZECS.</h2><div class="eligibility"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><div><h3 id="zecsEligibility">Connect Noir Wallet</h3><p id="zecsEligibilityDetail">Hold a ZEC BLOCKS NFT to participate. Ownership is checked before each mint.</p></div></div><div class="zecs-metrics"><div><small>Your balance</small><b id="zecsBalance">—</b></div><div><small>Per mint</small><b>210 ZECS</b></div></div><div class="zecsProgressTop"><b id="zecsMintedSupply">— / 21,000,000 ZECS</b><span class="gold" id="zecsMintPercent">—</span></div><div class="zecsProgress" id="zecsProgress" aria-label="ZECS mint progress"><i id="zecsProgressBar"></i></div><div class="zecs-progress-caption"><span id="zecsMintEvents">—</span> confirmed mints · <span id="zecsPendingEvents">—</span> pending</div><div class="zecsActions"><button class="btn gold" id="connectZecsBtn">Connect Wallet</button><button class="btn gold" id="zecsMintBtn" disabled hidden>Mint 210 ZECS</button></div><div class="zecs-recovery"><button class="btn subtle" id="zecsRecoverBtn">Recover Pending Mint</button><a href="#mining" data-view="mining" id="zecsGetNft" class="btn subtle" hidden>Get a ZEC BLOCKS NFT ↗</a></div><div id="zecsUnknownRecovery" class="zecsStatus" hidden><b>No transaction ID returned</b><p>Check Noir Activity and close any unfinished approval. You can save this attempt aside to enable a separate mint. The earlier request may still complete; a new mint has its own network fee.</p><label class="zecs-unknown-choice"><input id="zecsNewMintAcknowledged" type="checkbox"><span>I checked Noir Activity and want a separate mint.</span></label><button class="btn gold" id="zecsEnableNewMintBtn" type="button" disabled>Save attempt &amp; enable new mint</button></div><div class="zecsStatus" id="zecsStatus" role="status" aria-live="polite">Checking mint availability…</div><div id="zecsTxidRecovery" class="zecsStatus" hidden><label for="zecsRecoveryTxid">TXID of your pending mint</label><p>Copy the transaction ID of this mint attempt from Noir Activity. Recovery checks your wallet and requests a registration signature if needed.</p><input class="input" id="zecsRecoveryTxid" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the full transaction ID" maxlength="66" aria-describedby="zecsTxidHelp"><p id="zecsTxidHelp">No new payment is sent.</p><button class="btn subtle" id="zecsRecoverTxidBtn" type="button">Recover this transaction</button></div><details id="zecsDeferredAttempts" class="zecsStatus" hidden><summary id="zecsDeferredSummary">Saved attempts</summary><p>These attempts are saved separately and do not block a new mint. Resume one to check its transaction.</p><div id="zecsDeferredList"></div></details><div id="zecsRecoveryList" aria-label="Mint recovery results" hidden></div><div class="fee-note">No token mint fee. Zcash network fee applies.</div></section></div>
     <details class="details-shell"><summary>About $ZECS & mint details</summary><p class="zecs-info">ZECS uses the ZB-20 protocol on Zcash. Each mint creates one signed event for 210 ZECS, anchored by a Zcash transaction. Only confirmed events count toward the 21,000,000 supply cap. No premine, no presale, and no team allocation.</p><div class="zecsMintPayload">{"p":"zb-20","op":"mint","tick":"ZECS","amt":"210"}</div></details>
   </section>
 
@@ -972,9 +973,10 @@ async function rpc(method,params){
   try{
     const owner=S.actionOwner||S.ownerCommitment;
     const approval=method==='zcash_sendTransaction'||method==='zcash_signMessage';
+    const mintAttempt=method==='zcash_sendTransaction'&&params?.[0]?.memo===ZECS_MINT_MESSAGE?loadZecsBroadcastLock():null;
     const request=noirCall(p,method,params).then(v=>{
       // A late wallet response still belongs to its original journal, even after timeout/account change.
-      if(method==='zcash_sendTransaction')rememberWalletBroadcast(owner,params?.[0]?.memo,v);
+      if(method==='zcash_sendTransaction')rememberWalletBroadcast(owner,params?.[0]?.memo,v,mintAttempt);
       return v
     });
     const v=await withDeadline(request,approval?WALLET_APPROVAL_TIMEOUT:WALLET_READ_TIMEOUT,
@@ -1895,11 +1897,22 @@ function clearFreeClaimRecovery(tokenId,owner=recoveryOwner()){
   localStorage.removeItem(freeClaimRecoveryKey(owner));
   if(owner===S.ownerCommitment){updateFeeCreditUI();updateMiningControls()}
 }
-function rememberWalletBroadcast(owner,memo,raw){
+function rememberWalletBroadcast(owner,memo,raw,mintAttempt=null){
   const txid=zcashTxidFromResult(raw);if(!owner||!/^[0-9a-f]{64}$/.test(txid))return;
   if(memo===ZECS_MINT_MESSAGE){
     const key='zb20_zecs_broadcast_lock_v2_'+owner;
     let lock={};try{lock=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+    // An earlier request can resolve after the user starts a separate mint.
+    // Attach its TXID to its own saved attempt, never overwrite the new lock.
+    if(mintAttempt?.attemptId&&mintAttempt.attemptId!==lock?.attemptId){
+      const rows=loadZecsDeferredAttempts(owner);
+      if(!rows)throw new Error('Saved mint attempts could not be read. Keep this browser data for recovery.');
+      const previous=rows.find(r=>r.id===mintAttempt.attemptId);
+      saveZecsDeferredAttempt({...previous,id:mintAttempt.attemptId,owner,savedAt:previous?.savedAt||Date.now(),
+        broadcastLock:{...(previous?.broadcastLock||mintAttempt),status:'txid_known',txid,unidentified:false,found:[txid]},pendingTxid:txid},owner);
+      if(owner===S.ownerCommitment)updateZecsUI();
+      return;
+    }
     durableSet('zb20_zecs_pending_mint_txid_'+owner,txid);
     durableSet(key,JSON.stringify({...lock,status:'txid_known',txid,unidentified:false,found:[...new Set([...(Array.isArray(lock?.found)?lock.found:[]),lock?.txid,txid].filter(x=>/^[0-9a-f]{64}$/.test(x||'')))]}));
   }else{
@@ -2595,6 +2608,67 @@ function zecsSavedTxids(){
     .map(x=>String(x||'').replace(/^0x/,'').toLowerCase()).filter(x=>/^[0-9a-f]{64}$/.test(x)))];
 }
 function zecsRecoveryRequired(){return !!loadZecsPendingTxid()||!!loadZecsBroadcastLock()||!!loadZecsRegistration()}
+function newZecsAttemptId(){return 'mint-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)}
+function zecsDeferredKey(owner=S.actionOwner||S.ownerCommitment){return 'zb20_zecs_deferred_v1_'+owner}
+function loadZecsDeferredAttempts(owner=S.actionOwner||S.ownerCommitment){
+  try{
+    const rows=JSON.parse(localStorage.getItem(zecsDeferredKey(owner))||'[]');
+    return Array.isArray(rows)&&rows.every(r=>r?.owner===owner&&/^[a-zA-Z0-9-]{1,80}$/.test(r.id)&&r.broadcastLock)?rows:null;
+  }catch{return null}
+}
+function saveZecsDeferredAttempt(record,owner){
+  const rows=loadZecsDeferredAttempts(owner);if(!rows)throw new Error('Saved mint attempts could not be read. Keep this browser data for recovery.');
+  const index=rows.findIndex(r=>r.id===record.id);if(index<0)rows.push(record);else rows[index]=record;
+  durableSet(zecsDeferredKey(owner),JSON.stringify(rows));
+}
+function renderZecsDeferredAttempts(){
+  const el=$('zecsDeferredAttempts');if(!el)return;
+  const owner=S.ownerCommitment,rows=loadZecsDeferredAttempts(owner);
+  el.hidden=!owner||(rows&&rows.length===0);
+  $('zecsDeferredSummary').textContent=rows?'Saved attempts ('+rows.length+')':'Saved attempts need attention';
+  const disabled=zecsRecoveryRequired()||S.zecsBusy||S.zecsRegistrationBusy||S.walletAction||S.targetBusy||S.mining||S.noirLocked;
+  $('zecsDeferredList').innerHTML=rows?rows.map(r=>'<div class="zecsStatus"><b>Attempt saved '+esc(new Date(r.savedAt).toLocaleString())+'</b><p>'+
+    (r.pendingTxid?'Transaction ID received: '+esc(short(r.pendingTxid,8)):'No transaction ID yet. This attempt has not been marked failed.')+
+    '</p><button type="button" class="btn subtle" data-zecs-resume-attempt="'+r.id+'"'+(disabled?' disabled':'')+'>Resume this attempt</button></div>').join(''):'Saved data could not be read. Keep this browser data for recovery.';
+}
+function setAsideZecsUnknownAttempt(){
+  if(S.zecsBusy||S.zecsRegistrationBusy)return;
+  try{
+    assertActionWallet();
+    if(!S.ownerCommitment||S.noirLocked)throw new Error('Connect and unlock Noir Wallet first.');
+    const lock=loadZecsBroadcastLock(),ids=zecsSavedTxids(),owner=S.actionOwner||S.ownerCommitment;
+    if(!zecsUnidentifiedBroadcast(lock,ids))return;
+    if(!$('zecsNewMintAcknowledged').checked)throw new Error('Check Noir Activity and confirm that you want a separate mint first.');
+    // Persist first. This is an explicit user decision to defer an uncertain
+    // attempt, never a conclusion that the request failed or was cancelled.
+    const id=lock.attemptId||newZecsAttemptId();
+    saveZecsDeferredAttempt({id,owner,savedAt:Date.now(),reason:'user_requested_separate_mint',originalLock:lock,
+      broadcastLock:{...lock,attemptId:id,txid:undefined,found:[],unidentified:true,status:'broadcast_unknown'}},owner);
+    if(ids.length)saveZecsBroadcastLock({...lock,attemptId:undefined,unidentified:false,status:'recovery_required',found:ids});
+    else clearZecsBroadcastLock();
+    $('zecsNewMintAcknowledged').checked=false;
+    zecsRecoveryNotice(zecsRecoveryRequired()?'Attempt saved aside. Known transactions still need registration; check them before a new mint.':'Attempt saved aside. You can now choose Mint 210 ZECS. No new transaction was sent.','good');
+  }catch(e){zecsRecoveryNotice(e.message||String(e),'bad')}
+  finally{updateZecsUI()}
+}
+function restoreZecsDeferredAttempt(id){
+  if(S.zecsBusy||S.zecsRegistrationBusy)return;
+  try{
+    assertActionWallet();
+    if(!S.ownerCommitment||S.noirLocked)throw new Error('Connect and unlock Noir Wallet first.');
+    if(zecsRecoveryRequired())throw new Error('Finish or save aside the current attempt before resuming another.');
+    const owner=S.actionOwner||S.ownerCommitment,rows=loadZecsDeferredAttempts(owner);
+    if(!rows)throw new Error('Saved mint attempts could not be read.');
+    const record=rows.find(r=>r.id===id);if(!record)return;
+    // Restore the blocking record before removing its saved copy. If a later
+    // write fails, the evidence still exists and a new send remains gated.
+    saveZecsBroadcastLock(record.broadcastLock);
+    if(record.pendingTxid)saveZecsPendingTxid(record.pendingTxid);
+    durableSet(zecsDeferredKey(owner),JSON.stringify(rows.filter(r=>r.id!==id)));
+    zecsRecoveryNotice('Saved attempt restored. Check its status or recover its exact TXID. No new transaction was sent.','warn');
+  }catch(e){zecsRecoveryNotice(e.message||String(e),'bad')}
+  finally{updateZecsUI()}
+}
 const ZECS_RECOVERY_RESULTS=new Map();
 function zecsRecoveryNotice(text,kind='warn'){
   S.zecsRecoveryFeedback={owner:S.ownerCommitment,epoch:S.walletEpoch,text,kind};
@@ -2770,7 +2844,13 @@ function updateZecsUI(){
     btn.textContent=S.zecsBusy?'Working…':recoveryNeeded?'Recover Pending Mint First':!connected?'Connect Noir Wallet to Mint':events>=ZECS_MAX_EVENTS?'ZECS Mint Sold Out':!eligible?'ZEC BLOCKS Holder Required':!open?'Waiting for Canonical Deploy':'Mint 210 ZECS'
   }
   const rb=$('zecsRecoverBtn');
-  if(rb){rb.disabled=S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsRegistrationBusy||!connected;rb.textContent=S.zecsBusy||S.zecsRegistrationBusy?'Checking pending mint…':recoveryNeeded?'Continue Pending Mint':'Recover a Previous Mint';rb.setAttribute('aria-busy',String(!!(S.zecsBusy||S.zecsRegistrationBusy)))}
+  const unknown=zecsUnidentifiedBroadcast(broadcastLock);
+  if(rb){rb.disabled=S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsRegistrationBusy||!connected;rb.textContent=S.zecsBusy||S.zecsRegistrationBusy?'Checking pending mint…':unknown?'Check previous attempt':recoveryNeeded?'Continue Pending Mint':'Recover a Previous Mint';rb.setAttribute('aria-busy',String(!!(S.zecsBusy||S.zecsRegistrationBusy)))}
+  const choice=$('zecsNewMintAcknowledged'),choiceKey=String(S.ownerCommitment)+':'+String(broadcastLock?.attemptId||broadcastLock?.startedAt||'legacy');
+  if(S.zecsNewMintChoiceKey!==choiceKey||!unknown){choice.checked=false;S.zecsNewMintChoiceKey=choiceKey}
+  $('zecsUnknownRecovery').hidden=!connected||!unknown||(broadcastLock?.status==='wallet_approval'&&S.zecsBusy);
+  choice.disabled=!!(S.zecsBusy||S.zecsRegistrationBusy||S.walletAction||S.targetBusy||S.mining);
+  $('zecsEnableNewMintBtn').disabled=!connected||!unknown||choice.disabled||!choice.checked;
   const manual=$('zecsTxidRecovery'),input=$('zecsRecoveryTxid'),recover=$('zecsRecoverTxidBtn');
   if(manual){
     manual.hidden=!connected||!broadcastLock||!(broadcastLock.unidentified||!zecsSavedTxids().length);
@@ -2778,6 +2858,7 @@ function updateZecsUI(){
     input.disabled=recover.disabled=!!(S.zecsBusy||S.walletAction||S.targetBusy||S.mining||S.zecsRegistrationBusy);
   }
   renderZecsRecoveryResults();
+  renderZecsDeferredAttempts();
   renderZecsExperience();
 }
 
@@ -2908,7 +2989,7 @@ async function mintZecs(){
     if(!pre.mint_open)throw new Error('ZECS mint is not open yet.');
 
     // Hard lock BEFORE wallet approval. Any ambiguous result must recover, never resend.
-    const attempt={status:'wallet_approval',startedAt:Math.floor(Date.now()/1000),historyBefore:history.candidates.map(x=>x.txid)};
+    const attempt={attemptId:newZecsAttemptId(),status:'wallet_approval',startedAt:Math.floor(Date.now()/1000),historyBefore:history.candidates.map(x=>x.txid)};
     saveZecsBroadcastLock(attempt);
     zecsSetStatus('Approve ONE free ZECS mint anchor in Noir Wallet. Only the Zcash network fee applies.','warn');
 
@@ -2923,7 +3004,7 @@ async function mintZecs(){
       }])
     }catch(e){
       if(walletRejected(e)||insufficientFundsError(e))clearZecsBroadcastLock();
-      else saveZecsBroadcastLock({...attempt,status:'broadcast_unknown',unidentified:true});
+      else saveZecsBroadcastLock({...attempt,status:'broadcast_unknown',unidentified:true,lastError:String(e?.message||e).slice(0,500)});
       throw e
     }
 
@@ -2945,7 +3026,7 @@ async function mintZecs(){
   }catch(e){
     const pending=loadZecsPendingTxid(),lock=loadZecsBroadcastLock();
     const msg=e?.message||String(e);
-    zecsSetStatus(msg+((pending||lock)?' Recovery is locked; do not send another mint.':''),'bad');
+    zecsSetStatus(msg+(zecsUnidentifiedBroadcast(lock)?' No TXID was returned. Check Noir Activity, then recover this attempt or save it aside using the option above.':pending||lock?' The transaction is saved for registration recovery.':''),'bad');
     toast(msg,10000)
   }finally{
     S.zecsBusy=false;updateZecsUI()
@@ -2992,6 +3073,10 @@ async function recoverZecsMint(selectedTxid=''){
       if(suggested){
         $('zecsRecoveryTxid').value=suggested.txid;
         zecsRecoveryNotice('A recent outgoing mint was found. Check the TXID below against this pending attempt in Noir Activity, then choose Recover this transaction. No new payment is sent.','warn');
+        return;
+      }
+      if(unidentified){
+        zecsRecoveryNotice('No matching TXID was identified for this attempt. Earlier mints are not replayed. Check Noir Activity: recover the exact TXID if available, or save this attempt aside to enable a separate mint.','warn');
         return;
       }
       ids=candidates.map(x=>x.txid);
@@ -3146,8 +3231,9 @@ function renderZecsExperience(){
   const recovery=zecsRecoveryRequired();
   $('zecsMintBtn').hidden=!connected||recovery;
   $('zecsRecoverBtn').hidden=!connected;
-  $('zecsRecoverBtn').classList.toggle('gold',recovery);
-  $('zecsRecoverBtn').classList.toggle('subtle',!recovery);
+  const unknown=zecsUnidentifiedBroadcast(loadZecsBroadcastLock());
+  $('zecsRecoverBtn').classList.toggle('gold',recovery&&!unknown);
+  $('zecsRecoverBtn').classList.toggle('subtle',!recovery||unknown);
   $('zecsGetNft').hidden=!connected||S.zecsAccount?.eligible!==false;
 }
 async function candidateArtwork(id){
@@ -3283,6 +3369,12 @@ $('zecsRecoverTxidBtn').onclick=()=>{
 $('zecsRecoveryList').onclick=e=>{
   const button=e.target.closest('[data-zecs-set-aside]');if(!button||button.disabled)return;
   return runMiningAction(()=>setAsideZecsForeignMint(button.dataset.zecsSetAside),{wallet:true});
+};
+$('zecsNewMintAcknowledged').onchange=()=>updateZecsUI();
+$('zecsEnableNewMintBtn').onclick=()=>runMiningAction(setAsideZecsUnknownAttempt,{wallet:true});
+$('zecsDeferredList').onclick=e=>{
+  const button=e.target.closest('[data-zecs-resume-attempt]');if(!button||button.disabled)return;
+  return runMiningAction(()=>restoreZecsDeferredAttempt(button.dataset.zecsResumeAttempt),{wallet:true});
 };
 $('availablePrev').onclick=()=>{S.availablePage=Math.max(0,(S.availablePage||0)-1);renderAvailableTokens()};
 $('availableNext').onclick=()=>{S.availablePage=(S.availablePage||0)+1;renderAvailableTokens()};
