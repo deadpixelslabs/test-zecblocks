@@ -955,3 +955,42 @@ test('final claim validation cannot reuse a lease check begun before wallet sign
   assert.equal(await p.locator('[data-candidate="71"]').count(),0);assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
+
+test('failed and incoming history entries do not block a new ZECS mint',async()=>{
+ const f=await fixture();try{
+  await f.connect();await f.page.evaluate(()=>{walletTest.history=[
+   {txid:'cd'.repeat(32),memo:ZECS_MINT_MESSAGE,type:'send',status:'failed'},
+   {txid:'ef'.repeat(32),memo:ZECS_MINT_MESSAGE,type:'receive',status:'mined'}
+  ]});
+  await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();
+  await f.page.waitForFunction(()=>walletTest.sends===1&&!S.walletAction);
+  assert.equal(f.registered.size,1);assert.equal(await f.page.evaluate(()=>zecsRecoveryRequired()),false);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('lost mint response recovers an explicitly confirmed history TXID without paying twice',async()=>{
+ for(const alreadyRegistered of [true,false]){
+  const f=await fixture();try{
+   await f.connect();await f.page.evaluate(()=>walletTest.mode='unknown');
+   await openZecs(f.page);await f.page.locator('#zecsMintBtn').click();
+   await f.page.waitForFunction(()=>!S.walletAction&&loadZecsBroadcastLock()?.unidentified===true);
+   const owner=await f.page.evaluate(()=>S.ownerCommitment);
+   if(alreadyRegistered)f.registered.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
+   await f.page.evaluate(txid=>{const lock=loadZecsBroadcastLock();walletTest.history=[{txid,memo:ZECS_MINT_MESSAGE,type:'send',status:'mined',timestamp:(lock.startedAt+1)*1000}]},txid);
+   await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction);
+   assert.equal(await f.page.locator('#zecsRecoveryTxid').inputValue(),txid);
+   assert.equal(await f.page.evaluate(()=>zecsRecoveryRequired()),true);
+   assert.equal(await f.page.evaluate(()=>walletTest.signs),0);
+   await f.page.setViewportSize({width:390,height:844});
+   assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   fs.mkdirSync(path.join(root,'test-artifacts'),{recursive:true});
+   await f.page.screenshot({path:path.join(root,'test-artifacts/zecs-txid-recovery-mobile.png'),fullPage:true});
+   await f.page.locator('#zecsRecoverTxidBtn').click();
+   await f.page.waitForFunction(()=>!S.walletAction&&!zecsRecoveryRequired());
+   assert.equal(await f.page.locator('#zecsMintBtn').isEnabled(),true);
+   assert.equal(await f.page.locator('#zecsTxidRecovery').isVisible(),false);
+   assert.deepEqual(await f.page.evaluate(()=>({sends:walletTest.sends,signs:walletTest.signs})),{sends:1,signs:alreadyRegistered?0:1});
+   assert.deepEqual(f.errors,[]);
+  }finally{await f.browser.close()}
+ }
+});
