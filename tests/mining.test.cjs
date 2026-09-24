@@ -8,7 +8,7 @@ function proxy(fetchImpl){
  const c={module:{exports:{}},process:{env:{}},fetch:fetchImpl,AbortController,setTimeout,clearTimeout};
  vm.runInNewContext(fs.readFileSync(path.join(root,'api/zb.js'),'utf8'),c);return c.module.exports;
 }
-function response(){return {code:200,headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(data){this.data=data;return this}}}
+function response(){return {code:200,headers:{},setHeader(k,v){this.headers[k]=v},removeHeader(k){delete this.headers[k]},status(n){this.code=n;return this},json(data){this.data=data;return this}}}
 test('public credential matches frontend and is forwarded to protected reads',async()=>{
  const expected=html.match(/supabaseAnon:'([^']+)'/)[1];let calls=0;
  const handler=proxy(async(url,opts)=>{calls++;assert.equal(opts.headers.apikey,expected);assert.equal(JSON.parse(Buffer.from(expected.split('.')[1],'base64url')).iss,'supabase');assert.equal(opts.headers.authorization,'Bearer '+expected);return {ok:true,status:200,text:async()=>'{"claims_seen":3505}'}});
@@ -40,12 +40,48 @@ test('gallery upstream errors are not wrapped as a successful empty snapshot',as
  assert.equal(r.code,503);assert.equal(r.data.ok,false);
 });
 test('inline scripts parse',()=>{for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1])});
+test('public counter requests coalesce only while in flight and receive a five-second CDN cache',async()=>{
+ const reads=[];let finish;
+ const data={ok:true,claims_seen:3505,canonical_claims:2660};
+ const handler=proxy((url,opts)=>{reads.push({url,opts});return new Promise(resolve=>finish=()=>resolve({ok:true,status:200,text:async()=>JSON.stringify(data)}))});
+ const a=response(),b=response(),req={query:{op:'live-stats'},method:'GET'};
+ const first=handler(req,a),second=handler(req,b);assert.equal(reads.length,1);finish();await Promise.all([first,second]);
+ for(const r of [a,b]){assert.equal(r.code,200);assert.equal(r.headers['Vercel-CDN-Cache-Control'],'public, s-maxage=5');assert.doesNotMatch(r.headers['Cache-Control'],/no-store/);assert.equal(r.headers.Pragma,undefined)}
+ const third=handler(req,response());assert.equal(reads.length,2,'no extra in-memory TTL extends the CDN freshness window');finish();await third;
+});
+test('fresh counters, account reads and every transaction operation remain uncached',async()=>{
+ const reads=[];
+ const handler=proxy(async(url,opts)=>{reads.push({url,opts});return {ok:true,status:200,text:async()=>JSON.stringify({ok:true,claims_seen:3505,canonical_claims:2660,eligible:true})}});
+ for(const req of [
+  {query:{op:'live-stats',fresh:'1'},method:'GET'},
+  {query:{op:'rpc',name:'zecblocks_zb20_stats'},method:'POST',body:{}},
+  {query:{op:'rpc',name:'zecblocks_zb20_account'},method:'POST',body:{p_owner_commitment:'wallet-one'}},
+  ...['mining-lease','check-claims','claim-audit','backfill-client-claims'].map(op=>({query:{op},method:'POST',body:{tokenId:71}})),
+  ...['preflight','lookup','register'].map(action=>({query:{op:'zb20-mint'},method:'POST',body:{action}}))
+ ]){
+  const r=response();await handler(req,r);assert.equal(r.code,200);assert.match(r.headers['Cache-Control'],/no-store/);assert.equal(r.headers['Vercel-CDN-Cache-Control'],'no-store');
+ }
+ assert.equal(JSON.parse(reads[2].opts.body).p_owner_commitment,'wallet-one');
+});
+test('public ZECS statistics have no wallet input and cannot accept a mutation',async()=>{
+ const reads=[];
+ const handler=proxy(async(url,opts)=>{reads.push({url,opts});return {ok:true,status:200,text:async()=>JSON.stringify({tick:'ZECS',mint_open:true,minted_supply:210,confirmed_events:1})}});
+ const r=response();await handler({query:{op:'zecs-stats',owner:'not-forwarded'},method:'GET'},r);
+ assert.equal(r.code,200);assert.equal(r.headers['Vercel-CDN-Cache-Control'],'public, s-maxage=5');assert.match(reads[0].url,/rpc\/zecblocks_zb20_stats$/);assert.equal(reads[0].opts.body,'{}');
+ const rejected=response();await handler({query:{op:'zecs-stats'},method:'POST',body:{action:'register'}},rejected);assert.equal(rejected.code,405);assert.equal(reads.length,1);
+});
+test('failed and incomplete public reads are not cached and later requests retry the upstream',async()=>{
+ let count=0;
+ const handler=proxy(async()=>{count++;if(count===1)throw Error('temporary failure');return {ok:true,status:200,text:async()=>JSON.stringify(count===2?{ok:false}:{ok:true,claims_seen:3505,canonical_claims:2660})}});
+ for(const code of [502,503,200]){const r=response();await handler({query:{op:'live-stats'},method:'GET'},r);assert.equal(r.code,code);assert.equal(r.headers['Vercel-CDN-Cache-Control'],code===200?'public, s-maxage=5':'no-store')}
+ assert.equal(count,3);
+});
 
 const {chromium}=require('playwright'),pub='02'+'11'.repeat(32),txid='ab'.repeat(32);
 const snapshot={claims_seen:3505,generated_at:100,verified_ids:[1,2],candidate_ids:[1,2],clear_ids:[71,72,73,74,75,76,77,78,79,80,81,82,83],verified_indexed:2660,clear_indexed:2283,pending_indexed:57,unknown_indexed:0};
 const stats={tick:'ZECS',mint_open:true,deploy_status:'confirmed',minted_supply:156660,confirmed_events:746,pending_events:4};
 async function openZecs(page){await page.getByRole('tab',{name:'$ZECS',exact:true}).click();}
-async function fixture(){
+async function fixture({manualTimers=false}={}){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const context=await browser.newContext({viewport:{width:1360,height:1000},colorScheme:'dark'});
  const page=await context.newPage();
@@ -57,11 +93,12 @@ async function fixture(){
    if(u.pathname==='/')return route.fulfill({contentType:'text/html',body:html});
    if(u.pathname==='/api/zcash')return route.fulfill({json:{ok:true,data:u.searchParams.get('kind')==='block'?{hash:'22'.repeat(32)}:{blockHeight:3490000}}});
    if(u.pathname==='/api/zb'){
-    const op=u.searchParams.get('op'),body=req.postDataJSON()||{};calls.push({op,body});
+    const op=u.searchParams.get('op'),body=req.postDataJSON()||{};calls.push({op,body,name:u.searchParams.get('name'),fresh:u.searchParams.get('fresh'),method:req.method()});
     if(slow&&op==='mining-lease')await new Promise(r=>setTimeout(r,200));
     if(failure)return route.fulfill({status:503,json:{ok:false,error:'temporarily unavailable',retryable:true}});
     let data={ok:true};
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
+    if(op==='zecs-stats')data=stats;
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
     if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,token_id:body.tokenId||reservedToken,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
     if(op==='check-claims'){
@@ -83,7 +120,13 @@ async function fixture(){
   }
   return route.abort();
  });
- await page.addInitScript(({pub,txid})=>{
+ await page.addInitScript(({pub,txid,manualTimers})=>{
+  if(manualTimers){
+   window.testIntervals=new Map();let id=0;window.testNow=Date.now();Date.now=()=>window.testNow;
+   window.setInterval=(fn,ms)=>{const key=++id;testIntervals.set(key,{fn,ms});return key};
+   window.clearInterval=key=>testIntervals.delete(key);
+   window.testHidden=false;Object.defineProperty(document,'hidden',{configurable:true,get:()=>window.testHidden});
+  }
   window.walletTest={sends:0,signs:0,history:[],handlers:{},mode:'ok'};
   const w=window.walletTest;
   window.noirwallet={isNoirWallet:true,zcash:{
@@ -92,14 +135,90 @@ async function fixture(){
    sendTransaction:async()=>{w.sends++;if(w.mode==='rejected')throw new Error('User rejected');if(w.mode==='unknown')throw new Error('Connection lost');return {txid}},
    on:(name,fn)=>w.handlers[name]=fn
   }};
- },{pub,txid});
- await page.goto('http://localhost:4321/',{waitUntil:'domcontentloaded'});
- await page.waitForFunction(()=>document.getElementById('claimCount').textContent==='3,505');
+ },{pub,txid,manualTimers});
+ await page.goto('http://localhost:4321/',{waitUntil:'load'});
+ await page.waitForFunction(()=>S.backgroundReady&&document.getElementById('claimCount').textContent==='3,505');
  return {page,browser,errors,calls,fail(v){failure=v},slow(v){slow=v},registerFail(v){registerFailure=v},reserveToken(v){reservedToken=v},registered,claimedTokens,claimConfirmed(v){claimed=v},async connect(){
+  await page.evaluate(()=>{
+   window.testWalletRefreshFinished=false;
+   const original=refreshAll;
+   refreshAll=async(...args)=>{try{return await original(...args)}finally{window.testWalletRefreshFinished=true}};
+  });
   await page.getByRole('button',{name:'Connect Noir Wallet',exact:true}).click();
-  await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible);
+  await page.waitForFunction(()=>S.ownerCommitment&&S.zecsAccount?.eligible&&window.testWalletRefreshFinished&&!S.zecsStatePromise&&!S.serverSnapshotPromise&&!S.serverStatsBusy);
  }};
 }
+async function tick(f,ms=15000){
+ await f.page.evaluate(async ms=>{window.testNow+=ms;await Promise.all([...testIntervals.values()].filter(t=>t.ms===ms).map(t=>t.fn()))},ms);
+}
+test('scheduled statistics use two reads on NFT view and three on ZECS view, with immediate tab refresh',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();f.calls.length=0;await tick(f);
+  assert.deepEqual(f.calls.map(c=>[c.op,c.name]).sort(),[['live-stats',null],['rpc','zecblocks_mining_snapshot']].sort());
+  assert.equal(f.calls.find(c=>c.op==='live-stats').fresh,null);
+  await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.serverStatsBusy);
+  assert.ok(f.calls.some(c=>c.name==='zecblocks_zb20_stats'),'entering ZECS obtains uncached statistics');
+  f.calls.length=0;await tick(f);
+  assert.deepEqual(f.calls.map(c=>[c.op,c.name]).sort(),[['live-stats',null],['zecs-stats',null],['rpc','zecblocks_zb20_account']].sort());
+  await f.page.getByRole('tab',{name:'Mine NFTs',exact:true}).click();
+  await f.page.waitForFunction(()=>!S.serverSnapshotPromise&&!S.serverStatsBusy);
+  assert.equal(await f.page.evaluate(()=>galleryIsFresh()),true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('hidden idle tabs stop statistics and returning to ZECS refreshes the account immediately',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.serverStatsBusy);
+  await f.page.evaluate(()=>{testHidden=true;document.dispatchEvent(new Event('visibilitychange'))});
+  f.calls.length=0;await tick(f);assert.equal(f.calls.length,0);
+  await f.page.evaluate(()=>{testHidden=false;document.dispatchEvent(new Event('visibilitychange'))});
+  await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.serverStatsBusy);
+  assert.ok(f.calls.some(c=>c.name==='zecblocks_zb20_account'));
+  assert.ok(f.calls.some(c=>c.name==='zecblocks_zb20_stats'));
+  assert.ok(f.calls.some(c=>c.op==='live-stats'&&c.fresh==='1'));
+  assert.equal(await f.page.locator('#zecsMintBtn').isEnabled(),true);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('hidden-tab ZECS recovery resolves a saved TXID without statistics, payment or wallet prompts',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();const owner=await f.page.evaluate(()=>S.ownerCommitment);
+  f.registered.set(txid,{txid,owner_commitment:owner,status:'confirmed'});
+  await f.page.evaluate(txid=>{testHidden=true;saveZecsPendingTxid(txid);saveZecsBroadcastLock({status:'txid_known',txid});walletTest.historyHang=true},txid);
+  f.calls.length=0;await tick(f);
+  assert.deepEqual(f.calls.map(c=>[c.op,c.body.action]),[['zb20-mint','lookup']]);
+  assert.equal(await f.page.evaluate(()=>zecsRecoveryRequired()),false);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  await f.page.evaluate(()=>saveZecsBroadcastLock({status:'broadcast_unknown',unidentified:true}));
+  f.calls.length=0;await tick(f);assert.equal(f.calls.length,0);
+  assert.equal(await f.page.evaluate(()=>zecsRecoveryRequired()),true,'an unknown attempt is preserved even with all presentation polling paused');
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('hidden-tab active mining still validates its lease and stops when the target becomes claimed',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();
+  await f.page.evaluate(()=>{
+   testHidden=true;S.target={token:71};S.mining=true;
+   S.miningLease={owner:S.ownerCommitment,tokenId:71,leaseToken:'aa'.repeat(24),expiresAt:Math.floor(Date.now()/1000)+600,verifiedAt:Math.floor(Date.now()/1000),relaysOk:4};
+   startClaimWatch();
+  });
+  f.calls.length=0;await tick(f,12000);
+  assert.ok(f.calls.some(c=>c.op==='mining-lease'&&c.body.action==='validate'));
+  assert.equal(await f.page.evaluate(()=>S.mining),true);
+  f.claimedTokens.add(71);await tick(f,12000);
+  assert.equal(await f.page.evaluate(()=>S.mining),false);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),0);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('a positive cached display cannot bypass a failed fresh ZECS preflight',async()=>{
+ const f=await fixture();try{
+  await f.connect();await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise);
+  await f.page.route('**/api/zb?op=zb20-mint',route=>route.request().postDataJSON()?.action==='preflight'
+   ?route.fulfill({json:{ok:true,data:{ok:true,eligible:false,mint_open:true}}}):route.fallback());
+  await f.page.locator('#zecsMintBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!S.zecsBusy);
+  assert.equal(await f.page.evaluate(()=>walletTest.sends),0);assert.match(await f.page.locator('#zecsStatus').textContent(),/holder required/i);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
 test('startup survives missing relay CDN; canonical counters, saved theme and mobile layout',async()=>{
  const f=await fixture();try{
   const p=f.page;await p.waitForFunction(()=>document.getElementById('zecsMintEvents').textContent==='746');
@@ -300,14 +419,18 @@ test('Continue Pending Mint reuses the saved signature through unavailable histo
 });
 test('saved registration alone displays recovery and does not allow another payment',async()=>{
  const f=await fixture();try{
-  await f.connect();await f.page.evaluate(txid=>{
+  await f.connect();f.registerFail(true);await f.page.evaluate(txid=>{
    durableSet(zecsRegistrationKey(),JSON.stringify({txid,owner:S.ownerCommitment,body:{txid,pubkey:S.pubkey,anchorSignature:'1f'+'33'.repeat(64),message:ZECS_MINT_MESSAGE}}));
    walletTest.historyHang=true;updateZecsUI();
   },txid);
-  await openZecs(f.page);assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),false);
+  await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise&&!S.zecsRegistrationBusy);
+  assert.equal(await f.page.locator('#zecsMintBtn').isVisible(),false);
+  assert.equal(await f.page.evaluate(()=>!!loadZecsRegistration()),true);
   assert.match(await f.page.locator('#zecsRecoverBtn').textContent(),/Continue Pending Mint/);
+  f.registerFail(false);
   await f.page.locator('#zecsRecoverBtn').click();await f.page.waitForFunction(()=>!S.walletAction&&!loadZecsRegistration());
   assert.equal(await f.page.evaluate(()=>walletTest.sends+walletTest.signs),0);
+  assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
 test('recovery errors remain visible through polling and have a retryable button',async()=>{

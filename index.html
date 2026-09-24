@@ -585,7 +585,8 @@ async function backendJson(op,{method='POST',body=null,query={},signal=null}={})
   const abort=()=>controller.abort();
   if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
   try{
-    const r=await fetch('/api/zb?'+qs,{method,headers:{'content-type':'application/json','accept':'application/json'},...(method==='GET'?{}:{body:JSON.stringify(body||{})}),cache:'no-store',signal:controller.signal});
+    const publicRead=method==='GET'&&['live-stats','zecs-stats'].includes(op)&&query.fresh!=='1';
+    const r=await fetch('/api/zb?'+qs,{method,headers:{'content-type':'application/json','accept':'application/json'},...(method==='GET'?{}:{body:JSON.stringify(body||{})}),cache:publicRead?'default':'no-store',signal:controller.signal});
     const j=await r.json().catch(()=>null);
     if(!r.ok||!j?.ok){const e=new Error(j?.error||j?.message||('Canonical backend HTTP '+r.status));e.status=r.status;e.retryable=r.status>=500||r.status===429;e.details=j;throw e}
     return j.data
@@ -706,7 +707,7 @@ async function loadServerLiveStats({force=false}={}){
   if(!force&&S.lastServerStats&&Date.now()-S.lastServerStats<7000)return null;
   S.serverStatsBusy=true;
   try{
-    const j=await backendJson('live-stats',{method:'GET'});
+    const j=await backendJson('live-stats',{method:'GET',query:force?{fresh:'1'}:{}});
     if(!j?.ok)throw new Error(j?.error||'Live stats unavailable');
     applyServerLiveStats(j);return j
   }catch(e){console.warn('production live stats',e);return null}
@@ -2862,16 +2863,25 @@ function updateZecsUI(){
   renderZecsExperience();
 }
 
-async function loadZecsState(){
-  if(S.zecsStatePromise)return S.zecsStatePromise;
+async function loadZecsState({fresh=true}={}){
   const owner=S.ownerCommitment,epoch=S.walletEpoch;
+  if(S.zecsStatePromise){
+    // An explicit post-action refresh must not inherit an older cached request.
+    if((fresh&&!S.zecsStateFresh)||S.zecsStateOwner!==owner||S.zecsStateEpoch!==epoch){
+      await S.zecsStatePromise;
+      if(owner!==S.ownerCommitment||epoch!==S.walletEpoch)return;
+      return loadZecsState({fresh});
+    }
+    return S.zecsStatePromise;
+  }
+  S.zecsStateFresh=fresh;S.zecsStateOwner=owner;S.zecsStateEpoch=epoch;
   const task=(async()=>{
     try{
       const [stats,account]=await Promise.all([
-        supabaseRpc('zecblocks_zb20_stats',{}),
+        fresh?supabaseRpc('zecblocks_zb20_stats',{}):backendJson('zecs-stats',{method:'GET'}),
         owner?supabaseRpc('zecblocks_zb20_account',{p_owner_commitment:owner}):null
       ]);
-      S.zecsStats=stats;
+      if(!(Number(stats?.generated_at)>0&&Number(stats.generated_at)<Number(S.zecsStats?.generated_at||0)))S.zecsStats=stats;
       if(owner!==S.ownerCommitment||epoch!==S.walletEpoch)return;
       S.zecsAccount=account;S.zecsStateError=false;updateZecsUI();
       if(S.walletAction||S.zecsBusy)return;
@@ -3159,7 +3169,7 @@ function assertActionWallet(){
 // Presentation state is separate from wallet, lease and transaction state.
 const MINING_UI={view:'mining',galleryKey:'',generation:0,artCache:new Map(),preview:null,completedClaim:null};
 function setMiningView(view,{focus=false}={}){
-  view=view==='zecs'?'zecs':'mining';MINING_UI.view=view;
+  view=view==='zecs'?'zecs':'mining';const changed=MINING_UI.view!==view;MINING_UI.view=view;
   $('pageTitle').innerHTML=view==='zecs'?'Mint your next <em>ZECS.</em>':'Mine your next <em>block.</em>';
   $('pageIntro').innerHTML=view==='zecs'?'The first ZB-20 token on Zcash.<br>Exclusive minting for ZEC BLOCKS NFT holders.':'Find your NFT. Mine the proof. Make it yours.<br>A collection of 5,000 digital artifacts, shaped by Zcash.';
   for(const name of ['mining','zecs']){
@@ -3170,6 +3180,7 @@ function setMiningView(view,{focus=false}={}){
   document.querySelectorAll('.nav [data-view]').forEach(a=>{if(a.dataset.view===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(view==='mining')renderAvailableTokens();
   renderMiningExperience();renderZecsExperience();
+  if(changed&&S.backgroundReady)refreshVisibleMiningData({force:true}).catch(()=>{});
 }
 function renderMiningExperience(){
   const connected=!!S.ownerCommitment&&!S.noirLocked;
@@ -3398,6 +3409,22 @@ $('engineSelect').onchange=()=>{
 $('testGpuBtn').onclick=()=>detectGpu({toastResult:true});
 artSvg($('heroArt'),CFG.genesisTxid,'COLLECTION PREVIEW');
 setupMiningExperience();
+// Presentation refreshes are separate from mining/lease watches and durable
+// transaction recovery. Hidden tabs never stop an active safety check.
+async function refreshVisibleMiningData({force=false}={}){
+  if(document.hidden)return;
+  const tasks=[loadServerLiveStats({force})];
+  if(MINING_UI.view==='mining')tasks.push(loadServerMiningSnapshot({force}));
+  else tasks.push(loadZecsState({fresh:force}));
+  await Promise.allSettled(tasks);
+}
+async function pollZecsRecovery(){
+  if(S.walletAction||S.zecsBusy||S.zecsRegistrationBusy||!S.ownerCommitment)return;
+  // The visible ZECS refresh already checks recovery. Otherwise, query only
+  // saved TXIDs/signatures; no account/statistics reads or wallet prompts.
+  if(!document.hidden&&MINING_UI.view==='zecs')return;
+  if(zecsRecoveryRequired()||zecsAwaitingConfirmation().length)await resumeZecsRegistration();
+}
 (async()=>{
   restoreAuthoritativeStatsCache();
   updateAvailabilityCounts();
@@ -3406,7 +3433,8 @@ setupMiningExperience();
   $('mineEngine').textContent=S.enginePreference==='cpu'?'CPU selected':S.enginePreference==='gpu'?'GPU selected':'Auto · GPU preferred';
   if(S.enginePreference==='cpu')setGpuStatus('GPU bypassed by user','warn'); else detectGpu().catch(()=>{});
   initNostr().then(()=>{startLiveDiscovery();fetchRelay(null,true).catch(()=>{})}).catch(()=>{});
-  await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true}),loadZecsState()]);
+  await Promise.allSettled([loadServerLiveStats(),loadServerMiningSnapshot({force:true}),loadZecsState({fresh:false})]);
+  S.backgroundReady=true;
   resolveGenesis().catch(e=>console.warn(e));
   connectWallet(true).catch(()=>{});
   fetchRelay(null,true).catch(()=>{});
@@ -3429,8 +3457,8 @@ setupMiningExperience();
 
   if(!S.serverTimer)S.serverTimer=setInterval(async()=>{
     try{
-      await Promise.allSettled([loadServerLiveStats({force:true}),loadServerMiningSnapshot({force:true})]);
-      await backfillServerClaimsFromBrowser({limit:160})
+      await refreshVisibleMiningData();
+      if(!document.hidden&&MINING_UI.view==='mining')await backfillServerClaimsFromBrowser({limit:160})
     }catch{}
   },15000);
 
@@ -3438,7 +3466,7 @@ setupMiningExperience();
 
   if(CFG.claimProtocolFeeEnabled&&!S.feeTimer)S.feeTimer=setInterval(async()=>{try{await reconcileFeeCredit();updateFeeCreditUI()}catch(e){console.warn('fee credit watcher',e)}},20000);
   if(!CFG.claimProtocolFeeEnabled)setInterval(()=>reconcileFreeClaimRecovery().catch(()=>{}),12000);
-  if(!S.zecsTimer)S.zecsTimer=setInterval(()=>loadZecsState().catch(()=>{}),15000)
+  if(!S.zecsTimer)S.zecsTimer=setInterval(()=>pollZecsRecovery().catch(()=>{}),15000)
 })();
 window.addEventListener('storage',event=>{
   if(event.key===CONFIRMED_CLAIMS_KEY){for(const id of readConfirmedClaimIds())rememberUnavailable(id,'claimed');updateAvailabilityCounts();}
@@ -3447,6 +3475,6 @@ window.addEventListener('storage',event=>{
     updateAvailabilityCounts();updateMiningControls();
   }
 });
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderAvailableTokens();loadServerLiveStats({force:true}).catch(()=>{});loadServerMiningSnapshot({force:true}).catch(()=>{});loadZecsState().catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderAvailableTokens();refreshVisibleMiningData({force:true}).catch(()=>{});pollZecsRecovery().catch(()=>{});fetchRelay(null,true).catch(e=>console.warn('visibility discovery refresh',e))}});
 </script>
 </body></html>

@@ -17,9 +17,36 @@ const RPC = new Set([
   'zecblocks_zb20_stats',
   'zecblocks_zb20_account'
 ]);
+// Only these two public, parameter-free counters may be shared between visitors.
+// Availability, account reads, leases, preflight and registration stay no-store.
+const PUBLIC_INFLIGHT = new Map();
+function isPublicStats(op,data){
+  const counter=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0;
+  if(!data||data.ok===false)return false;
+  return op==='live-stats'
+    ? data.ok===true&&counter(data.claims_seen)&&counter(data.canonical_claims)
+    : data.tick==='ZECS'&&typeof data.mint_open==='boolean'&&counter(data.minted_supply)&&counter(data.confirmed_events);
+}
+function publicCache(res){
+  res.setHeader('Cache-Control','public, max-age=0, must-revalidate');
+  res.setHeader('CDN-Cache-Control','public, s-maxage=5');
+  res.setHeader('Vercel-CDN-Cache-Control','public, s-maxage=5');
+  res.removeHeader('Pragma');res.removeHeader('Expires');
+}
+async function publicStats(op,{fresh=false}={}){
+  const read=()=>op==='live-stats'
+    ? upstream(SUPABASE_URL+'/functions/v1/zecblocks-live-stats',{method:'GET',timeoutMs:20000})
+    : upstream(SUPABASE_URL+'/rest/v1/rpc/zecblocks_zb20_stats',{body:{},rpc:true});
+  if(fresh)return read();
+  if(PUBLIC_INFLIGHT.has(op))return PUBLIC_INFLIGHT.get(op);
+  const task=read();PUBLIC_INFLIGHT.set(op,task);
+  try{return await task}finally{if(PUBLIC_INFLIGHT.get(op)===task)PUBLIC_INFLIGHT.delete(op)}
+}
 
 function noStore(res){
   res.setHeader('Cache-Control','no-store, max-age=0, must-revalidate');
+  res.setHeader('CDN-Cache-Control','no-store');
+  res.setHeader('Vercel-CDN-Cache-Control','no-store');
   res.setHeader('Pragma','no-cache');
   res.setHeader('Expires','0');
 }
@@ -54,6 +81,15 @@ module.exports=async function handler(req,res){
   noStore(res);
   const op=String(req.query.op||'');
   try{
+    if(op==='live-stats'||op==='zecs-stats'){
+      if(req.method!=='GET')return res.status(405).json({ok:false,error:'GET only'});
+      const fresh=req.query.fresh==='1';
+      const u=await publicStats(op,{fresh});
+      if(!u.ok)return res.status(u.status).json(u.data||{ok:false,error:'Public stats unavailable'});
+      if(!isPublicStats(op,u.data))return res.status(503).json({ok:false,error:'Public stats incomplete',retryable:true});
+      if(!fresh)publicCache(res);
+      return res.status(200).json({ok:true,data:u.data});
+    }
     if(op==='rpc'){
       const name=String(req.query.name||'');
       if(!RPC.has(name))return res.status(400).json({ok:false,error:'Unsupported RPC'});

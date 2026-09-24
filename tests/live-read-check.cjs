@@ -33,10 +33,13 @@ async function json(url, body) {
       assert.match(page, /CONFIRMED_CLAIMS_KEY/);
       assert.match(page, /id="availabilityFreshness"/);
       assert.match(page, /validateMiningLease\(\{fresh:true\}\)/);
-      const [snapshot, zecs, live] = await Promise.all([
+      assert.match(page, /async function refreshVisibleMiningData\(/);
+      assert.match(page, /async function pollZecsRecovery\(/);
+      const [snapshot, zecs, live, publicZecs] = await Promise.all([
         json('/api/zb?op=rpc&name=zecblocks_mining_snapshot', {}),
         json('/api/zb?op=rpc&name=zecblocks_zb20_stats', {}),
-        json('/api/zb?op=live-stats')
+        json('/api/zb?op=live-stats&fresh=1'),
+        json('/api/zb?op=zecs-stats')
       ]);
       assert.ok(Number.isInteger(Number(snapshot.claims_seen)));
       assert.ok(Number(snapshot.claims_seen) >= 0 && Number(snapshot.claims_seen) <= 5000);
@@ -48,6 +51,17 @@ async function json(url, body) {
       const blocked = new Set([...snapshot.candidate_ids, ...snapshot.verified_ids].map(Number));
       assert.equal(snapshot.clear_ids.some(id => blocked.has(Number(id))), false, 'available IDs must exclude known claims');
       assert.ok(Number.isFinite(Number(zecs.minted_supply)));
+      assert.equal(publicZecs.tick, 'ZECS');
+      assert.ok(Number.isFinite(Number(publicZecs.minted_supply)));
+      const [shared, fresh] = await Promise.all([
+        fetch(base + '/api/zb?op=live-stats', { signal: AbortSignal.timeout(55000) }),
+        fetch(base + '/api/zb?op=live-stats&fresh=1', { signal: AbortSignal.timeout(55000) })
+      ]);
+      assert.equal(shared.ok, true);assert.equal(fresh.ok, true);
+      assert.match(shared.headers.get('cache-control'), /public/);
+      assert.doesNotMatch(shared.headers.get('cache-control'), /no-store/);
+      assert.match(fresh.headers.get('cache-control'), /no-store/);
+      await Promise.all([shared.arrayBuffer(), fresh.arrayBuffer()]);
       assert.equal(live.ok, true);
       assert.ok(Number.isInteger(live.scan_cursor) && live.scan_cursor >= 1 && live.scan_cursor <= 5001);
       console.log(JSON.stringify({ live: base, claimsSeen: snapshot.claims_seen, confirmedClaims: snapshot.verified_indexed, clearCandidates: snapshot.clear_ids.length, scanCursor: live.scan_cursor, scanRound: live.scan_round, zecsMinted: zecs.minted_supply, zecsMintOpen: zecs.mint_open }));
