@@ -11,6 +11,7 @@ create table public.zecblocks_claim_slots (
 alter table public.zecblocks_claim_slots enable row level security;
 revoke all on public.zecblocks_claim_slots from public, anon, authenticated;
 grant select on public.zecblocks_claim_slots to service_role;
+create index zecblocks_claim_slots_expiry on public.zecblocks_claim_slots(expires_at) where state='reserved';
 
 -- Every admission path takes this lock before allocating a unique bounded slot.
 -- The slot_no constraint also makes >4444 distinct admitted IDs impossible.
@@ -21,6 +22,10 @@ begin
   if p_token_id is null or p_token_id not between 1 and 5000
      or p_state is null or p_state not in ('legacy','reserved','submitting','confirmed') then raise exception 'Invalid claim slot'; end if;
   if p_state='reserved' and (p_expires_at is null or p_expires_at<=now()) then return false; end if;
+  -- Existing settled IDs are immutable admissions. Ownership rebuilds and
+  -- marketplace transfers do not need the allocator lock or another write.
+  select * into old_slot from public.zecblocks_claim_slots where token_id=p_token_id;
+  if found and (old_slot.state='confirmed' or (old_slot.state in ('legacy','submitting') and p_state<>'confirmed')) then return true; end if;
   perform pg_advisory_xact_lock(4444,5000);
   -- A wallet may already have broadcast after submitting. Those slots never expire.
   delete from public.zecblocks_claim_slots where state='reserved' and expires_at<=now();

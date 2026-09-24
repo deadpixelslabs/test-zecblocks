@@ -250,12 +250,12 @@ test('confirmed claims advance independently of historical IDs and ignore stale 
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,660');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
   assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2660');
-  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.20% claimed and confirmed/);
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/59\.86% claimed and confirmed/);
   await f.page.evaluate(()=>{applyServerLiveStats({claims_seen:3505,canonical_claims:2661,canonical_clear:2282,canonical_verifying:57,canonical_unknown:0,generated_at:200});rebuildState()});
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
   assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2661');
-  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.22% claimed and confirmed/);
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/59\.88% claimed and confirmed/);
   await f.page.evaluate(()=>applyServerMiningSnapshot({claims_seen:3505,verified_indexed:2660,generated_at:100}));
   f.fail(true);await f.page.evaluate(()=>loadServerLiveStats({force:true}));
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
