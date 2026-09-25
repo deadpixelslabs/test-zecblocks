@@ -26,6 +26,7 @@ jobs:
           node --test tests/mining.test.cjs
           node --test tests/claim-chain-cache.cjs
           node --test tests/availability-endpoint.cjs
+          node --test tests/claim-cap-edge.cjs
       - name: Save UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -33,9 +34,39 @@ jobs:
           name: mining-ui
           path: test-artifacts/
           if-no-files-found: ignore
+  claim-cap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated-test
+          POSTGRES_DB: claim_cap_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: isolated-test
+      PGDATABASE: claim_cap_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify the real migration, cap boundaries and concurrent admissions
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f tests/claim-cap-fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -1 -f supabase/migrations/20260924235839_nft_claim_cap_4444.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/claim-cap.sql
+          node tests/claim-cap-concurrency.cjs
   live-read-check:
     if: github.ref == 'refs/heads/main'
-    needs: mining
+    needs: [mining, claim-cap]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:

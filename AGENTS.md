@@ -55,7 +55,7 @@ as the code base for the next authorized update**.
 
 ## Preserve established project rules
 
-- ZEC BLOCKS NFT supply: 5,000. Preserve canonical ownership/claim verification
+- Current ZEC BLOCKS claim limit/displayed supply: 4,444 unique NFTs (owner update, 25 September 2026). Legacy token IDs remain 1–5000; never filter, renumber or remove existing higher IDs. The remaining original allocation is reserved for future ZSA public mint. Preserve canonical ownership/claim verification
   and confirmed settlement finality. Indexer data is derived state, not permission
   to override chain evidence.
 - ZECS: exactly 210 per valid mint, maximum 21,000,000 (100,000 successful events),

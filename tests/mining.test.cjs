@@ -100,7 +100,7 @@ async function fixture({manualTimers=false}={}){
     if(op==='live-stats')data={ok:true,claims_seen:3505,canonical_claims:2660,canonical_clear:2283,canonical_verifying:57,canonical_unknown:0,generated_at:100};
     if(op==='zecs-stats')data=stats;
     if(op==='rpc')data=u.searchParams.get('name')==='zecblocks_mining_snapshot'?snapshot:u.searchParams.get('name')==='zecblocks_zb20_stats'?stats:{eligible:true,eligible_nfts:1,balance:210,pending_mints:0};
-    if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,token_id:body.tokenId||reservedToken,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
+    if(op==='mining-lease')data=claimedTokens.has(body.tokenId)?{ok:false,error:'TOKEN_NO_LONGER_CLEAR',status:'claimed'}:{ok:true,slot_committed:body.commit===true,token_id:body.tokenId||reservedToken,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4};
     if(op==='check-claims'){
      const ids=body.tokenIds||[],confirmed=id=>claimed||claimedTokens.has(id);
      data={ok:true,complete:true,relays_ok:4,clear_ids:ids.filter(id=>!confirmed(id)),claimed_ids:ids.filter(confirmed),canonical_claims:Object.fromEntries(ids.filter(confirmed).map(id=>[id,{txid}])),events:[],status_by_token:Object.fromEntries(ids.map(id=>[id,confirmed(id)?'claimed':'clear']))};
@@ -250,12 +250,12 @@ test('confirmed claims advance independently of historical IDs and ignore stale 
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,660');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
   assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2660');
-  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.20% claimed and confirmed/);
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/59\.86% claimed and confirmed/);
   await f.page.evaluate(()=>{applyServerLiveStats({claims_seen:3505,canonical_claims:2661,canonical_clear:2282,canonical_verifying:57,canonical_unknown:0,generated_at:200});rebuildState()});
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
   assert.equal(await f.page.locator('#claimCount').textContent(),'3,505');
   assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuenow'),'2661');
-  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/53\.22% claimed and confirmed/);
+  assert.match(await f.page.locator('#claimProgressPercent').textContent(),/59\.88% claimed and confirmed/);
   await f.page.evaluate(()=>applyServerMiningSnapshot({claims_seen:3505,verified_indexed:2660,generated_at:100}));
   f.fail(true);await f.page.evaluate(()=>loadServerLiveStats({force:true}));
   assert.equal(await f.page.locator('#confirmedClaimCount').textContent(),'2,661');
@@ -291,6 +291,7 @@ test('finder serializes repeated clicks; CPU proof leads to one NFT broadcast',a
   await f.page.evaluate(()=>{document.getElementById('submitClaimBtn').click();document.getElementById('submitClaimBtn').click()});
   await f.page.waitForFunction(()=>window.walletTest.sends===1&&!S.walletAction);
   assert.equal(await f.page.evaluate(()=>window.walletTest.sends),1);
+  assert.ok(f.calls.some(c=>c.op==='mining-lease'&&c.body.action==='validate'&&c.body.commit===true),'capacity must be committed before the wallet send');
   await f.page.waitForFunction(()=>!CLAIM_RECOVERY_JOBS.size);
   assert.ok(f.calls.some(c=>c.op==='backfill-client-claims'&&c.body.claims?.some(e=>e.txid===txid)),'new claim must enter the canonical index immediately');
   assert.ok(f.calls.some(c=>c.op==='claim-audit'&&c.body.tokenId===71),'new claim must receive a token-scoped audit');
@@ -1249,6 +1250,50 @@ test('a delayed wallet response cannot overwrite the next failed mint and remain
   assert.equal(f.registered.get(txid).status,'pending');
   assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts().length),1);
   assert.equal(await p.evaluate(()=>loadZecsDeferredAttempts()[0].id),second.attemptId);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+
+test('4,444 confirmed claims close new NFT selection while saved recovery and ZECS stay usable',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();
+  await f.page.evaluate(()=>{
+   saveFreeClaimRecovery({tokenId:5000,status:'wallet_approval',memo:'saved-proof'});
+   applyServerLiveStats({claims_seen:4800,canonical_claims:4444,canonical_clear:556,canonical_verifying:0,canonical_unknown:0,claim_limit:4444,slots_available:0,claim_open:false,new_claims_open:false,generated_at:999});
+   updateMiningControls();
+  });
+  assert.match(await f.page.locator('.collection-stats').textContent(),/Supply4,444/);
+  assert.equal(await f.page.locator('#claimProgressTrack').getAttribute('aria-valuemax'),'4444');
+  assert.equal(await f.page.locator('#findUnclaimedBtn').isDisabled(),true);
+  assert.match(await f.page.locator('#actionTitle').textContent(),/All 4,444 claims/);
+  assert.equal(await f.page.locator('#recoverClaimBtn').isEnabled(),true);
+  const before=f.calls.length;await tick(f,1000);assert.equal(f.calls.length,before,'closed gallery does not repeatedly refresh');
+  await openZecs(f.page);await f.page.waitForFunction(()=>!S.zecsStatePromise);
+  assert.equal(await f.page.locator('#zecsMintBtn').isEnabled(),true);
+  assert.equal(await f.page.evaluate(()=>loadFreeClaimRecovery(5000).memo),'saved-proof');
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('historical claims seen do not close the cap and legacy ID 5000 can still be selected',async()=>{
+ const f=await fixture({manualTimers:true});try{
+  await f.connect();
+  await f.page.evaluate(()=>{
+   applyServerLiveStats({claims_seen:4800,canonical_claims:4000,canonical_clear:600,canonical_verifying:400,canonical_unknown:0,claim_limit:4444,slots_available:44,claim_open:true,new_claims_open:true,generated_at:999});
+   S.serverClearIds=new Set([5000]);S.serverCandidateIds=new Set();renderAvailableTokens();
+  });
+  assert.equal(await f.page.locator('#findUnclaimedBtn').isEnabled(),true);
+  assert.equal(await f.page.locator('#clearCount').textContent(),'44');
+  await f.page.locator('[data-candidate="5000"]').click();await f.page.waitForFunction(()=>S.target?.token===5000&&!S.targetBusy);
+  assert.equal(await f.page.locator('#startMineBtn').isEnabled(),true);assert.deepEqual(f.errors,[]);
+ }finally{await f.browser.close()}
+});
+test('missing committed capacity stops before saving or sending a new claim',async()=>{
+ const f=await fixture();try{
+  const p=f.page;await f.connect();await p.locator('#findUnclaimedBtn').click();await p.waitForFunction(()=>S.target&&!S.targetBusy);
+  await p.evaluate(()=>{CFG.powBits=8;S.enginePreference='cpu'});await p.locator('#startMineBtn').click();await p.waitForFunction(()=>S.proof&&!S.targetBusy);
+  await p.route('**/api/zb?op=mining-lease',async route=>{const b=route.request().postDataJSON();return route.fulfill({json:{ok:true,data:{ok:true,slot_committed:false,token_id:b.tokenId,lease_token:'aa'.repeat(24),expires_at:Math.floor(Date.now()/1000)+600,verified_at:Math.floor(Date.now()/1000),relays_ok:4}}})});
+  await p.locator('#submitClaimBtn').click();await p.waitForFunction(()=>walletTest.signs>=2&&!S.walletAction);
+  assert.equal(await p.evaluate(()=>walletTest.sends),0);assert.equal(await p.evaluate(()=>loadFreeClaimRecovery(71)),null);
   assert.deepEqual(f.errors,[]);
  }finally{await f.browser.close()}
 });
