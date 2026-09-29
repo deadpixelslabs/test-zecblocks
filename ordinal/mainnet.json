@@ -1,0 +1,15 @@
+{
+  "chainId": 4663,
+  "chainName": "Robinhood Chain",
+  "rpcUrl": "https://rpc.mainnet.chain.robinhood.com",
+  "explorerUrl": "https://robin.etherscan.io",
+  "collectionName": "Robinhood Ordinal",
+  "symbol": "RHO",
+  "maxSupply": "5000",
+  "protocolFeeWei": "190000000000000",
+  "treasury": "0x81046ab56f41a78077662624ac4116465fdf00cc",
+  "contractAddress": null,
+  "rendererAddress": null,
+  "deploymentTxHash": null,
+  "deploymentBlock": null
+}

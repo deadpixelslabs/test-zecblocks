@@ -8,6 +8,9 @@
     },
     "api/rh20.js": {
       "maxDuration": 15
+    },
+    "api/ordinal.js": {
+      "maxDuration": 15
     }
   },
   "headers": [
@@ -62,6 +65,33 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/ordinal/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/ordinal.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/ordinal-deploy.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
         }
       ]
     }
