@@ -23,6 +23,9 @@ jobs:
           node scripts/build-rh20.cjs --check
           node --test tests/rh20-contract.cjs
           node --test tests/rh20-browser.cjs
+      - name: Verify published RHSC pages and read-only mainnet RPC
+        if: github.ref == 'refs/heads/main'
+        run: node tests/rh20-live.cjs
       - name: Save RHSC UI evidence
         if: always()
         uses: actions/upload-artifact@v4
