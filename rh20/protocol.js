@@ -11,7 +11,7 @@
     if (config.chainId !== CHAIN_ID || config.ticker !== 'RHSC' || config.maxSupply !== '21000000' || config.mintAmount !== '500' || config.maxMintsPerWallet !== 20) throw new Error('The published RHSC settings do not match the protocol.');
     if (config.contractAddress !== null && !/^0x[0-9a-fA-F]{40}$/.test(config.contractAddress)) throw new Error('Invalid published contract address.');
     if (config.contractAddress && (!/^0x[0-9a-fA-F]{64}$/.test(config.deploymentTxHash || '') || !Number.isSafeInteger(config.deploymentBlock) || config.deploymentBlock < 1)) throw new Error('The published deployment receipt is incomplete.');
-    if (config.explorerUrl !== 'https://robinhoodchain.blockscout.com' || config.rpcUrl !== 'https://rpc.mainnet.chain.robinhood.com') throw new Error('Unexpected network settings.');
+    if (config.explorerUrl !== 'https://robin.etherscan.io' || config.rpcUrl !== 'https://rpc.mainnet.chain.robinhood.com') throw new Error('Unexpected network settings.');
     return config;
   }
   function validateToken(token) {

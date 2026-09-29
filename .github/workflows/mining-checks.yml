@@ -23,6 +23,11 @@ jobs:
           node scripts/build-rh20.cjs --check
           node --test tests/rh20-contract.cjs
           node --test tests/rh20-browser.cjs
+      - name: Verify the owner-deployed RHSC genesis through mainnet RPC
+        run: |
+          mkdir -p test-artifacts
+          node scripts/publish-rh20.cjs --address 0x4e89Bc6A7A218B338060d428f40d8f551efc8058 --check > test-artifacts/rhsc-deployment.json
+          cat test-artifacts/rhsc-deployment.json
       - name: Verify published RHSC pages and read-only mainnet RPC
         if: github.ref == 'refs/heads/main'
         run: node tests/rh20-live.cjs

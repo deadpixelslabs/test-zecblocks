@@ -36,6 +36,8 @@ The deploying wallet must approve its own transaction and pay ETH gas. The page 
 node scripts/publish-rh20.cjs --tx <deployment-transaction-hash>
 ```
 
+An owner-supplied address can also be verified with `node scripts/publish-rh20.cjs --address <contract-address>`. The verifier checks its runtime first, reads its genesis block and finds the exact creation transaction and successful receipt in that block. Add `--check` to print the verified manifest without changing any files. This workflow uses read-only RPC calls and never signs a transaction. RH-20 explorer links use `https://robin.etherscan.io`.
+
 It checks the mainnet chain ID, successful receipt, exact creation bytecode, deployed runtime hash, genesis metadata and RHSC parameters before writing the canonical manifest. Publish that manifest and its updated checksum. It refuses to replace an already configured official contract with another address.
 
 The build uses Solidity 0.8.26, optimizer 200 runs, and the Paris EVM target. `rh20/compiler-input.json` contains the complete standard JSON input for explorer verification. `rh20/RH20.json` includes ABI, creation bytecode, runtime bytecode and the expected runtime hash. Reproduce or check it with `node scripts/build-rh20.cjs` or `node scripts/build-rh20.cjs --check` using `solc@0.8.26` and `ethers@6.13.5`.

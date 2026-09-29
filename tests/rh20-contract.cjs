@@ -5,6 +5,7 @@ const { keccak256, id } = require('ethers');
 const { startChain } = require('./helpers/rh20-chain.cjs');
 const P = require('../rh20/protocol.js');
 const api = require('../api/rh20.js');
+const { verifyDeployment } = require('../scripts/publish-rh20.cjs');
 let chain, core, wallets;
 before(async () => { chain = await startChain(); core = chain.core; wallets = chain.signers; });
 after(async () => { if (chain) await chain.close(); });
@@ -20,6 +21,18 @@ test('genesis registers RHSC with immutable 21M / 500 / 20 rules and zero premin
   assert.equal(keccak256(await chain.provider.getCode(await core.getAddress())), chain.artifact.runtimeCodeHash);
   const inscriptions = chain.receipt.logs.map(log => { try { return core.interface.parseLog(log); } catch (_) { return null; } }).filter(event => event?.name === 'Inscription');
   assert.equal(inscriptions.length, 1); assert.equal(inscriptions[0].args.payload, P.DEPLOY);
+});
+
+test('publishing resolves the exact genesis receipt from an address and refuses another official core', async () => {
+  const config = { ...require('../rh20/mainnet.json'), contractAddress: null, deploymentTxHash: null, deploymentBlock: null };
+  const address = await core.getAddress();
+  const result = await verifyDeployment(chain.provider, config, { address });
+  assert.equal(result.contractAddress, address);
+  assert.equal(result.deploymentTxHash, chain.receipt.hash);
+  assert.equal(result.deploymentBlock, chain.receipt.blockNumber);
+  assert.equal(config.contractAddress, null);
+  await assert.rejects(verifyDeployment(chain.provider, config, { address: wallets[7].address }), /Runtime bytecode/);
+  await assert.rejects(verifyDeployment(chain.provider, { ...config, contractAddress: wallets[7].address }, { address }), /Refusing to replace/);
 });
 
 test('canonical mint credits exactly 500 and emits the same inscription', async () => {
