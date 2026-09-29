@@ -1,11 +1,38 @@
 name: Mining checks
 on:
   push:
-    branches: [main, codex/mining-studio, codex/rh20-production]
+    branches: [main, codex/mining-studio, codex/rh20-production, codex/ordinal-production]
   pull_request:
 permissions:
   contents: read
 jobs:
+  ordinal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned contract and browser tooling
+        run: npm install --no-save --package-lock=false solc@0.8.26 ethers@6.13.5 @foundry-rs/anvil-linux-amd64@1.7.1 playwright@1.55.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify Ordinal fees, artwork, wallet recovery and deployment
+        run: |
+          node scripts/build-ordinal.cjs --check
+          node --test tests/ordinal-contract.cjs
+          node --test tests/ordinal-browser.cjs
+      - name: Verify published mint and deployment pages
+        if: github.ref == 'refs/heads/main'
+        run: node tests/ordinal-live.cjs
+      - name: Save Ordinal UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordinal-ui
+          path: test-artifacts/
+          if-no-files-found: ignore
   rh20:
     runs-on: ubuntu-latest
     timeout-minutes: 10
