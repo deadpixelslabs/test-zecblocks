@@ -1068,7 +1068,12 @@ test('expired or failed gallery reads pause selection until a fresh snapshot arr
   assert.match(await p.locator('#availabilityFreshness').innerText(),/Selection is paused/);
   await p.evaluate(()=>loadServerMiningSnapshot({force:true}));
   assert.equal(await p.locator('[data-candidate="71"]').isEnabled(),true);
-  f.fail(true);await p.evaluate(()=>loadServerMiningSnapshot({force:true}));
+  f.fail(true);
+  // Observe the settled error state in-page instead of serializing the failed
+  // request's promise across the browser automation boundary.
+  await p.evaluate(()=>{void loadServerMiningSnapshot({force:true})});
+  await p.waitForFunction(()=>S.snapshotError&&!S.serverSnapshotPromise);
+  assert.equal(p.url(),'http://localhost:4321/');
   assert.equal(await p.locator('[data-candidate="71"]').isDisabled(),true);
   assert.equal(await p.locator('#availableTokens').getByText('Available',{exact:true}).count(),0);
   f.fail(false);await p.locator('#refreshAvailable').click();
