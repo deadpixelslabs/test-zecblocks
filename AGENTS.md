@@ -55,6 +55,8 @@ as the code base for the next authorized update**.
 
 ## Preserve established project rules
 
+- Official RH-20 core (owner deployment, 29 September 2026): `0x4e89Bc6A7A218B338060d428f40d8f551efc8058`, chain 4663. Genesis transaction `0xfcf63d66c24b585f6af2f9b7133bca9fd93aef464a43dada1a10845dd2b997b6`, RPC block 75,340,072. Use Robinhood Etherscan (`https://robin.etherscan.io`) for RH-20 explorer links. Creation/runtime bytecode, receipt, genesis event, and RHSC rules were matched through mainnet RPC before enabling the public mint. Solidity genesisBlock follows Arbitrum ancestor-chain numbering; the manifest deploymentBlock is the RPC receipt block. Do not redeploy or replace this core for frontend updates.
+
 - RH-20 / RHSC (owner update, 29 September 2026): target Robinhood Chain mainnet (4663), contract-validated inscriptions. RHSC maximum supply 21,000,000; exactly 500 per mint; 20 lifetime mints per wallet address (10,000 minted RHSC). Transfers never reset the counter. Mint fee is zero; network gas applies. Keep the minimal JSON with `p`, `op`, `tick`, `max`/`lim` or `amt`, without a public version label. The separate RH-20 marketplace fee is 3%; this does not change existing ZEC/USDC rails. Never treat an unconfigured deployment manifest as a live token, accept an arbitrary query-string contract, or replace the official core. Preserve receipt-based recovery and exact runtime-code verification. See `docs/rh20-production.md`.
 
 - Current ZEC BLOCKS claim limit/displayed supply: 4,444 unique NFTs (owner update, 25 September 2026). Legacy token IDs remain 1–5000; never filter, renumber or remove existing higher IDs. The remaining original allocation is reserved for future ZSA public mint. Preserve canonical ownership/claim verification

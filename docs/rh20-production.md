@@ -30,7 +30,9 @@ The 20-mint limit is fixed in the RHSC contract rules and the `TokenDeployed` ev
 
 The deploying wallet must approve its own transaction and pay ETH gas. The page never requests seed phrases or private keys. A successful deployment is saved in local recovery storage and displays its contract address, transaction hash and block. A reload must not cause another deployment.
 
-`rh20/mainnet.json` initially has a null contract address. This is intentional: no mainnet deployment is claimed and the mint button remains disabled. Do not publish an arbitrary wallet-supplied contract URL or accept a query-string override. After the owner returns a confirmed deployment transaction, run the read-only verifier:
+The official RH-20 core is `0x4e89Bc6A7A218B338060d428f40d8f551efc8058`. Its deployment transaction is `0xfcf63d66c24b585f6af2f9b7133bca9fd93aef464a43dada1a10845dd2b997b6`, confirmed in RPC block 75,340,072. The owner supplied an Etherscan Exact Match verification result, and mainnet RPC independently matched the creation bytecode, runtime hash, genesis event, deployer metadata and RHSC rules before activation. The public mint uses this pinned address. Do not replace it for website updates.
+
+The deployment manifest started with a null address to keep minting disabled until verification. Do not publish an arbitrary wallet-supplied contract URL or accept a query-string override. Recheck the confirmed deployment with the read-only verifier:
 
 ```sh
 node scripts/publish-rh20.cjs --tx <deployment-transaction-hash>
