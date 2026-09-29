@@ -35,6 +35,23 @@ test('publishing resolves the exact genesis receipt from an address and refuses 
   await assert.rejects(verifyDeployment(chain.provider, { ...config, contractAddress: wallets[7].address }, { address }), /Refusing to replace/);
 });
 
+test('genesis verification distinguishes Arbitrum ancestor block numbers from RPC receipt blocks', async () => {
+  const snapshot = await chain.provider.send('evm_snapshot', []);
+  const address = await core.getAddress();
+  try {
+    await chain.provider.send('anvil_setStorageAt', [address, '0x1', '0x' + (31337n).toString(16).padStart(64, '0')]);
+    const rpc = new Proxy(chain.provider, { get(target, key) {
+      if (key === 'send') return async (method, params) => { const result = await target.send(method, params); return method === 'eth_getTransactionReceipt' ? { ...result, l1BlockNumber: '0x7a69' } : result; };
+      const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value;
+    } });
+    const config = { ...require('../rh20/mainnet.json'), contractAddress: null, deploymentTxHash: null, deploymentBlock: null };
+    const result = await verifyDeployment(rpc, config, { address });
+    assert.equal(result.deploymentBlock, chain.receipt.blockNumber);
+    assert.equal(result.deploymentTxHash, chain.receipt.hash);
+    await assert.rejects(verifyDeployment(chain.provider, config, { address }), /Genesis receipt mismatch/);
+  } finally { await chain.provider.send('evm_revert', [snapshot]); }
+});
+
 test('canonical mint credits exactly 500 and emits the same inscription', async () => {
   const receipt = await (await core.connect(wallets[1]).inscribe(P.MINT)).wait();
   assert.equal(await core.balanceOf('RHSC', wallets[1].address), 500n);

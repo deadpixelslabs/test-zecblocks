@@ -11,24 +11,22 @@ async function verifyDeployment(provider, config, { hash, address } = {}) {
   const blockTag = Number(BigInt(await provider.send('eth_blockNumber', [])));
   if (address) {
     address = getAddress(address);
+    if (!hash && P.sameAddress(config.contractAddress, address)) hash = config.deploymentTxHash;
     if (keccak256(await provider.getCode(address, blockTag)) !== artifact.runtimeCodeHash) throw new Error('Runtime bytecode does not match the reviewed artifact.');
     const core = new Contract(address, artifact.abi, provider);
-    const genesisBlock = Number(await core.genesisBlock({ blockTag }));
-    const deployer = await core.genesisDeployer({ blockTag });
     P.validateToken(await core.getToken('RHSC', { blockTag }));
-    if (!Number.isSafeInteger(genesisBlock) || genesisBlock < 1 || genesisBlock > blockTag) throw new Error('Invalid genesis block.');
     if (!hash) {
-      const block = await provider.send('eth_getBlockByNumber', ['0x' + genesisBlock.toString(16), true]);
-      if (!block || !Array.isArray(block.transactions)) throw new Error('Genesis block is unavailable.');
-      const candidates = block.transactions.filter(tx => tx.to === null && P.sameAddress(tx.from, deployer) && String(tx.input || tx.data).toLowerCase() === artifact.bytecode.toLowerCase());
-      for (const candidate of candidates) {
-        const receipt = await provider.getTransactionReceipt(candidate.hash);
-        if (receipt?.status === 1 && P.sameAddress(receipt.contractAddress, address)) {
-          if (hash) throw new Error('Ambiguous deployment receipts.');
-          hash = candidate.hash;
-        }
+      // On Arbitrum, Solidity block.number is an ancestor-chain number. Locate
+      // genesis from its event's RPC block instead of using that storage value.
+      const topics = [core.interface.getEvent('Genesis').topicHash];
+      for (let to = blockTag, windows = 0; to >= 0 && windows < 64 && !hash; ++windows) {
+        const from = Math.max(0, to - 999);
+        const logs = await provider.getLogs({ address, topics, fromBlock: from, toBlock: to });
+        if (logs.length > 1) throw new Error('Ambiguous genesis events.');
+        if (logs.length === 1) hash = logs[0].transactionHash;
+        to = from - 1;
       }
-      if (!hash) throw new Error('No exact creation transaction found in the genesis block.');
+      if (!hash) throw new Error('Genesis is outside the recent discovery range. Supply its deployment hash with --tx.');
     }
   }
   if (!/^0x[0-9a-fA-F]{64}$/.test(hash || '')) throw new Error('A deployment address or transaction hash is required.');
@@ -41,7 +39,11 @@ async function verifyDeployment(provider, config, { hash, address } = {}) {
   if (keccak256(await provider.getCode(address, blockTag)) !== artifact.runtimeCodeHash) throw new Error('Runtime bytecode does not match the reviewed artifact.');
   const core = new Contract(address, artifact.abi, provider);
   P.validateToken(await core.getToken('RHSC', { blockTag }));
-  if (!P.sameAddress(await core.genesisDeployer({ blockTag }), tx.from) || await core.genesisBlock({ blockTag }) !== BigInt(receipt.blockNumber)) throw new Error('Genesis receipt mismatch.');
+  const rawReceipt = await provider.send('eth_getTransactionReceipt', [hash]);
+  const genesisBlock = await core.genesisBlock({ blockTag });
+  const evmBlock = BigInt(rawReceipt.l1BlockNumber ?? rawReceipt.blockNumber);
+  const genesis = receipt.logs.filter(log => P.sameAddress(log.address, address)).map(log => { try { return core.interface.parseLog(log); } catch (_) { return null; } }).find(log => log?.name === 'Genesis');
+  if (!P.sameAddress(await core.genesisDeployer({ blockTag }), tx.from) || genesisBlock !== evmBlock || !genesis || !P.sameAddress(genesis.args.deployer, tx.from) || genesis.args.chainId !== 4663n || genesis.args.rhscId !== keccak256(Buffer.from('RHSC'))) throw new Error('Genesis receipt mismatch.');
   return { ...config, contractAddress: address, deploymentTxHash: hash, deploymentBlock: receipt.blockNumber };
 }
 async function main() {

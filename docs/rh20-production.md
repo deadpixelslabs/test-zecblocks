@@ -36,7 +36,9 @@ The deploying wallet must approve its own transaction and pay ETH gas. The page 
 node scripts/publish-rh20.cjs --tx <deployment-transaction-hash>
 ```
 
-An owner-supplied address can also be verified with `node scripts/publish-rh20.cjs --address <contract-address>`. The verifier checks its runtime first, reads its genesis block and finds the exact creation transaction and successful receipt in that block. Add `--check` to print the verified manifest without changing any files. This workflow uses read-only RPC calls and never signs a transaction. RH-20 explorer links use `https://robin.etherscan.io`.
+An owner-supplied address can also be verified with `node scripts/publish-rh20.cjs --address <contract-address>`. The verifier checks its runtime first and finds the creation receipt through the contract's Genesis event. Initial discovery searches at most 64,000 recent RPC blocks in 1,000-block windows; older deployments require `--tx`. Once pinned, subsequent checks use the stored transaction hash. Add `--check` to print the verified manifest without changing any files. This workflow uses read-only RPC calls and never signs a transaction. RH-20 explorer links use `https://robin.etherscan.io`.
+
+On Arbitrum chains, Solidity `block.number` reports an ancestor-chain number. The immutable genesis metadata must therefore match the receipt's `l1BlockNumber` where present; `deploymentBlock` in the website manifest always records the actual RPC receipt block. Genesis discovery uses the event rather than interpreting the Solidity value as an RPC block height. See [Arbitrum Solidity support](https://docs.arbitrum.io/arbitrum-essentials/arbitrum-vs-ethereum/solidity-support).
 
 It checks the mainnet chain ID, successful receipt, exact creation bytecode, deployed runtime hash, genesis metadata and RHSC parameters before writing the canonical manifest. Publish that manifest and its updated checksum. It refuses to replace an already configured official contract with another address.
 
