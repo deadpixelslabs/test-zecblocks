@@ -87,6 +87,17 @@ test('publication verifies creation transaction, renderer, genesis and permanent
   await assert.rejects(verifyDeployment(chain.provider,{...c,contractAddress:wallets[5].address},{address:await core.getAddress(),hash:chain.receipt.hash}),/Refusing to replace/);
   await assert.rejects(verifyDeployment(chain.provider,c,{address:wallets[5].address,hash:chain.receipt.hash}),/Runtime bytecode/);
 });
+test('publication remains valid when a public mint follows deployment in the same block',async()=>{
+  await chain.provider.send('evm_setAutomine',[false]);
+  try{
+    const fresh=await new ContractFactory(chain.artifact.abi,chain.artifact.bytecode,wallets[0]).deploy({gasLimit:10000000});
+    const mintTx=await fresh.connect(wallets[1]).inscribe(P.MINT,rid('same-block'),{value:P.FEE,gasLimit:600000});
+    await chain.provider.send('evm_mine',[]);
+    const deployReceipt=await chain.provider.getTransactionReceipt(fresh.deploymentTransaction().hash),mintReceipt=await chain.provider.getTransactionReceipt(mintTx.hash);
+    assert.equal(deployReceipt.status,1);assert.equal(mintReceipt.status,1);assert.equal(mintReceipt.blockNumber,deployReceipt.blockNumber);assert.equal(await fresh.totalSupply(),1n);
+    const result=await verifyDeployment(chain.provider,require('../ordinal/mainnet.json'),{address:await fresh.getAddress(),hash:deployReceipt.hash});assert.equal(result.deploymentBlock,deployReceipt.blockNumber);
+  }finally{await chain.provider.send('evm_setAutomine',[true]);}
+});
 test('paid recovery binds the exact amount, wallet, nonce, contract and calldata',()=>{
   const r={kind:'mint',account:wallets[1].address,contract:wallets[2].address,data:'0x12345678',value:P.FEE.toString(),nonce:4};
   const tx={from:r.account,to:r.contract,data:r.data,value:P.FEE,nonce:4,chainId:4663n};assert(P.matchesTransaction(tx,r));

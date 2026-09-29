@@ -21,10 +21,13 @@ async function verifyDeployment(provider,config,{address,hash}){
   const core=new Contract(address,artifact.abi,provider),rendererAddress=getCreateAddress({from:address,nonce:1});
   const [state,genesisDeployer,genesisBlock,rendererCode]=await Promise.all([core.collectionState(tx.from,{blockTag:receipt.blockNumber}),core.genesisDeployer(),core.genesisBlock(),provider.getCode(rendererAddress,receipt.blockNumber)]);
   P.validateState(state,rendererAddress);
-  if(state.minted!==0n||!P.sameAddress(genesisDeployer,tx.from)||keccak256(rendererCode)!==rendererArtifact.runtimeCodeHash)throw new Error('Genesis state or renderer mismatch.');
+  if(!P.sameAddress(genesisDeployer,tx.from)||keccak256(rendererCode)!==rendererArtifact.runtimeCodeHash)throw new Error('Genesis state or renderer mismatch.');
   const raw=await provider.send('eth_getTransactionReceipt',[hash]);
   if(genesisBlock!==BigInt(raw.l1BlockNumber??receipt.blockNumber))throw new Error('Genesis receipt mismatch.');
   const events=receipt.logs.filter(l=>P.sameAddress(l.address,address)).map(l=>{try{return core.interface.parseLog(l);}catch(_){return null;}});
+  // End-of-block state may include legitimate public mints after the deployment.
+  // Zero premine is proven by the exact constructor and this transaction's events.
+  if(events.some(l=>l?.name==='Inscribed'||l?.name==='Transfer'))throw new Error('The deployment receipt contains an unexpected premine.');
   const event=events.find(l=>l?.name==='Genesis');
   if(!event||!P.sameAddress(event.args.deployer,tx.from)||!P.sameAddress(event.args.renderer,rendererAddress)||event.args.supply!==5000n||event.args.protocolFee!==P.FEE||!P.sameAddress(event.args.treasury,P.TREASURY)||event.args.payload!==P.GENESIS)throw new Error('Genesis event mismatch.');
   return {...config,contractAddress:address,rendererAddress,deploymentTxHash:hash,deploymentBlock:receipt.blockNumber};
