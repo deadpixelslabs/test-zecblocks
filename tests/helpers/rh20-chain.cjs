@@ -13,7 +13,11 @@ async function freePort() {
 async function startChain() {
   const port = await freePort();
   const local = path.resolve(__dirname, '../../node_modules/.bin/anvil');
-  const binary = process.env.RH20_ANVIL || (fs.existsSync(local) ? local : 'anvil');
+  const architecture = process.arch === 'x64' ? 'amd64' : process.arch;
+  const executable = process.platform === 'win32' ? 'anvil.exe' : 'anvil';
+  let packaged;
+  try { packaged = require.resolve('@foundry-rs/anvil-' + process.platform + '-' + architecture + '/bin/' + executable); } catch (_) {}
+  const binary = process.env.RH20_ANVIL || packaged || (fs.existsSync(local) ? local : 'anvil');
   const processHandle = spawn(binary, ['--host', '127.0.0.1', '--port', String(port), '--chain-id', '4663', '--silent', '--gas-limit', '30000000'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let failure = null; processHandle.on('error', error => { failure = error; });
   const url = 'http://127.0.0.1:' + port;

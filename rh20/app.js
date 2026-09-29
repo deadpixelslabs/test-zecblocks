@@ -129,7 +129,8 @@
     return { contract, token };
   }
   async function refresh() {
-    if (S.refreshing || !S.config || !S.artifact) return;
+    if (!S.config || !S.artifact) return;
+    if (S.refreshing) { S.refreshAgain = true; return; }
     if (!S.config.contractAddress) {
       S.verified = false;
       if (mode === 'mint' && !S.pending) status('The official RHSC contract has not been published yet. Minting will open here after deployment.');
@@ -149,7 +150,10 @@
       if (!S.pending && !S.busy) status(mode === 'deploy' ? 'The official RH-20 contract is already deployed. Use the RHSC mint page.' : BigInt(token.totalSupply) === 21000000n ? 'All 42,000 mints are complete.' : count >= 20n ? 'This wallet has completed all 20 mints. Transferring tokens does not reset this limit.' : account ? 'Ready to mint 500 RHSC. Confirm one transaction in your wallet.' : 'Connect your wallet to mint 500 RHSC.');
     } catch (error) {
       if (generation === S.generation) { S.verified = false; if (!S.pending && !S.busy) status(P.message(error), 'error'); }
-    } finally { S.refreshing = false; render(); }
+    } finally {
+      S.refreshing = false; render();
+      if (S.refreshAgain) { S.refreshAgain = false; void refresh(); }
+    }
   }
   async function updateAccount() {
     if (!S.wallet) return;

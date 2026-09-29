@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install pinned contract and browser tooling
-        run: npm install --no-save --package-lock=false solc@0.8.26 ethers@6.13.5 @foundry-rs/anvil@1.7.1 playwright@1.55.1
+        run: npm install --no-save --package-lock=false solc@0.8.26 ethers@6.13.5 @foundry-rs/anvil-linux-amd64@1.7.1 playwright@1.55.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Verify RH-20 contract, wallet and deployment flows
@@ -90,7 +90,7 @@ jobs:
           node tests/claim-cap-concurrency.cjs
   live-read-check:
     if: github.ref == 'refs/heads/main'
-    needs: [mining, claim-cap]
+    needs: [rh20, mining, claim-cap]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
