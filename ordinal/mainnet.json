@@ -8,8 +8,8 @@
   "maxSupply": "5000",
   "protocolFeeWei": "190000000000000",
   "treasury": "0x81046ab56f41a78077662624ac4116465fdf00cc",
-  "contractAddress": null,
-  "rendererAddress": null,
-  "deploymentTxHash": null,
-  "deploymentBlock": null
+  "contractAddress": "0x6e049af563A804Ef834b4f6d1c8958a488571b21",
+  "rendererAddress": "0x7840794d28Ff52f6fbd378fCee2BF7B2dD594f51",
+  "deploymentTxHash": "0x05748c342ae940d34c7b22a0bf751fe02218f6b098492b0875b5ba6ee65c8f33",
+  "deploymentBlock": 75473902
 }

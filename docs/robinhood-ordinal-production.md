@@ -10,6 +10,12 @@ Owner-approved production rules, 29 September 2026:
 - One NFT is minted in each transaction. No premine, team allocation, admin mint, burn, pause, upgrades, artwork setters, metadata setters, fee setters or supply setters.
 - Mint UI: `https://mine.zecblocks.xyz/ordinal.html`, separate from the RHSC market. The RHSC market has a banner linking to this page.
 
+## Official deployment — 29 September 2026
+
+The owner deployed collection `0x6e049af563A804Ef834b4f6d1c8958a488571b21` with renderer `0x7840794d28Ff52f6fbd378fCee2BF7B2dD594f51` in transaction `0x05748c342ae940d34c7b22a0bf751fe02218f6b098492b0875b5ba6ee65c8f33`, RPC block **75,473,902**. Mainnet verification in CI run **36536455696** matched exact creation/runtime bytecode, the child renderer and approved artwork code, canonical receipt, genesis event, zero premine, supply, fee and treasury before the official manifest was pinned. The 14 isolated contract checks and 9 browser checks also passed.
+
+The official mint page uses this address; the deployment page prevents another official deployment. Do not replace or redeploy the collection for website updates. Future checks use the pinned address and transaction through `scripts/publish-ordinal.cjs --check`; the CI workflow records the verified receipt in `ordinal-deployment.json`. This on-chain verification does not claim explorer source verification.
+
 ## Artwork and ownership
 
 This is a contract-validated inscription collection with ERC-721 metadata, transfers and enumeration. It is an application protocol on Robinhood Chain; it does not use Bitcoin satoshi numbering. The contract accepts exactly `{"p":"rh-ordinal","op":"mint","tick":"RHO"}` plus a wallet-generated request ID, and emits an `Inscribed` event binding the minter, token ID, design code, fee, request ID and inscription payload. Reusing the same request ID for the same wallet reverts atomically.

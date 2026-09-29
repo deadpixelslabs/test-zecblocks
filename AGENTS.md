@@ -55,6 +55,8 @@ as the code base for the next authorized update**.
 
 ## Preserve established project rules
 
+- Official Robinhood Ordinal deployment (29 September 2026): collection `0x6e049af563A804Ef834b4f6d1c8958a488571b21`, renderer `0x7840794d28Ff52f6fbd378fCee2BF7B2dD594f51`, transaction `0x05748c342ae940d34c7b22a0bf751fe02218f6b098492b0875b5ba6ee65c8f33`, RPC block 75,473,902. Exact creation/runtime code, canonical receipt and genesis parameters were verified in CI run 36536455696 before activation. Never redeploy or replace this official collection for frontend changes.
+
 - Robinhood Ordinal (owner update, 29 September 2026): a separate ERC-721-compatible inscription collection, supply 5,000, exactly 0.00019 ETH protocol fee per NFT to `0x81046ab56f41a78077662624ac4116465fdf00cc`, no maximum mints per wallet, no premine or admin mint. Preserve the approved SVG renderer and immutable metadata. Minting belongs at `/ordinal.html`, separate from RHSC trading; the market links with an NFT banner. Never activate an unverified/unpublished collection or conflate this NFT fee with RHSC free minting. See `docs/robinhood-ordinal-production.md`.
 
 - Official RH-20 core (owner deployment, 29 September 2026): `0x4e89Bc6A7A218B338060d428f40d8f551efc8058`, chain 4663. Genesis transaction `0xfcf63d66c24b585f6af2f9b7133bca9fd93aef464a43dada1a10845dd2b997b6`, RPC block 75,340,072. Use Robinhood Etherscan (`https://robin.etherscan.io`) for RH-20 explorer links. Creation/runtime bytecode, receipt, genesis event, and RHSC rules were matched through mainnet RPC before enabling the public mint. Solidity genesisBlock follows Arbitrum ancestor-chain numbering; the manifest deploymentBlock is the RPC receipt block. Do not redeploy or replace this core for frontend updates.

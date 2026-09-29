@@ -16,6 +16,11 @@ jobs:
           node-version: '22'
       - name: Install pinned contract and browser tooling
         run: npm install --no-save --package-lock=false solc@0.8.26 ethers@6.13.5 @foundry-rs/anvil-linux-amd64@1.7.1 playwright@1.55.1
+      - name: Verify the owner-deployed Ordinal genesis through mainnet RPC
+        run: |
+          mkdir -p test-artifacts
+          node scripts/publish-ordinal.cjs --address 0x6e049af563A804Ef834b4f6d1c8958a488571b21 --hash 0x05748c342ae940d34c7b22a0bf751fe02218f6b098492b0875b5ba6ee65c8f33 --check > test-artifacts/ordinal-deployment.json
+          cat test-artifacts/ordinal-deployment.json
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Verify Ordinal fees, artwork, wallet recovery and deployment

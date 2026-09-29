@@ -6,6 +6,8 @@ const solc=require('solc');
 const {startChain}=require('./helpers/ordinal-chain.cjs');
 const P=require('../ordinal/protocol.js'),api=require('../api/ordinal.js');
 const {verifyDeployment}=require('../scripts/publish-ordinal.cjs');
+// Isolated deployments must never inherit the official production address.
+const unpublishedConfig={...require('../ordinal/mainnet.json'),contractAddress:null,rendererAddress:null,deploymentTxHash:null,deploymentBlock:null};
 let chain,core,wallets,snapshot;
 const rid=n=>id('ordinal-intent-'+n),mint=(who=1,n='a',extra={})=>core.connect(wallets[who]).inscribe(P.MINT,rid(n),{value:P.FEE,...extra});
 before(async()=>{chain=await startChain();core=chain.core;wallets=chain.signers;});
@@ -83,7 +85,7 @@ test('safe receiver rejection rolls back the fee; receiver reentrancy cannot min
   for(const reject of [true,false]){const receiver=await new ContractFactory(a.abi,a.evm.bytecode.object,wallets[0]).deploy(await core.getAddress(),reject);await receiver.waitForDeployment();const before=await chain.provider.getBalance(P.TREASURY);if(reject){await assert.rejects(receiver.run({value:P.FEE*2n,gasLimit:800000}).then(tx=>tx.wait()));assert.equal(await core.totalSupply(),0n);assert.equal(await chain.provider.getBalance(P.TREASURY),before);}else{await(await receiver.run({value:P.FEE*2n})).wait();assert.equal(await core.totalSupply(),1n);assert.equal(await receiver.reentered(),false);}}
 });
 test('publication verifies creation transaction, renderer, genesis and permanent parameters',async()=>{
-  const c=require('../ordinal/mainnet.json');const result=await verifyDeployment(chain.provider,c,{address:await core.getAddress(),hash:chain.receipt.hash});assert.equal(result.deploymentTxHash,chain.receipt.hash);assert.equal(result.rendererAddress,await core.renderer());
+  const c=unpublishedConfig;const result=await verifyDeployment(chain.provider,c,{address:await core.getAddress(),hash:chain.receipt.hash});assert.equal(result.deploymentTxHash,chain.receipt.hash);assert.equal(result.rendererAddress,await core.renderer());
   await assert.rejects(verifyDeployment(chain.provider,{...c,contractAddress:wallets[5].address},{address:await core.getAddress(),hash:chain.receipt.hash}),/Refusing to replace/);
   await assert.rejects(verifyDeployment(chain.provider,c,{address:wallets[5].address,hash:chain.receipt.hash}),/Runtime bytecode/);
 });
@@ -95,7 +97,7 @@ test('publication remains valid when a public mint follows deployment in the sam
     await chain.provider.send('evm_mine',[]);
     const deployReceipt=await chain.provider.getTransactionReceipt(fresh.deploymentTransaction().hash),mintReceipt=await chain.provider.getTransactionReceipt(mintTx.hash);
     assert.equal(deployReceipt.status,1);assert.equal(mintReceipt.status,1);assert.equal(mintReceipt.blockNumber,deployReceipt.blockNumber);assert.equal(await fresh.totalSupply(),1n);
-    const result=await verifyDeployment(chain.provider,require('../ordinal/mainnet.json'),{address:await fresh.getAddress(),hash:deployReceipt.hash});assert.equal(result.deploymentBlock,deployReceipt.blockNumber);
+    const result=await verifyDeployment(chain.provider,unpublishedConfig,{address:await fresh.getAddress(),hash:deployReceipt.hash});assert.equal(result.deploymentBlock,deployReceipt.blockNumber);
   }finally{await chain.provider.send('evm_setAutomine',[true]);}
 });
 test('paid recovery binds the exact amount, wallet, nonce, contract and calldata',()=>{
