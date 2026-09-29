@@ -1,11 +1,35 @@
 name: Mining checks
 on:
   push:
-    branches: [main, codex/mining-studio]
+    branches: [main, codex/mining-studio, codex/rh20-production]
   pull_request:
 permissions:
   contents: read
 jobs:
+  rh20:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned contract and browser tooling
+        run: npm install --no-save --package-lock=false solc@0.8.26 ethers@6.13.5 @foundry-rs/anvil@1.7.1 playwright@1.55.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify RH-20 contract, wallet and deployment flows
+        run: |
+          node scripts/build-rh20.cjs --check
+          node --test tests/rh20-contract.cjs
+          node --test tests/rh20-browser.cjs
+      - name: Save RHSC UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rhsc-ui
+          path: test-artifacts/
+          if-no-files-found: ignore
   mining:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101310">
+  <title>Mint RHSC · ZEC BLOCKS</title>
+  <meta name="description" content="Mint 500 RHSC on Robinhood Chain. 21 million supply. Up to 20 mints per wallet. Zero mint fee; network gas applies.">
+  <link rel="icon" href="/rh20/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/rh20/style.css">
+  <script defer src="/vendor/ethers-6.13.5.umd.min.js"></script>
+  <script defer src="/rh20/protocol.js"></script><script defer src="/rh20/app.js"></script>
+</head>
+<body data-mode="mint">
+<a class="skip" href="#mint">Skip to mint</a>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="https://www.zecblocks.xyz"><img src="/rh20/icon.svg" alt="" width="36" height="36">ZEC BLOCKS</a>
+  <nav aria-label="Main navigation"><a href="/">Mining</a><a href="/#zecs">$ZECS</a><a href="/rhsc.html" aria-current="page">$RHSC</a><a href="https://www.zecblocks.xyz">Marketplace ↗</a></nav>
+  <div class="top-actions"><select class="wallet-picker" id="walletSelect" aria-label="Choose wallet" hidden></select><button class="button square" id="themeButton" aria-label="Switch to light mode">☀</button><button class="button wallet" id="connectButton">Connect wallet</button></div>
+</div></header>
+<main id="mint">
+  <div class="intro"><div><div class="eyebrow">RH-20 · Robinhood Chain</div><h1>Mint $RHSC.</h1><p>500 tokens at a time. Free to mint.<br>Your wallet, your inscription.</p></div><span class="badge">21 MILLION · FIXED SUPPLY</span></div>
+  <div class="layout">
+    <section class="identity" aria-label="RHSC token details"><div class="identity-head"><span class="eyebrow">Robinhood Inscription</span><span class="badge">RH-20</span></div><div class="symbol" aria-hidden="true"><span>$</span>RHSC</div><div class="facts"><div><small>Maximum supply</small><b>21,000,000</b></div><div><small>Per mint</small><b>500 RHSC</b></div><div><small>Mints per wallet</small><b>20</b></div></div></section>
+    <section class="card" aria-labelledby="mintTitle"><div class="card-head"><h2 id="mintTitle">Your next 500 RHSC.</h2><span class="badge" id="launchBadge">Checking status</span></div>
+      <div class="metrics"><div class="metric"><small>Your RHSC balance</small><b id="balance">—</b></div><div class="metric"><small>Your lifetime mints</small><b id="walletMints">— / 20</b></div></div>
+      <div class="progress-meta"><span id="mintedSupply">— / 21,000,000</span><span id="mintPercent">—</span></div><div class="progress" id="supplyProgress" role="progressbar" aria-label="RHSC minted supply" aria-valuemin="0" aria-valuemax="21000000"><i id="progressFill"></i></div><p class="progress-caption"><span id="mintEvents">—</span> / 42,000 mints completed</p>
+      <div class="actions"><button class="button primary wide" id="mintButton" disabled>Checking mint availability</button></div><p class="fee">Mint fee: 0 ETH · Robinhood Chain network gas applies.</p>
+      <div class="status" id="status" role="status" aria-live="polite">Loading the published RHSC deployment…</div>
+      <div class="recovery" id="recovery" hidden><b id="recoveryTitle">Pending transaction</b><p id="recoveryText"></p><a class="pending-link" id="pendingLink" target="_blank" rel="noopener noreferrer" hidden></a><button class="button small" id="checkPending">Check transaction</button><div id="hashRecovery" hidden><label for="transactionHash">Transaction hash from your wallet</label><input class="input" id="transactionHash" autocomplete="off" spellcheck="false" placeholder="0x…" maxlength="66"><button class="button small" id="recoverHash">Verify transaction</button></div></div>
+      <p class="contract-link" id="contractLink" hidden></p>
+    </section>
+  </div>
+  <details class="detail"><summary>Mint inscription &amp; token rules</summary><div class="payload-row"><code id="payload">{"p":"rh-20","op":"mint","tick":"RHSC","amt":"500"}</code><button class="button small" data-copy="payload">Copy</button></div><p class="explanation">Each successful mint creates exactly 500 RHSC. A wallet can mint 20 times in total, receiving up to 10,000 RHSC through minting. Transfers do not reset this allowance. Balances and supply are enforced by the RH-20 contract. No premine or privileged mint.</p><p class="explanation">RHSC is an RH-20 token. View its balance here; this registry does not expose a separate ERC-20 token address.</p></details>
+  <div class="footer"><span>RH-20 on Robinhood Chain · Built by ZEC BLOCKS</span><a href="/contracts/RH20.sol">Contract source ↗</a></div>
+</main><div class="toast" id="toast" role="status" hidden></div>
+</body></html>

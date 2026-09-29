@@ -55,6 +55,8 @@ as the code base for the next authorized update**.
 
 ## Preserve established project rules
 
+- RH-20 / RHSC (owner update, 29 September 2026): target Robinhood Chain mainnet (4663), contract-validated inscriptions. RHSC maximum supply 21,000,000; exactly 500 per mint; 20 lifetime mints per wallet address (10,000 minted RHSC). Transfers never reset the counter. Mint fee is zero; network gas applies. Keep the minimal JSON with `p`, `op`, `tick`, `max`/`lim` or `amt`, without a public version label. The separate RH-20 marketplace fee is 3%; this does not change existing ZEC/USDC rails. Never treat an unconfigured deployment manifest as a live token, accept an arbitrary query-string contract, or replace the official core. Preserve receipt-based recovery and exact runtime-code verification. See `docs/rh20-production.md`.
+
 - Current ZEC BLOCKS claim limit/displayed supply: 4,444 unique NFTs (owner update, 25 September 2026). Legacy token IDs remain 1–5000; never filter, renumber or remove existing higher IDs. The remaining original allocation is reserved for future ZSA public mint. Preserve canonical ownership/claim verification
   and confirmed settlement finality. Indexer data is derived state, not permission
   to override chain evidence.

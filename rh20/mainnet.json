@@ -1,0 +1,13 @@
+{
+  "chainId": 4663,
+  "chainName": "Robinhood Chain",
+  "rpcUrl": "https://rpc.mainnet.chain.robinhood.com",
+  "explorerUrl": "https://robinhoodchain.blockscout.com",
+  "contractAddress": null,
+  "deploymentTxHash": null,
+  "deploymentBlock": null,
+  "ticker": "RHSC",
+  "maxSupply": "21000000",
+  "mintAmount": "500",
+  "maxMintsPerWallet": 20
+}

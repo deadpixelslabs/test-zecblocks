@@ -127,3 +127,6 @@ Wallet and API fixtures are synthetic. Tests run real CPU hashing at lower fixtu
 They do not spend real ZEC or prove a real Noir/mainnet transaction, hardware WebGPU performance, or external relay uptime.
 
 Production check: node tests/live-read-check.cjs performs read-only deployment/API checks. The main workflow runs it after regression tests; it never opens a wallet or reserves a token.
+
+RH-20 / RHSC
+/rhsc.html provides Robinhood Chain minting: 21,000,000 supply, exactly 500 RHSC per mint, 20 lifetime mints per wallet. /rhsc-deploy.html prepares the single wallet-signed mainnet deployment. The public mint stays disabled until the verified contract is pinned in rh20/mainnet.json. See docs/rh20-production.md. Existing Zcash features are unchanged.
