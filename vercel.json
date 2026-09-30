@@ -11,6 +11,9 @@
     },
     "api/ordinal.js": {
       "maxDuration": 15
+    },
+    "api/rh20-tokens.js": {
+      "maxDuration": 15
     }
   },
   "headers": [
@@ -88,6 +91,33 @@
     },
     {
       "source": "/ordinal-deploy.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/rh20.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/vlad-deploy.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/rh20-deploy.html",
       "headers": [
         {
           "key": "Cache-Control",

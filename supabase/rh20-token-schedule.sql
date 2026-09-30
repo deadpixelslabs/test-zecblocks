@@ -1,0 +1,4 @@
+-- Public anon credentials only. The Edge Function exposes aggregate chain data.
+select cron.schedule('zecblocks-rh20-tokens','20 seconds',$rh20_schedule$
+select net.http_post(url := 'https://tvwvenyomlwvjtwxasca.supabase.co/functions/v1/zecblocks-rh20-tokens', headers := '{"Content-Type": "application/json", "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2d3ZlbnlvbWx3dmp0d3hhc2NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MjIwMTcsImV4cCI6MjEwNDE5ODAxN30.RLGs8yTBd0JyRdHlv63YzLHJ7t8qPNHqZWN3WRu00VY"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 10000);
+$rh20_schedule$);

@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const config = require('../../rh20/mainnet.json');
 const originalConfig = { ...config };
+const vlad = require('../../rh20/vlad.json'), originalVLAD = { ...vlad };
 const api = require('../../api/rh20.js');
 async function serve(chain) {
   let published = true;
@@ -17,6 +18,13 @@ async function serve(chain) {
     try {
       const url = new URL(req.url, 'http://localhost');
       res.setHeader('Cache-Control', 'no-store');
+      if (url.pathname === '/rh20/vlad.json') { res.setHeader('Content-Type','application/json'); res.end(JSON.stringify({ ...originalVLAD, contractAddress: configured().contractAddress, deploymentTxHash: configured().deploymentTxHash, deploymentBlock: configured().deploymentBlock })); return; }
+      if (url.pathname === '/api/rh20-tokens') {
+        const logs = await chain.core.queryFilter(chain.core.filters.TokenDeployed());
+        const all = logs.sort((a,b)=>a.blockNumber-b.blockNumber||a.index-b.index).map((log,i)=>({ ordinal:i+1,ticker:log.args.tick,max_supply:String(log.args.maxSupply),mint_amount:String(log.args.mintAmount),wallet_limit:Number(log.args.maxMintsPerWallet),block_number:log.blockNumber,tx_hash:log.transactionHash }));
+        const q=url.searchParams.get('q')||'',offset=Number(url.searchParams.get('offset')||0),matched=all.filter(item=>item.ticker.includes(q));
+        res.setHeader('Content-Type','application/json'); res.end(JSON.stringify({tokens:matched.slice(offset,offset+24),total:matched.length,complete:true,updatedAt:new Date().toISOString()}));return;
+      }
       if (url.pathname === '/rh20/mainnet.json') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(configured())); return; }
       if (url.pathname === '/_fixture/rpc' || url.pathname === '/api/rh20') {
         let raw = ''; for await (const part of req) raw += part;

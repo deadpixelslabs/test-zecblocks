@@ -130,3 +130,9 @@ Production check: node tests/live-read-check.cjs performs read-only deployment/A
 
 RH-20 / RHSC
 /rhsc.html provides Robinhood Chain minting: 21,000,000 supply, exactly 500 RHSC per mint, 20 lifetime mints per wallet. /rhsc-deploy.html prepares the single wallet-signed mainnet deployment. The public mint stays disabled until the verified contract is pinned in rh20/mainnet.json. See docs/rh20-production.md. Existing Zcash features are unchanged.
+
+RH-20 token directory
+/rh20.html lists token registrations in blockchain order and supports token-specific minting.
+/vlad-deploy.html registers VLAD (100M supply, 40 per mint, unlimited per wallet) in the existing core.
+/rh20-deploy.html enables community token registration after VLAD is registered.
+The wallet signs the registration; no new smart contract is deployed.

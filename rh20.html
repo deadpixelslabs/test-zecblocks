@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101310">
+  <title>MINT RH-20 · ZEC BLOCKS</title>
+  <meta name="description" content="Explore RH-20 inscriptions on Robinhood Chain. Choose RHSC or VLAD and view verified supply, mint progress and wallet limits.">
+  <link rel="icon" href="/rh20/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/rh20/style.css"><link rel="stylesheet" href="/rh20/directory.css">
+  <script defer src="/vendor/ethers-6.13.5.umd.min.js"></script>
+  <script defer src="/rh20/protocol.js"></script><script defer src="/rh20/directory.js"></script><script defer src="/rh20/app.js"></script>
+</head>
+<body data-mode="mint" data-directory="true">
+<a class="skip" href="#mint">Skip to mint</a>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="https://www.zecblocks.xyz"><img src="/rh20/icon.svg" alt="" width="36" height="36">ZEC BLOCKS</a>
+  <nav aria-label="Main navigation"><a href="/rh20-deploy.html">Deploy</a><a href="/">Mining</a><a href="/#zecs">$ZECS</a><a href="/rh20.html" aria-current="page">MINT RH-20</a><a href="https://www.zecblocks.xyz/rh20.html">Marketplace ↗</a></nav>
+  <div class="top-actions"><select class="wallet-picker" id="walletSelect" aria-label="Choose wallet" hidden></select><button class="button square" id="themeButton" aria-label="Switch to light mode">☀</button><button class="button wallet" id="connectButton">Connect wallet</button></div>
+</div></header>
+<main id="mint">
+  <div class="intro directory-intro"><div><div class="eyebrow"><span class="network">Robinhood Chain</span> / Inscriptions</div><h1>MINT RH-20<span>.</span></h1><p>Discover tokens. Make your inscription.</p></div><span class="badge">FREE MINT · NETWORK GAS APPLIES</span></div>
+  <div class="directory-layout">
+    <section class="token-directory" aria-labelledby="directoryTitle">
+      <div class="directory-heading"><h2 id="directoryTitle">RH-20 tokens <span class="token-count" id="tokenCount">—</span></h2><a class="button small" href="/rh20-deploy.html">Deploy token ↗</a></div>
+      <div class="directory-controls"><label class="search-label"><span class="sr-only">Search ticker</span><input id="tokenSearch" class="input" type="search" placeholder="Search ticker…" autocomplete="off"></label><div class="token-filters" aria-label="Token status on this page" title="Filter tokens on the current page"><button class="filter active" data-filter="all" aria-pressed="true">All</button><button class="filter" data-filter="mintable" aria-pressed="false">Mintable</button><button class="filter" data-filter="complete" aria-pressed="false">Completed</button></div></div>
+      <div class="token-table-wrap"><table class="token-table"><thead><tr><th scope="col">#</th><th scope="col">Token</th><th scope="col">Mint progress</th><th scope="col">Per mint</th><th scope="col">Wallet limit</th><th scope="col">Action</th></tr></thead><tbody id="tokenRows"></tbody></table></div><p id="emptyTokens" class="empty-tokens" hidden>No tokens match this filter.</p>
+      <div class="directory-foot"><span id="directoryStatus" role="status">Checking published contracts…</span><button id="refreshTokens" class="text-button">Refresh ↻</button></div>
+      <div class="directory-pagination"><button class="button small" id="previousTokens" disabled>← Previous</button><span id="directoryPage">Deployment order</span><button class="button small" id="nextTokens" disabled>Next →</button></div><div class="mint-guide"><span class="eyebrow">YOUR WALLET, YOUR INSCRIPTION</span><h3>A few details before you mint.</h3><div class="guide-grid"><p><b>Choose your token</b>Check the fixed supply, mint amount and wallet rules for each token.</p><p><b>Confirm in your wallet</b>Each token has a fixed amount per mint. The protocol mint fee is zero.</p><p><b>Track your progress</b>Minted supply and your wallet count are read from the blockchain.</p></div></div>
+    </section>
+    <section class="card" aria-labelledby="mintTitle" id="mintPanel"><div class="card-head"><h2 id="mintTitle">Mint inscription</h2><span class="badge" id="launchBadge">Checking status</span></div>
+      <div class="selected-token"><span class="eyebrow">Selected token</span><strong id="selectedTicker">—</strong><div class="selected-terms"><span>Amount <b id="selectedAmount">—</b></span><span>Wallet limit <b id="selectedLimit">—</b></span></div></div>
+      <div class="metrics"><div class="metric"><small>Your token balance</small><b id="balance">—</b></div><div class="metric"><small>Your lifetime mints</small><b id="walletMints">— / 20</b></div></div>
+      <div class="progress-meta"><span id="mintedSupply">— / 21,000,000</span><span id="mintPercent">—</span></div><div class="progress" id="supplyProgress" role="progressbar" aria-label="RHSC minted supply" aria-valuemin="0" aria-valuemax="21000000"><i id="progressFill"></i></div><p class="progress-caption"><span id="mintEvents">—</span> / <span id="totalMintEvents">—</span> mints completed</p>
+      <div class="actions"><button class="button primary wide" id="mintButton" disabled>Checking mint availability</button></div><p class="fee">Mint fee: 0 ETH · Robinhood Chain network gas applies.</p>
+      <div class="status" id="status" role="status" aria-live="polite">Loading the selected inscription…</div>
+      <div class="recovery" id="recovery" hidden><b id="recoveryTitle">Pending transaction</b><p id="recoveryText"></p><a class="pending-link" id="pendingLink" target="_blank" rel="noopener noreferrer" hidden></a><button class="button small" id="checkPending">Check transaction</button><div id="hashRecovery" hidden><label for="transactionHash">Transaction hash from your wallet</label><input class="input" id="transactionHash" autocomplete="off" spellcheck="false" placeholder="0x…" maxlength="66"><button class="button small" id="recoverHash">Verify transaction</button></div></div>
+      <p class="contract-link" id="contractLink" hidden></p>
+    </section>
+  </div>
+  <details class="detail"><summary>Mint inscription &amp; token rules</summary><div class="payload-row"><code id="payload">{"p":"rh-20","op":"mint","tick":"RHSC","amt":"500"}</code><button class="button small" data-copy="payload">Copy</button></div><p class="explanation" id="selectedRules"></p><p class="explanation">RH-20 inscription tokens use their protocol contract for balances and transfers. They are not NFTs or ERC-20 tokens.</p></details>
+  <div class="footer"><span>RH-20 on Robinhood Chain · Built by ZEC BLOCKS</span><a id="selectedSource" href="/contracts/RH20.sol">Contract source ↗</a></div>
+</main><div class="toast" id="toast" role="status" hidden></div>
+</body></html>

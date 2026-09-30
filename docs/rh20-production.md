@@ -81,3 +81,57 @@ node --test tests/rh20-browser.cjs
 They use an isolated local EVM with the mainnet chain ID, and browser wallet fixtures. They cover canonical inscriptions, malformed payload rejection, 20 successful mints and a rejected 21st, mint limits after transfers, allowance isolation, last-supply transaction competition, frontend bytecode verification, mainnet deployment receipts, rejection, ambiguous broadcast recovery, wallet changes, mobile layout and theme controls. They are not an independent security audit or proof of a completed mainnet deployment.
 
 Existing NFT and ZECS mining, recovery, claim limits, eligibility and fees are preserved. Navigation links are the only edits to their existing interface.
+
+## Token directory and community deployments — 30 September 2026
+
+The owner finalized VLAD at **100,000,000 supply, 40 per mint, unlimited
+mints per wallet**. VLAD is registered through inscribe(deploy) in the
+existing official RH-20 core; no new smart contract is required.
+/vlad-deploy.html prepares that single wallet-signed registration.
+The website verifies exact runtime and token rules before opening minting.
+No VLAD registration was signed by the development workflow.
+
+/rh20.html is the mint directory. /rhsc.html remains available, preserving
+RHSC mint recovery. /rh20-deploy.html registers community tickers using the
+same core. Its public form opens after VLAD is registered. Direct contract
+calls remain permissionless, so VLAD's number cannot be reserved by the UI.
+The community form accepts 2–12 uppercase ASCII letters/digits and positive
+uint256 whole-number supply/mint amounts with exact divisibility. Rules cannot
+be edited after registration. Additional tokens have no wallet cap; RHSC's
+20 lifetime mints remain unchanged.
+
+Directory numbers follow (block_number, log_index) of TokenDeployed events.
+The Supabase zecblocks-rh20-tokens function scans the fixed official core,
+checks runtime and chain ID, keeps a leased cursor and canonical checkpoints,
+and rewinds derived rows after a reorganization. It starts at RPC block
+75,340,072 and scans to two blocks behind the RPC head. A 20-second cron and
+public read requests trigger bounded synchronization. New registrations appear
+on the next index refresh; the selected token's mint can open immediately once
+its on-chain rules are verified. Pending VLAD has no assigned ordinal.
+
+All index tables live in rh20_tokens_private, with RLS and no anon or
+authenticated grants. Service-role-only SECURITY INVOKER RPCs back the
+JWT-protected Edge Function. The browser sees public token metadata, deployment
+transaction links and ordinals, never the service key. It reads balances and
+supply from the fixed core. /api/rh20-tokens caches only public discovery for
+five seconds. Search is global; status filters apply to the current 24-token
+page. A listed community token is not a project endorsement.
+
+Registration and mint recovery bind the wallet, chain, core, nonce, zero ETH,
+canonical receipt, exact payload and matching event. RHSC storage keys remain
+intact; other ticker keys are namespaced even though they share the same core.
+The community deployment form has one active journal per wallet and restores
+its exact token parameters after an ambiguous broadcast. No timeout resends a
+transaction. Completed registration receipts persist until the user explicitly
+starts another token.
+
+The RHSC marketplace navigation now points to MINT RH-20. This release does not
+add community-token trading. Existing RHSC fees, Sweep, historical markets,
+NFT holder benefits and the Ordinal banner remain in place.
+
+Validation: the existing RH-20 contract suite plus VLAD registration, minting
+past 20 events, final-supply competition, uint256 input validation, journal
+separation and exact registration receipt checks. Browser coverage includes
+owner registration, automatic directory appearance, ordered community tokens,
+custom mint amounts, duplicate-ticker rejection and interrupted wallet recovery.
+The script scripts/publish-vlad.cjs [--tx <registration hash>] is read-only.

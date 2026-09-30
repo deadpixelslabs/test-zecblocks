@@ -55,6 +55,9 @@ jobs:
           node scripts/build-rh20.cjs --check
           node --test tests/rh20-contract.cjs
           node --test tests/rh20-browser.cjs
+          node --test tests/vlad-contract.cjs
+          node --test tests/rh20-directory-browser.cjs
+          node scripts/publish-vlad.cjs
       - name: Verify the owner-deployed RHSC genesis through mainnet RPC
         run: |
           mkdir -p test-artifacts

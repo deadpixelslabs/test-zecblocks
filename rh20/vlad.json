@@ -1,0 +1,13 @@
+{
+  "chainId": 4663,
+  "chainName": "Robinhood Chain",
+  "rpcUrl": "https://rpc.mainnet.chain.robinhood.com",
+  "explorerUrl": "https://robin.etherscan.io",
+  "contractAddress": "0x4e89Bc6A7A218B338060d428f40d8f551efc8058",
+  "deploymentTxHash": "0xfcf63d66c24b585f6af2f9b7133bca9fd93aef464a43dada1a10845dd2b997b6",
+  "deploymentBlock": 75340072,
+  "ticker": "VLAD",
+  "maxSupply": "100000000",
+  "mintAmount": "40",
+  "maxMintsPerWallet": 0
+}

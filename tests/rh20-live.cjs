@@ -9,7 +9,7 @@ const config = require('../rh20/mainnet.json');
 const base = 'https://mine.zecblocks.xyz';
 const root = path.resolve(__dirname, '..');
 const hash = data => createHash('sha256').update(data).digest('hex');
-const files = ['rhsc.html', 'rhsc-deploy.html', 'rh20/mainnet.json', 'rh20/RH20.json', 'rh20/app.js', 'rh20/protocol.js', 'rh20/style.css', 'contracts/RH20.sol', 'rh20/compiler-input.json', 'vendor/ethers-6.13.5.umd.min.js'];
+const files = ['rh20.html', 'rh20-deploy.html', 'vlad-deploy.html', 'rh20/vlad.json', 'rh20/directory.js', 'rh20/directory.css', 'rhsc.html', 'rhsc-deploy.html', 'rh20/mainnet.json', 'rh20/RH20.json', 'rh20/app.js', 'rh20/protocol.js', 'rh20/style.css', 'contracts/RH20.sol', 'rh20/compiler-input.json', 'vendor/ethers-6.13.5.umd.min.js'];
 async function deployedFiles() {
   let failure;
   for (let attempt = 0; attempt < 10; ++attempt) {
@@ -51,7 +51,19 @@ async function deployedFiles() {
       assert.match(await page.locator('#launchBadge').innerText(), /Mint open|Mint complete/);
     }
     await page.screenshot({ path: path.join(out, 'rhsc-production-mint.png'), fullPage: true });
+    await page.goto(base + '/rh20.html', { waitUntil: 'networkidle' });
+    await page.waitForSelector('[data-token="RHSC"]', { timeout: 20000 });
+    assert.equal(await page.locator('[data-token="RHSC"] .token-number').innerText(), '#1');
+    assert.equal(await page.locator('#selectedAmount').innerText(), '40');
+    assert.equal(await page.locator('#selectedLimit').innerText(), 'Unlimited');
+    await page.screenshot({ path: path.join(out, 'rh20-production-directory.png'), fullPage: true });
+    await page.goto(base + '/vlad-deploy.html', { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => document.querySelector('#launchBadge').textContent !== 'Checking registry');
+    await page.screenshot({ path: path.join(out, 'vlad-production-register.png'), fullPage: true });
+    await page.goto(base + '/rh20-deploy.html', { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => !document.querySelector('#deployTicker').disabled);
+    await page.screenshot({ path: path.join(out, 'rh20-production-community.png'), fullPage: true });
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ live: base, verifiedFiles: files.length, chainId: Number(BigInt(network.result)), contractAddress: config.contractAddress, pagesVerified: 2, pageErrors: 0 }));
+    console.log(JSON.stringify({ live: base, verifiedFiles: files.length, chainId: Number(BigInt(network.result)), contractAddress: config.contractAddress, pagesVerified: 5, pageErrors: 0 }));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
