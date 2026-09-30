@@ -6,6 +6,12 @@ const artifact=require('../ordinal/RobinhoodOrdinal.json'),rendererArtifact=requ
 async function verifyDeployment(provider,config,{address,hash}){
   if(!/^0x[0-9a-fA-F]{40}$/.test(address||''))throw new Error('A collection address is required.');
   if(config.contractAddress&&!P.sameAddress(config.contractAddress,address))throw new Error('Refusing to replace the official collection.');
+  const pinned=Boolean(config.contractAddress);
+  if(pinned){
+    if(!/^0x[0-9a-fA-F]{64}$/.test(config.deploymentTxHash||'')||!Number.isSafeInteger(config.deploymentBlock)||config.deploymentBlock<0)throw new Error('Incomplete pinned deployment.');
+    if(hash&&hash.toLowerCase()!==config.deploymentTxHash.toLowerCase())throw new Error('Pinned deployment transaction mismatch.');
+    hash=config.deploymentTxHash;
+  }
   if(BigInt(await provider.send('eth_chainId',[]))!==4663n)throw new Error('Wrong chain.');
   const code=await provider.getCode(address);if(code==='0x'||keccak256(code)!==artifact.runtimeCodeHash)throw new Error('Runtime bytecode does not match.');
   if(!hash){
@@ -17,9 +23,14 @@ async function verifyDeployment(provider,config,{address,hash}){
   }
   const [tx,receipt]=await Promise.all([provider.getTransaction(hash),provider.getTransactionReceipt(hash)]);
   if(!tx||!receipt||receipt.status!==1||!P.sameAddress(receipt.contractAddress,address)||tx.to!==null||tx.value!==0n||tx.data.toLowerCase()!==artifact.bytecode.toLowerCase())throw new Error('Deployment transaction mismatch.');
-  const block=await provider.getBlock(receipt.blockNumber);if(block?.hash!==receipt.blockHash)throw new Error('Deployment receipt is not canonical.');
+  const block=await provider.getBlock(receipt.blockNumber);if(block?.hash!==receipt.blockHash||tx.blockHash!==receipt.blockHash)throw new Error('Deployment receipt is not canonical.');
   const core=new Contract(address,artifact.abi,provider),rendererAddress=getCreateAddress({from:address,nonce:1});
-  const [state,genesisDeployer,genesisBlock,rendererCode]=await Promise.all([core.collectionState(tx.from,{blockTag:receipt.blockNumber}),core.genesisDeployer(),core.genesisBlock(),provider.getCode(rendererAddress,receipt.blockNumber)]);
+  if(pinned&&(config.deploymentBlock!==receipt.blockNumber||!P.sameAddress(config.rendererAddress,rendererAddress)))throw new Error('Pinned deployment block or renderer mismatch.');
+  // First publication still requires historical genesis state. Once that exact
+  // deployment is pinned, recheck current immutable code and parameters without
+  // depending on archive state that the production RPC may have pruned.
+  const stateBlock=pinned?'latest':receipt.blockNumber;
+  const [state,genesisDeployer,genesisBlock,rendererCode]=await Promise.all([core.collectionState(tx.from,{blockTag:stateBlock}),core.genesisDeployer(),core.genesisBlock(),provider.getCode(rendererAddress,stateBlock)]);
   P.validateState(state,rendererAddress);
   if(!P.sameAddress(genesisDeployer,tx.from)||keccak256(rendererCode)!==rendererArtifact.runtimeCodeHash)throw new Error('Genesis state or renderer mismatch.');
   const raw=await provider.send('eth_getTransactionReceipt',[hash]);

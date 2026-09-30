@@ -135,3 +135,5 @@ separation and exact registration receipt checks. Browser coverage includes
 owner registration, automatic directory appearance, ordered community tokens,
 custom mint amounts, duplicate-ticker rejection and interrupted wallet recovery.
 The script scripts/publish-vlad.cjs [--tx <registration hash>] is read-only.
+
+Release validation: feature commit 22352c819a855ac16a6e9eb5c27c1edc5627cfc2 passed the RH-20 wallet/directory suite in CI run 36655288090, including the six community/VLAD browser scenarios. The index regression uses real isolated contract events and an EVM reorganization to verify numbering, duplicate prevention, rewind and wrong-chain rejection.

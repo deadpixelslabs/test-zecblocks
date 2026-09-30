@@ -100,6 +100,21 @@ test('publication remains valid when a public mint follows deployment in the sam
     const result=await verifyDeployment(chain.provider,unpublishedConfig,{address:await fresh.getAddress(),hash:deployReceipt.hash});assert.equal(result.deploymentBlock,deployReceipt.blockNumber);
   }finally{await chain.provider.send('evm_setAutomine',[true]);}
 });
+test('pinned genesis verification survives pruning without weakening first publication or its pins',async()=>{
+  const address=await core.getAddress(),hash=chain.receipt.hash;
+  const pinned=await verifyDeployment(chain.provider,unpublishedConfig,{address,hash});
+  const provider=new Proxy(chain.provider,{get(target,key){
+    if(key==='getCode')return async(address,block)=>{if(block!==undefined&&block!=='latest')throw new Error('historical state unavailable');return target.getCode(address,block);};
+    if(key==='call')return async(tx)=>{if(tx.blockTag!==undefined&&tx.blockTag!=='latest')throw new Error('historical state unavailable');return target.call(tx);};
+    const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;
+  }});
+  assert.equal((await verifyDeployment(provider,pinned,{address})).deploymentTxHash,hash);
+  await assert.rejects(verifyDeployment(provider,unpublishedConfig,{address,hash}),/historical state unavailable/);
+  await assert.rejects(verifyDeployment(provider,pinned,{address,hash:toBeHex(1,32)}),/Pinned deployment transaction mismatch/);
+  for(const change of [{deploymentBlock:pinned.deploymentBlock+1},{rendererAddress:wallets[5].address}])await assert.rejects(verifyDeployment(provider,{...pinned,...change},{address}),/Pinned deployment block or renderer mismatch/);
+  await chain.provider.send('anvil_setCode',[pinned.rendererAddress,'0x60006000fd']);
+  await assert.rejects(verifyDeployment(provider,pinned,{address}),/Genesis state or renderer mismatch/);
+});
 test('paid recovery binds the exact amount, wallet, nonce, contract and calldata',()=>{
   const r={kind:'mint',account:wallets[1].address,contract:wallets[2].address,data:'0x12345678',value:P.FEE.toString(),nonce:4};
   const tx={from:r.account,to:r.contract,data:r.data,value:P.FEE,nonce:4,chainId:4663n};assert(P.matchesTransaction(tx,r));
